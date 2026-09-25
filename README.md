@@ -25,6 +25,244 @@ The goal is to create **productive communities that use local resources efficien
 
 ---
 
+# Why this exists
+
+The climate is warming, and the conditions a community has to plan for are less certain than they were. Habitat, food, water, energy, waste, and economics are usually planned as separate jobs. LoopBiotek treats them as one system, because a failure in any one of them changes what the others can do for people and for the land they share.
+
+Conscientious design starts by measuring needs, and nutrition is the first need. Surplus is what remains after the community, the breeding stock, the animals, the seed, and the safety floors have been served. A product can be sold when mouths are already fed. Community food is never traded away for profit while that need is still unmet.
+
+The aim is a productive place: people housed and fed, ecosystems kept in the accounting, and a real surplus that can sustain the community and, when it is safe, let it grow.
+
+---
+
+# Nobody goes hungry
+
+The food model enforces that promise with a fixed weekly order. Modules 8 and 10 of [the reference notebook](reference/complete_model.ipynb) allocate every week in this order:
+
+1. **Community human nutrition.** The cell owes its people a nutrient target `N_H = H × n_H`: the number of people `H` times each person's need vector. The reference run uses `H = 20`. The community egg allowance in that model is 12 eggs per person per week (`12H`). This claim is filled before anything is exported.
+2. **Breeders and replacements.** The flock, and the other breeding stock, have to be fed so next season's food still exists. Harvest is limited by what future reproduction still needs (Module 1b).
+3. **Animal feed.** Crickets, quail, fish, and the rest receive the feed their production requires after people and breeders.
+4. **Seed and propagation reserves.** Seed bins and vegetative planting stock are refilled so the next planting can happen. Seed on hand, `B`, stays at or above its reserve floor.
+5. **Working stock and safety floors.** Food inventory, seed, and emergency inventory sit above a floor. Module 10 requires the balance to hold in every week.
+6. **Exportable surplus, last.** Only what remains after those five claims can be sold. Any product allocator runs inside this last step. Export does not draw down breeder stock, the seed reserve, or the safety floors.
+
+**Establishment weeks look different, on purpose.** While the quail flock is still below its hen capacity, the model incubates first (about 70% of eggs in the reference code) so the future flock exists. The community eats from what remains, and eggs are still not sold out of that shortfall. The notebook treats the early food-shortfall index as a feature of building the flock. In the integrated 156-week run with `H = 20`, that index is zero from about week 28, once the flock can cover both incubation and the table. In steady state the order flips back: community eggs first (up to `12H`), then incubation of what is left, then sale of anything still above the incubator cap.
+
+**Expansion waits on the same promise.** Module 11 refuses a growth step unless failure probabilities stay under their thresholds: the chance of a nutrition shortfall, the chance the seed bin breaks its floor, the chance an energy deficit goes unserved, and the chance cash goes negative. If any threshold fails, expansion holds. See [Model-Gated Expansion](#model-gated-expansion).
+
+Every number in that notebook is a **planning value from the model**, not verified commercial performance. The same caution is in [Current Status](#current-status).
+
+---
+
+# How the Loop model works
+
+The specification is [reference/complete_model.ipynb](reference/complete_model.ipynb): eleven modules, one weekly state vector, a 156-week coupled run, and a Monte Carlo check. The formulas live there. This section says what each piece is for, what its variables change, and when a reader should care. Later sections — [The First Reference System: The Loop](#the-first-reference-system-the-loop), [Mathematical Modeling](#mathematical-modeling), [Resource Accounting](#resource-accounting) — sit on top of the same model.
+
+Time moves in weeks, `t = 0, 1, …`. Each week the community chooses controls `u_t` (what to cull, allocate, and harvest). Noise `ω_t` is everything biological and weather-related that does not obey the plan: hatch rates, survival, yields. Next week's state is this week's state, those choices, and that noise.
+
+The circle the modules close: plants feed crickets, quail, fish, and black soldier fly larvae (BSFL); their wastes go to BSFL; larvae come back as feed and frass comes back to soil and plants. Cash is produced by exporting surplus, and export is last.
+
+### Module 0 — State vector
+
+**Purpose:** Remember everything the community has this week so every other module reads and writes the same picture.
+
+**Key variables (plain English):**
+
+- `X_t` — the whole community this week. It bundles the stocks below. Every later module reads this vector and writes back into it.
+- `Q_t` — quail, split into females `F_a` and males `M_a` by age. This is the egg and meat engine. A missing age class shows up later as fewer eggs.
+- `K_t` — crickets, by life stage. They turn plant residue into a harvest on a roughly six-week clock.
+- `F_t` — fish cohorts. A cohort stocked this week is not food yet; harvest waits on weight-at-age.
+- `B_t` — seed on hand. If this hits the floor, sprouting and planting shrink in later weeks.
+- `S_t` — starch-crop cohorts on their own cycle. They are calories in the ground, not calories on the shelf, until harvest.
+- `I_t` — product inventories (eggs, meat, and other outputs waiting to be eaten or, last, sold).
+- `W_t` — water in store. Demand from animals, sprouts, crops, and people has to fit inside what is available.
+- `E_t` — energy on hand (generation plus anything drawn from the grid or a generator). A deficit is paid for in cash.
+- `cash_t` — money. It rises when surplus is sold and falls when feed, energy shortfalls, and the run's other operating costs are paid. A sale that skips the nutrition stack is not booked as income.
+
+**What a reader should watch:** If seed, breeding birds, or the safety inventories fall while cash rises, the model is being read backwards — those stocks are supposed to be protected before cash is allowed to grow.
+
+### Module 1 — Quail demographic engine
+
+**Purpose:** Grow an age-and-sex flock that can feed the community and still replace itself.
+
+**Key variables (plain English):**
+
+- `F_a`, `M_a` — hens and males at age `a`. The reference code compresses juveniles into a six-week ring, then adult sexes. Total birds `N_Q` is the sum. A hole in one age class shows up weeks later as fewer eggs.
+- `E_t` — eggs this week. The notebook draws them from each hen's age-specific laying chance `r_a` over seven days. Hens past the productive age `a_e` become harvest candidates.
+- `E_inc` — eggs set in the incubator, capped by `C_inc` (incubator capacity). During establishment this is the flock's future. In the reference build, capacity is 400 hens, starting from 20, and the incubator cap is what stops the flock from being set faster than the hardware allows.
+- `E_comm` — eggs kept for people, at most `12H` per week. This is the community claim on the flock.
+- Hatch fraction `h`, female fraction `p_F`, and survival `s` — the share of incubated eggs that become chicks, the share of chicks that are female, and the share that live to the next age. A bad week here shrinks the flock that will be laying after the juvenile delay.
+- `μ_Q` — hens per required male. The example is 5: one breeding male per five hens. Extra adult males are the default cull.
+
+**What a reader should watch:** While hen count is below capacity, most eggs go to incubation and the community egg line can lag. That lag is the build-up described in [Nobody goes hungry](#nobody-goes-hungry), and it is not an export.
+
+### Module 1b — Probabilistic culling governor
+
+**Purpose:** Decide how many birds can be harvested this week without betting the future flock.
+
+**Key variables (plain English):**
+
+- `C` — birds harvested now. `C_demand` is how many the kitchen or a buyer would take. The governor may allow fewer.
+- `C_max` — the largest harvest whose chance of missing future breeder targets stays within the limit. The actual harvest is the smaller of demand and this ceiling.
+- `L` — how many weeks ahead the check looks. The notebook's worked example uses eight weeks. A short horizon hides a hole that is still in the juvenile ring.
+- `α_Q` — the highest acceptable chance of falling short of required hens or males inside that horizon. The example uses 1%. A tighter `α_Q` means a smaller harvest today.
+- `F_req`, `M_req` — how many females and males the flock must still have in each future week. If a proposed cull drives the projected flock under those lines too often, the cull is cut back.
+
+**What a reader should watch:** A week with strong buyer demand and a small `C_max` means the flock cannot spare the birds. Selling them anyway would show up later as a nutrition shortfall, which is exactly what the gate is there to prevent.
+
+### Module 2 — Waste-modulated growth
+
+**Purpose:** Let diet quality, including how much waste is in the ration, change how fast each organism grows.
+
+**Key variables (plain English):**
+
+- `μ_j` — weekly growth rate of organism `j`. It starts from a biological maximum `μ_j^max` and is scaled by multipliers the notebook writes as `f_E`, `f_P`, `f_W`, `f_T`, and `f_ρ`. When growth falls to the maintenance rate `m`, the organism is only staying alive.
+- `φ` — the fraction of the diet that is waste. For quail, more waste pulls growth down. The break-even fraction `φ*` is where growth only matches maintenance. Past `φ*`, growth is below maintenance and the stock declines.
+- `φ_opt` — for a detritivore such as BSFL, the waste fraction where growth is highest. Some waste helps; too much still hurts. The notebook plots both.
+- `d_j` — how digestible that ration is. Poor digestibility means more feed in for the same gain, and more waste out next week.
+
+**What a reader should watch:** Raising the waste share in a quail ration to "use up leftovers" can cut eggs and meat before it saves any cash. The same waste may belong in the BSFL bin, where a moderate `φ` is useful.
+
+### Module 3 — Crickets
+
+**Purpose:** Turn residue feed into a cricket harvest on a short, staged life cycle, and send the frass onward.
+
+**Key variables (plain English):**
+
+- Stage bins — egg (about 1 week), nymph (about 4 weeks), adult harvest (about 2 weeks). The notebook's demo sets 200 eggs a week and promotes each bin with about 95% survival. A missed egg set shows up as a missed harvest about six weeks later.
+- `I_K` — cricket feed in. The demo uses 170 lb of residue feed per week.
+- `FCR_K` — feed conversion: pounds of feed per pound of live harvest. The demo uses 1.7, so harvest `P_K = I_K / FCR_K`. A worse conversion means less food from the same plants.
+- Harvest fraction — the demo takes about 60% of adults each week and leaves the rest in the bin, while the egg bin is reset to 200.
+- `W_K` — frass, about 0.40 lb per pound of feed, which Module 7 receives.
+- Dry yield — about 0.55 lb dry product per pound live, then split across frozen retail, wholesale, and powder, each with a demand cap. Caps matter: unsold crickets are not automatic revenue.
+
+**What a reader should watch:** Cricket harvest cannot rise just because the price is good. It rises when residue feed, survival through the nymph weeks, and the adult bin all allow it — and only after the nutrition stack has taken its share.
+
+### Module 4 — Tilapia
+
+**Purpose:** Hold fish as cohorts, grow them to a harvest weight, and keep from stripping the tank.
+
+**Key variables (plain English):**
+
+- `w_F(a)` — weight at age. The notebook uses a von Bertalanffy curve with an upper weight near 1.1 kg and a harvest window around 0.35 kg. Harvesting far below that window wastes the weeks already fed.
+- `B_F` — standing biomass in the tank. The demo starts near 900 lb. Weekly harvest is limited to a quarter of standing biomass, so a tank cannot be emptied to make a sales week.
+- `I_F` — fish feed. The demo feeds about 210 lb in a week at a conversion of 1.4.
+- `y_F` — edible yield of what is harvested. The demo uses 0.87, gutted weight divided by live weight. Kitchens and sales see the gutted figure.
+- `Y_F` — this week's edible harvest. In the coupled run, fish production starts at week 26, after quail (week 0) and crickets (week 13).
+
+**What a reader should watch:** Until week 26, fish are not in production yet; that gap in the shortfall index is the phase schedule. After week 26, harvest still cannot exceed what biomass and the weekly cap allow.
+
+### Module 5 — Sprouts and seed
+
+**Purpose:** Convert seed into sprouts for the table, and keep enough seed that the conversion can continue.
+
+**Key variables (plain English):**
+
+- `P_sp` — sprout output. Sprouts are a conversion, not a field crop: yield times seed viability times the seed that was set a short time earlier.
+- `q_t` — seed viability this week. It decays. Old seed produces fewer sprouts from the same pounds set.
+- `η_sp` — an honesty check on energy. Sprouting adds water and micronutrients. The calories still come from the seed that went in.
+- `B_t` — seed inventory. It gains harvested seed and loses seed used for sprouts, seed planted, other draws, and losses. It must stay at or above the reserve `B_reserve`.
+- `M_eff` — seed harvested divided by seed planted. The loop only stays open if this stays above 1: more seed back than seed put in the ground.
+- The notebook's illustration — 200 lb on hand, 20 lb used each week, 250 lb returned every 12 weeks, floor at 60 lb — is a worked example of that closure, not a field measurement.
+
+**What a reader should watch:** If the seed line approaches the floor, next week's sprouts and plantings shrink first. Hunger risk shows up there before it shows up in cash.
+
+### Module 6 — Starch and propagation reserve
+
+**Purpose:** Grow the calorie crops on a twelve-week cycle, and hold back the planting material the next cycle needs.
+
+**Key variables (plain English):**
+
+- `S_c` — one planting cohort. Cohorts are tracked separately, so a harvest from one planting leaves the next planting's state intact.
+- Harvest split — each harvest is divided into food and feed, seed, and a reserve. For seed crops the notebook's effective multiplication `M_eff` is about eight times after emergence and losses. That factor is what makes the next planting possible; spending it all as food ends the crop.
+- `V_prop` — the propagation reserve for crops grown from cuttings or tubers rather than seed. It has a minimum `V_prop,min`. It plays the same role as the seed floor: it is not surplus.
+
+**What a reader should watch:** A large starch harvest with a thin propagation reserve is a one-time meal. The reserve is what makes week 12 of the next cycle exist.
+
+### Module 7 — BSFL waste processor
+
+**Purpose:** Take the waste streams the other modules produce and turn them into larvae (feed) and frass (soil), which is what makes the system circular.
+
+**Key variables (plain English):**
+
+- `I_B` — waste in, the sum of streams `w_j` (the demo adds cricket frass, quail manure, and fish sludge).
+- `n_larvae` — larvae out. Waste is scaled by digestibility and a conversion factor. The demo returns larvae as about 45% of the waste mass in that example, and the integrated results describe the BSFL node returning about 45% of waste mass as a feed offset.
+- `n_frass` — what remains for soil. The demo uses about 40% of incoming waste. Frass is the path back to plants.
+- Feed offset — the notebook applies larvae against purchased fish feed (about 30% of that feed in the module note; the coupled run cuts the purchased fish-feed term after larvae are credited). Less purchased feed is less cash out, and only after the larvae actually exist.
+
+**What a reader should watch:** If quail, cricket, or fish production drops, waste into this module drops with it, and the feed offset shrinks the following weeks. BSFL cannot be scaled independently of the animals that feed it.
+
+### Module 8 — Feed and nutrition allocation
+
+**Purpose:** Enforce the hunger rule. Every edible and feed flow is claimed in the priority order in [Nobody goes hungry](#nobody-goes-hungry), and export is whatever is still unclaimed.
+
+**Key variables (plain English):**
+
+- `H` — people the cell is sized to feed. The reference notebook and the parameter workbook use 20, and the workbook also sketches 10, 40, and 77. Larger `H` raises the community claim every week and leaves less, later, for export.
+- `n_H` — one person's nutrient need vector. `N_H = H × n_H` is the community's weekly claim. It is step 1. It is filled before breeders' feed, animal feed, seed, working stock, or sales.
+- Steps 2 through 5 — breeder and replacement nutrition, animal feed requirements, seed and propagation reserves, then processing and working stock. Each is a hard claim on what the week produced.
+- Step 6 — exportable surplus. This is the only step in which a sale is allowed. The notebook is explicit that a separate product-allocation optimizer, if used, operates inside this step and not above it.
+
+**What a reader should watch:** Any proposed sale that reduces `N_H`, the breeder ration, or the seed floor is outside the model. The correct response in the accounting is to cut the sale, even when the price is attractive.
+
+### Module 9 — Water and energy balances
+
+**Purpose:** Check that water and power demanded by the living system fit inside what the site can supply, and price the energy gap honestly.
+
+**Key variables (plain English):**
+
+- `D_W` — water demand, the sum of quail, crickets, fish, sprouts, starch, and household uses. It has to sit within `W_avail`. The notebook's own limitations note treats water as this capacity check, not yet as a fully coupled tank-by-tank balance.
+- `D_E` — energy demand. It has to sit within on-site generation `E_gen` plus grid or generator supply.
+- The 2-cell load audit — about **41 kWh/day**. Incubator and brooder dominate, about 19 kWh/day. An earth-sheltered structure is credited with saving about 5 kWh/day (about 12%). These are the report's planning figures, the same grounding used elsewhere in this README.
+- The phased supply in the notebook — about 5 kW of photovoltaics (about 157 kWh/week), a 20 kWh lithium-iron-phosphate battery, and a tri-fuel generator bridging a residual deficit of about 130 kWh/week. The coupled run bills that unmet kilowatt-hour as a cash cost.
+
+**What a reader should watch:** An energy deficit is billed as generator fuel or grid purchases, and it can push cash down in a week when food targets are already met. See [Climate envelope](#climate-envelope) for how the building itself changes that load.
+
+### Module 10 — Nutrient closure and net export
+
+**Purpose:** Declare a week sustainable only when production covers use and reserves, and compute export after that declaration.
+
+**Key variables (plain English):**
+
+- `X_p` — surplus of product `p` this week: production minus what was consumed minus what was reserved. The model requires `X_p` to be at least zero in every week. The notebook is explicit that a positive average across the season is not the test.
+- The mass balance — wastes plus products have to be accounted for as feed plus nutrients brought in from outside. Anything "missing" is an input the community is quietly depending on.
+- Export — computed last, and kept from drawing down breeder stock, the seed reserve, or the safety floors. [Resource Accounting](#resource-accounting) names those floors as community food, seed, and emergency inventory. This is the same rule as Module 8, stated as a closure condition.
+
+**What a reader should watch:** A month that "made money" while `X_p` went negative for food or seed is a month that spent the future. The model does not count that as net export.
+
+### Module 11 — Stochastic control and expansion gates
+
+**Purpose:** Admit that hatch, survival, sex ratio, yields, and weather are distributions, and refuse to grow the community when the odds of failure are too high.
+
+**Key variables (plain English):**
+
+- `ω` — one draw of the noise: a hatch rate, a survival rate, a yield, a weather week. Each Monte Carlo replicate is one full future under its own draws.
+- Failure probabilities — the share of futures with a nutrition shortfall, a seed bin under its floor, an energy deficit that goes unserved, or cash below zero. The notebook's 40-replicate check on the reference run reports no steady-state shortfall and no seed-floor breach, and a cash break-even around week 83. That is a result inside this model, for `H = 20` on a 2-cell farm.
+- `α` — the threshold for each of those probabilities. Expansion is allowed only when every one of them stays under its `α`. There is no growth step that "makes it up later."
+
+**What a reader should watch:** A plan that expands because the average case is profitable, while a fat tail still breaks the seed floor or the nutrition target, fails this module. Hold is a successful output of the model.
+
+### Climate envelope
+
+**Purpose:** Keep the habitat livable with less energy as outdoor extremes grow, by coupling the room to the soil.
+
+The food modules assume a building people can actually live in. A first thermal simulation of one earth-sheltered cell is in [`climate/thermal-model/`](climate/thermal-model/). Its job is to keep the room livable while leaning on the soil, so extreme outdoor weather costs less energy. It is a planning model of the envelope, not a finished HVAC design. The broader module this project still intends to grow is described under [Climate Envelope Model](#climate-envelope-model).
+
+**Key variables (plain English):**
+
+- Submersion — how much of the cell sits in the earth. The design minimum is at least 50%; the simulation baseline is 70%. More submersion lowers peak room temperature and the HVAC-proxy energy on the sensitivity chart, because more heat can be rejected into the soil.
+- Outdoor temperature — the weather the shell has to face. The default run is a North Texas summer day swinging from about 26 °C to about 40 °C.
+- Room temperature `T_r` — what the habitat feels like. The HVAC-proxy counts energy only while the room is above a 28 °C setpoint. It is a stand-in for cooling demand, not a full air-conditioner model.
+- Soil temperature — the default deep soil is 18 °C, the sink the roof-water loop dumps heat into. If the loop cannot reach that sink (low submersion), the room runs hotter.
+
+**What a reader should watch:** A design that saves food-system energy on paper and then spends it back on cooling has not helped the community. Submersion, room temperature, and the HVAC-proxy are how this repository currently checks that trade. The 41 kWh/day and ~5 kWh/day earth-shelter figures above remain the food-system load grounding; they are not a measurement from the thermal plots.
+
+---
+
+The notebook records its own limits in plain language: ages are compressed, noise is aggregate rather than a full demographic draw, prices and yields are illustrative, and there is no disease module, no genetics, and no moving market prices. Read the charts as a test of the rules — nutrition first, reserves held, export last, expansion gated — and treat the dollar figures as planning values.
+
+---
+
 # OSS tech spine
 
 The editable technical tree sits next to this overview. Start here:
@@ -255,7 +493,7 @@ The exact configuration will be determined by site-specific modeling.
 
 # The First Reference System: The Loop
 
-The first major LoopBiotek system is **The Loop**, a circular food-production system.
+The first major LoopBiotek system is **The Loop**, a circular food-production system. Each organism below is a module in [How the Loop model works](#how-the-loop-model-works).
 
 The current design connects:
 
@@ -395,6 +633,8 @@ The exact cell architecture is an active area of development.
 
 # Mathematical Modeling
 
+A plain-language walkthrough of each module, its variables, and the hunger rule is in [How the Loop model works](#how-the-loop-model-works). The equations and the 156-week run are in [reference/complete_model.ipynb](reference/complete_model.ipynb).
+
 A major component of LoopBiotek is quantitative modeling.
 
 The objective is to model the community before constructing it.
@@ -423,6 +663,8 @@ The repository will continue moving these models toward reproducible simulations
 ---
 
 # Climate Envelope Model
+
+A first cell-scale simulation already lives in [`climate/thermal-model/`](climate/thermal-model/) and is summarized in [Climate envelope](#climate-envelope). The broader module below is still the planned expansion.
 
 A planned expansion of the model is the **Climate Envelope Module**.
 
@@ -467,6 +709,8 @@ The objective is to determine configurations that minimize lifecycle energy cons
 
 # Resource Accounting
 
+How those floors sit in the weekly priority stack is in [Nobody goes hungry](#nobody-goes-hungry).
+
 LoopBiotek will use explicit resource accounting rather than broad claims of "sustainability."
 
 For each resource:
@@ -494,6 +738,8 @@ The existing Loop model already uses safety floors for community food, seed, and
 ---
 
 # Model-Gated Expansion
+
+The food model's version of this gate is Module 11, described in [How the Loop model works](#how-the-loop-model-works).
 
 Growth should not occur simply because additional capacity appears profitable.
 
