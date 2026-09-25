@@ -510,6 +510,23 @@ The existing Loop model already uses this principle: expansion is gated by nutri
 
 ---
 
+# Bio Capital Cascade
+
+Material loops above describe how nutrients move. **Capital deployment follows one locked track.** The source of record is [`biology/CASCADE.md`](biology/CASCADE.md).
+
+1. Worms
+2. Crickets + isopods (rollie pollies)
+3. Land + semi-underground vertical greens + algae
+4. Quail
+5. Aquaponics
+6. Community quality of life, funded from surplus only
+
+**Stage 1 (worms) is the only active spend** until vermiculture revenue is at least $2,000 per month, or a firm prepaid forward runway covers Stage-1 costs. Agents must not open Stage 2+ spend without Rod clearing that gate.
+
+Worm growth and forward-book models live outside this repository at `/workspace/worm-revenue-model/`. Site config records `active_stage: 1` in [`site/site.yaml`](site/site.yaml); land stage tags are in [`land/allocation.yaml`](land/allocation.yaml).
+
+---
+
 # Open Development
 
 The GitHub repository is intended to contain reusable resources for people who want to:
@@ -701,6 +718,8 @@ The current Loop research has produced:
 
 The current report explicitly identifies the design as pre-construction and recommends a small, instrumented, reversible first implementation so that real-world measurements can improve the model.
 
+Active capital spend is **Stage 1 worms only**, under the gate in [`biology/CASCADE.md`](biology/CASCADE.md).
+
 The current modeled two-cell food-production system estimates approximately:
 
 * **$13,000** initial investment for a grid-powered configuration
@@ -716,6 +735,15 @@ These are **planning/model values rather than verified commercial performance**,
 
 ```text
 loopBiotek/
+│
+├── AGENTS.md                # Stage 2+ spend stays closed until Rod clears Stage 1
+├── biology/                 # capital cascade SoR — Stage 1 worms active
+│   ├── CASCADE.md
+│   └── README.md
+├── site/
+│   └── site.yaml            # active_stage: 1
+├── land/
+│   └── allocation.yaml      # cascade stage tags
 │
 ├── architecture/
 │   ├── habitat/

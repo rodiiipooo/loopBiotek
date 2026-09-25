@@ -1,0 +1,45 @@
+# LoopBiotek 10-acre reference site
+# Agents: edit zones/acres here; keep parcels.geojson in sync when geometry changes.
+# Biology capital cascade: Stage 1 (worms) is the only active spend until biology/CASCADE.md gate + Rod.
+name: loopbiotek-10acre-ref
+total_acres: 10.0
+footprint_ft: [660, 660]   # square; 660×660 ft ≈ 10 acres
+crs_note: >
+  parcels.geojson uses local planar feet with origin at SW corner (0,0).
+  Optional WGS84 centroid placeholder: 33.0 N, 97.0 W (North Texas).
+  For production GIS, reproject via QGIS/PROJ to a local State Plane or UTM.
+elevation:
+  design_notes: >
+    Prefer gentle slopes; berm Zone 1 cells for ≥50% earth submersion (design min).
+    Climate sim baseline uses 70% submersion. Pull USGS 3DEP DEM into site/dem/
+    before grading.
+  design_min_submersion_pct: 50
+  sim_baseline_submersion_pct: 70
+zones:
+  - id: zone1
+    name: Earth Habitat
+    acres: 0.75
+    purpose: earth-sheltered living / lab cells
+    submersion_design_min_pct: 50
+  - id: zone2
+    name: Climate Canopy
+    acres: 1.75
+    purpose: controlled climate canopy; algae nutrient primary (raceway/PBR)
+  - id: zone3
+    name: Outdoor Production
+    acres: 4.5
+    purpose: outdoor agriculture / open production
+  - id: zone4
+    name: Buffer / Edge
+    acres: 3.0
+    purpose: ecological buffer, access, utilities corridor
+energy_baseline:
+  two_cell_kwh_per_day: 41
+  earth_shelter_savings_pct: 12
+  source: reference/Loop_report.pdf
+biology_cascade:
+  sor: biology/CASCADE.md
+  active_stage: 1
+  active_spend: worms
+  gate: ">= $2k/mo vermiculture revenue OR firm prepaid forward runway covering Stage-1 costs; Rod clears Stage 2+"
+  stages: [worms, crickets_isopods, land_greens_algae, quail, aquaponics, community_qol]
