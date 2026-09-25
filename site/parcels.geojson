@@ -1,0 +1,53 @@
+{
+  "type": "FeatureCollection",
+  "name": "loopbiotek_10acre_parcels",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "LOCAL:feet_SW_origin",
+      "note": "Planar feet; SW corner = (0,0); +X east, +Y north. Site is 660×660 ft. Optional WGS84 centroid ~33.0N,97.0W for display only."
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "id": "site_boundary", "name": "10-acre square", "acres": 10.0 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[0, 0], [660, 0], [660, 660], [0, 660], [0, 0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "zone1", "name": "Earth Habitat", "acres": 0.75 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[20, 20], [200, 20], [200, 200], [20, 200], [20, 20]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "zone2", "name": "Climate Canopy", "acres": 1.75 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[220, 20], [520, 20], [520, 280], [220, 280], [220, 20]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "zone3", "name": "Outdoor Production", "acres": 4.5 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[20, 300], [640, 300], [640, 640], [20, 640], [20, 300]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "zone4", "name": "Buffer / Edge", "acres": 3.0 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[540, 20], [640, 20], [640, 280], [540, 280], [540, 20]]]
+      }
+    }
+  ]
+}

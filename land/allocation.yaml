@@ -1,0 +1,36 @@
+# Land allocation matching Gemini 4-zone design (see site/site.yaml)
+# Agents: change purposes/acres here and mirror acreage into site.yaml + parcels.geojson.
+schema_version: 1
+total_acres: 10.0
+zones:
+  zone1:
+    name: Earth Habitat
+    acres: 0.75
+    purpose: earth-sheltered cells (living / R&D)
+    building_program:
+      - earth_sheltered_cell
+    design_min_submersion_pct: 50
+    ifc_models:
+      - buildings/models/zone1_cell_v1.ifc
+  zone2:
+    name: Climate Canopy
+    acres: 1.75
+    purpose: controlled canopy; algae nutrient density primary
+    building_program:
+      - climate_canopy
+      - algae_raceway_pbr
+    algae_config: algae/cell.yaml
+  zone3:
+    name: Outdoor Production
+    acres: 4.5
+    purpose: outdoor ag / open production beds
+    building_program:
+      - outdoor_beds
+      - staging
+  zone4:
+    name: Buffer / Edge
+    acres: 3.0
+    purpose: ecological buffer, access roads, utilities corridor
+    building_program:
+      - buffer
+      - utilities_corridor

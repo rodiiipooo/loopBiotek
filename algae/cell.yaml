@@ -1,0 +1,26 @@
+# Algae cell stub — Zone 2 nutrients (primary: nutrient density; secondary: biofuel)
+schema_version: 1
+zone: zone2
+priority:
+  primary: nutrient_density
+  secondary: biofuel
+raceway:
+  length_m: 30
+  width_m: 3
+  depth_m: 0.3
+  channels: 4
+  mixing: paddlewheel
+pbr:
+  type: tubular
+  volume_m3: 5.0
+  illuminated_area_m2: 40.0
+nutrients:
+  source: zone2_canopy_recycle   # coupling point to waste/water loops
+  N_mg_L_target: 40
+  P_mg_L_target: 5
+outputs:
+  biomass_kg_day_estimate: null   # fill after QSDsan/PM2 run
+  biofuel_L_day_estimate: null
+tools:
+  primary: [QSDsan, PM2]
+  notes: Run nutrient mass-balance before sizing biofuel side-stream.

@@ -1,0 +1,25 @@
+! LoopBiotek power stub — minimal OpenDSS circuit
+! Source -> Line -> Load (+ optional PV)
+! Open with OpenDSS / OpenDSSDirect.py (installed in .venv)
+
+Clear
+
+New Circuit.LoopStub basekv=12.47 pu=1.0 phases=3 bus1=SourceBus
+
+! Define linecode
+New LineCode.LC1 nphases=3 R1=0.1 X1=0.2 R0=0.3 X0=0.6 Units=km
+
+! Feeder line
+New Line.L1 Bus1=SourceBus Bus2=LoadBus LineCode=LC1 Length=0.2 Units=km
+
+! Building / process load (~2-cell farm scale placeholder)
+New Load.MainLoad Bus1=LoadBus kV=12.47 kW=5 kvar=1 phases=3 model=1
+
+! Optional rooftop / canopy PV
+New PVSystem.CanopyPV phases=3 bus1=LoadBus kV=12.47 kVA=8 Pmpp=6 irradiance=1 temperature=25
+
+Set Voltagebases=[12.47]
+CalcVoltageBases
+Solve
+
+! Show Voltage LN Nodes  (uncomment when inspecting in OpenDSS)
