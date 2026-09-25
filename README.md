@@ -27,9 +27,13 @@ The goal is to create **productive communities that use local resources efficien
 
 # Why this exists
 
-The climate is warming, and the conditions a community has to plan for are less certain than they were. Habitat, food, water, energy, waste, and economics are usually planned as separate jobs. LoopBiotek treats them as one system, because a failure in any one of them changes what the others can do for people and for the land they share.
+Three reasons sit together behind this project: care for the Earth, care that nobody in the community goes hungry, and a livelihood that does not rest on a wage alone. Habitat, food, water, energy, waste, and economics are usually planned as separate jobs. LoopBiotek treats them as one system, because a failure in any of them changes what the others can do for people and for the land they share.
 
-Conscientious design starts by measuring needs, and nutrition is the first need. Surplus is what remains after the community, the breeding stock, the animals, the seed, and the safety floors have been served. A product can be sold when mouths are already fed. Community food is never traded away for profit while that need is still unmet.
+**The Earth.** The climate is warming, and the conditions a community has to plan for are less certain than they were. Design that takes that seriously protects people and the living systems around them in the same drawings: shelter coupled to the soil, food and water accounted for, energy demand kept honest.
+
+**One another.** Conscientious design starts by measuring needs, and nutrition is the first need. Surplus is what remains after the community, the breeding stock, the animals, the seed, and the safety floors have been served. A product can be sold when mouths are already fed. Community food is never traded away for profit while that need is still unmet. The weekly order that enforces this is in [Nobody goes hungry](#nobody-goes-hungry).
+
+**A livelihood.** Demand for white-collar work is shrinking as AI takes on more of it. That raises the risk of widespread unemployment and economic stress, in the United States and elsewhere. Over a long stretch of time, the cost of living has tended to rise faster than many incomes keep up. Living costs do not scale with pay, so what a wage can buy erodes even when the job remains. LoopBiotek exists so people can build a real system — food, water, energy, shelter, and a productive surplus — that gives households and communities a buffer against that squeeze. The work is on site: running the loop, maintaining it, and selling only what the nutrition stack has already released. That surplus is also local employment, a buffer for when remote desk jobs thin out. It is a capability to build and measure. It is not a claim that the project ends unemployment, and the dollar figures in this repository remain planning values until a site measures them. See [Current Status](#current-status).
 
 The aim is a productive place: people housed and fed, ecosystems kept in the accounting, and a real surplus that can sustain the community and, when it is safe, let it grow.
 
@@ -362,6 +366,8 @@ useful materials produced/recovered - materials consumed/imported > 0
 ```text
 community revenue - operating expenditure > 0
 ```
+
+A surplus in these accounts is also a livelihood: people operating the system, and goods sold only after the community's own needs are met. That is local work and a buffer when a household's income depends on a remote desk job that may thin out. The motivation is in [Why this exists](#why-this-exists). The hunger rule still comes first.
 
 A community can therefore become progressively more independent without requiring complete technological isolation.
 
@@ -807,6 +813,8 @@ The open repository is the technical foundation.
 
 LoopBiotek's commercial business is the **design, supply, installation, integration, commissioning, and ongoing support of these systems.**
 
+That work is part of the livelihood described in [Why this exists](#why-this-exists). Design, construction, operation, and maintenance are jobs attached to infrastructure a community can meter: food produced, energy used, water recovered, cash after the safety floors. People can build from the open materials, or hire LoopBiotek to do the same work under contract. Either path is a system to measure. A contract is not a guarantee that a modeled surplus will show up on a given site.
+
 Customers may choose to:
 
 ### Build Independently
@@ -1191,6 +1199,8 @@ LoopBiotek is developing a framework for communities that can progressively incr
 **food + water + energy + shelter + employment + economic output**
 
 while reducing unnecessary resource consumption and vulnerability to external disruptions.
+
+Employment belongs in that list for a specific reason. As AI takes on more white-collar tasks, desk work can become a thinner share of how households earn a living, while living costs do not shrink to match. A community that produces its essentials and an exportable surplus has work and a buffer that can stand beside a wage, and carry more of the load if that wage thins out. The buffer counts only where the model is checked against measurements. The hunger rule is unchanged: surplus is what remains after people are fed.
 
 The long-term objective is a network of modular, productive, resilient communities whose systems can be studied, reproduced, improved, and adapted to local conditions.
 
