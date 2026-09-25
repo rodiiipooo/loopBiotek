@@ -274,6 +274,7 @@ The editable technical tree sits next to this overview. Start here:
 * [AGENTS.md](AGENTS.md) — how agents edit the tree (formats, IFC as source of record, sims)
 * [economics/PHASE0_CART.md](economics/PHASE0_CART.md) — Phase 0 cart
 * [docs/OSS_TECH_SPINE.md](docs/OSS_TECH_SPINE.md) — layout, climate regen, and the buildings prove path
+* [docs/MICRO_FOR_COMMUNITIES.md](docs/MICRO_FOR_COMMUNITIES.md) — which microeconomics ideas support a healthy community business (Varian chapter map; no textbook text)
 
 Directories in the tree: `site/`, `land/`, `water/`, `waste/`, `power/`, `buildings/` (including `buildings/models/*.ifc`), `algae/`, `economics/`, `architecture/`, `climate/`, `reference/`.
 
@@ -634,6 +635,53 @@ A "cell" can represent a modular combination of:
 * biological processing
 
 The exact cell architecture is an active area of development.
+
+When many communities run that pattern, the next question is how the cells behave together. That is [Network of communities](#network-of-communities).
+
+---
+
+# Network of communities
+
+When many communities adopt the model, each site is a **node** in a network. The cell rules do not change: the nutrition stack, the safety floors, and the Module 11 failure gates still belong to that site. What changes is the set of problems a single community has to plan for because other nodes exist.
+
+The microeconomic vocabulary for these problems — network externalities, public goods, games, asymmetric information — is mapped, by chapter title only, in [docs/MICRO_FOR_COMMUNITIES.md](docs/MICRO_FOR_COMMUNITIES.md).
+
+### What each community plans for
+
+1. **Standards and complements.** Shared IFC models, schemas, and other open formats become more useful as more sites use them. Keep them versioned and open. A vendor format the cell cannot leave, or a tool that only one supplier can read, is lock-in. Complements (a standard plus the software that speaks it) are welcome. Captivity is not.
+
+2. **Trade and specialization, held against resilience.** A site may specialize in what it is good at, and sell it, only on exportable surplus. The nutrition stack and the safety floors stay on site. A neighbor's cheap eggs are not a reason to stop keeping the local egg claim and the seed reserve.
+
+3. **Landscape commons.** Watersheds, the electric grid, and local market demand are shared. One node's withdrawal or export changes the others. Publish withdrawals and exports. Respect caps. A full local market for one product is a commons that can be overfilled; flooding it with identical surplus hurts every seller, including the one who needed that cash.
+
+4. **Contagion.** Failures travel. Biological (disease, pests), financial (a shared buyer or a shared debt), reputational (one site's false claim stains the badge), and procedural (copying another site's expansion settings when your own α gates would have said hold). The responses are quarantine, and certification that checks the stack, as distinct from a brand that only looks trustworthy.
+
+5. **Free riding on the open layer.** Standards, playbooks, and ops data are cheap to copy and costly to produce. Contribution norms belong next to something real: sites that publish ops data can be eligible for certification and for mutual aid. Sites that only consume the open layer stay free to operate. They do not automatically draw on the mutual-aid pool.
+
+6. **Coordination on shared hubs.** Incubators, cold storage, wells, and lanes that several cells use are repeated games. Dues and metered use keep the hub alive. A one-time handshake does not. The site that restrains itself has to be able to see, and respond, when another site does not.
+
+7. **Two-sided matching.** Communities, maintainers, and buyers have to find each other. Matching is useful. Hold-up is the failure mode: one side sinks cost (a custom install, a standing crop, a trained crew) and the other renegotiates. Contracts and staged payment exist so that investment is not trapped.
+
+8. **Incentive distortion.** Collective bounties and matches are easy to aim at the wrong target: more of one crop, faster expansion, a prettier weekly number. A bounty is admissible only when it is gated by the same stack as a sale: hunger rules, safety floors, and failure probabilities. A prize that pays a site to skip α, or to sell food its own people still need, is a bug.
+
+### Governance stance
+
+**Yes to a steward of protocols. No to a central planner of production.**
+
+Someone has to version the standards, say what "nutrition-stack compliance" means in a checkable way, and keep mutual-aid playbooks current. Nobody gets to decide what every cell grows, how much it expands, or where its surplus must go.
+
+| Layer | What it may do | What it does not do |
+| --- | --- | --- |
+| Cell | Run the nutrition stack, hold safety floors, apply Module 11 gates, sell only released surplus | Hand its floors to a neighbor, a buyer, or a bounty |
+| Federation / standards body | Version standards, certify nutrition-stack compliance, publish mutual-aid playbooks | Seize assets, or force every site into the same crops and the same scale |
+| Optional incentive desk | Offer bounties or matches for a complementary network shortfall, and only after verified stack compliance; cap any one product so the network does not become a monoculture | Pay for expansion that failed α, or for output taken from local floors |
+| Markets | Price true surplus | Price the community's own nutrition claim or its safety floors |
+
+> Autonomy inside the cell’s survival constraints; interoperability across cells; incentives only for verified surplus that fills a network gap.
+
+Soft coordination is a shortfall board (what the network is actually missing), pull matching (a site offers surplus; a shortfall asks), and dues for shared public goods such as the standard and the playbooks. Push quotas that raid local floors are out. A federation that assigns production targets has become a planner. That is the line this project does not cross.
+
+These are design rules for a network that does not exist yet at scale. They are not a claim that a steward, a certificate, or a bounty has been shown to work in the field. Measured performance still has to be earned site by site. See [Current Status](#current-status).
 
 ---
 
@@ -1202,7 +1250,7 @@ while reducing unnecessary resource consumption and vulnerability to external di
 
 Employment belongs in that list for a specific reason. As AI takes on more white-collar tasks, desk work can become a thinner share of how households earn a living, while living costs do not shrink to match. A community that produces its essentials and an exportable surplus has work and a buffer that can stand beside a wage, and carry more of the load if that wage thins out. The buffer counts only where the model is checked against measurements. The hunger rule is unchanged: surplus is what remains after people are fed.
 
-The long-term objective is a network of modular, productive, resilient communities whose systems can be studied, reproduced, improved, and adapted to local conditions.
+The long-term objective is a network of modular, productive, resilient communities whose systems can be studied, reproduced, improved, and adapted to local conditions. How those nodes coordinate — a steward of protocols, and not a central planner of production — is in [Network of communities](#network-of-communities). The chapter map behind that stance is [docs/MICRO_FOR_COMMUNITIES.md](docs/MICRO_FOR_COMMUNITIES.md).
 
 **Build the loop. Measure the loop. Improve the loop.**
 
