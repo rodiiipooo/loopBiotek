@@ -25,6 +25,8 @@ Locked 2026-09-25. Objective: compound biological businesses into land, subterra
 
 Population and forward-book models live outside this repository at `/workspace/worm-revenue-model/` (growth MC + forward book). Do not vendor that tree here. Do not open land, quail, or aquaponics spend until the Stage-1 gate is cleared.
 
+Stage 4 quail **planning** math (production rate, kit screen, prepaid meat price) lives in [`../research/quail/SPEC.md`](../research/quail/SPEC.md). That package is not spend authority. Stage 1 worms remain the only active spend.
+
 ## Synergy
 One nutrient spine: waste → worms/isopods; insects+greens → quail/fish; water → greens; castings → plants. Own the stack; no SaaS-per-stage.
 

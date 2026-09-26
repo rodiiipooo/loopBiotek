@@ -1,0 +1,31 @@
+{
+  "y_founder_males": 5,
+  "z_founder_females": 15,
+  "U_kits": 1,
+  "c_bar_lb_per_week": 2.0,
+  "t_ready_days": 77,
+  "t_ready_weeks": 11.0,
+  "r_prod_lb_per_week": 28.875,
+  "r_prod_rounded_1dp": 28.9,
+  "production_rate_required_lb_per_week": 2.0,
+  "sustain_inventory_lb_at_ready": 0.0,
+  "kits_needed": 1,
+  "kit_price_usd": 3449.99,
+  "population_at_ready": {
+    "day": 77,
+    "founder_males": 5,
+    "founder_females": 15,
+    "breeders": 20,
+    "eggs_in_incubator": 216.0,
+    "brooder": 150.0,
+    "grow_out": 75.0,
+    "meat_birds_per_week": 37.5,
+    "r_prod_lb_per_week": 28.875
+  },
+  "E_P_comp_usd_per_lb": 12.4633,
+  "prime_rate": 0.07,
+  "prime_as_of": "2026-09-24",
+  "T_years": 0.5,
+  "F0_usd_per_lb": 12.04872688392282,
+  "note": "Stage-4 planning screen only. Stage 1 worms remain the spend source of record. r_prod 28.875 lb/week rounds to 28.9."
+}
