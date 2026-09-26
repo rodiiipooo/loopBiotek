@@ -1,0 +1,52 @@
+========================================================================
+Loop Biotek — Jumbo Coturnix (Stage 4 planning; Stage 1 = worms SoR)
+========================================================================
+Starters: y=5.0♂  z=15.0♀   Kits U=1.0   dress=0.585 lb/bird
+Kit capex @U: $3,449.99   Caps: {'U': 1.0, 'breeder_heads': 45.0, 'brooder_heads': 150.0, 'growout_heads': 75.0, 'incub_eggs_per_batch': 216.0, 'incub_eggs_per_week': 86.4, 'kit_capex_usd': 3449.99}
+
+--- Population / harvest path (every 4 weeks) ---
+  wk    day    total    breed   meat_wk   meat_cum               bind
+   0      0     19.8     19.8     0.000      0.000                  -
+   4     28    194.7     19.0     0.000      0.000 brooder_or_growout_cap
+   8     56    275.5     18.3     0.000      0.000 brooder_or_growout_cap
+  12     84    289.2     34.8    29.090     58.475      incubator_cap
+  16    112    308.3     35.9     0.000    131.935 brooder_or_growout_cap
+  20    140    307.2     45.0    26.843    161.369      incubator_cap
+  24    168    319.3     44.1    14.291    275.713 brooder_or_growout_cap
+  28    196    306.7     45.0     0.000    275.713      incubator_cap
+  32    224    321.2     44.5    34.372    410.343 brooder_or_growout_cap
+  36    252    309.8     45.0     0.000    423.835 brooder_or_growout_cap
+  40    280    319.4     45.0    34.372    524.868 brooder_or_growout_cap
+
+--- Production rate ramp (4-week mean lb/week) ---
+  wk     r_prod     cum_lb    heads
+   0      0.000      0.000     19.8
+   4      0.000      0.000    194.7
+   8      7.346      0.000    275.5
+  12     25.638     58.475    289.2
+  16      0.648    131.935    308.3
+  20     31.724    161.369    307.2
+  24      3.573    275.713    319.3
+  28     25.065    275.713    306.7
+  32     11.966    410.343    321.2
+  36     16.665    423.835    309.8
+  40     20.369    524.868    319.4
+
+--- Sustain consumption c̄ = 2.0 lb/week ---
+t_ready: 77.0 days (week 11)  feasible=True
+At t_ready: r_prod=28.946 lb/wk  sustains=True  surplus=26.946
+
+--- Fair prepaid (prime=7.00% as of 2026-09-24; r_inf=2.7% CPI-U Food 2026-08; fairness=0.90; transport=$0/lb) ---
+E[P_comp(0)] spot = $12.4633/lb (foodservice mean)
+E[P_comp(T)] = E[P_comp(0)] * (1+r_inf)^T; NPV = E[P_comp(T)] / (1+r_prime)^T; F_prelim = 0.9 * NPV; F_final = F_prelim + transport
+  T_yr    P_meat(T)     F_prelim      F_final       DF
+  0.25 $    12.5466 $    11.1026 $    11.1026   0.9832
+  0.50 $    12.6305 $    10.9893 $    10.9893   0.9667
+  0.75 $    12.7149 $    10.8772 $    10.8772   0.9505
+  1.00 $    12.7998 $    10.7662 $    10.7662   0.9346
+  1.50 $    12.9715 $    10.5477 $    10.5477   0.9035
+  2.00 $    13.1454 $    10.3336 $    10.3336   0.8734
+Cash flows (T=0.5y, r_inf=0.027): deposit F_final $10.9893/lb at t=0 (F_prelim $10.9893; E[P_comp(T)] $12.6305); deliver 1 lb at T.
+Zero-inflation check (r_inf=0, same T, prime, fairness): F_prelim $10.8439/lb
+
+Wrote results/sample_run.json

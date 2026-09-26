@@ -37,3 +37,8 @@ One nutrient spine: waste → worms/isopods; insects+greens → quail/fish; wate
 ## LoopBiotek home
 
 This file (`biology/CASCADE.md`) is the source of record in this repository. Worm Monte Carlo models stay at the external sibling path `/workspace/worm-revenue-model/`.
+
+## Planning models (not spend)
+
+- Stage 1 worms: `/workspace/worm-revenue-model/` (ops SoR).
+- Stage 4 quail (planning): `research/quail/` — jumbo Coturnix + Grit kit `U`, production-rate vs consumption; no live quail spend until Stage-1 gate.

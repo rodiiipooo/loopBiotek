@@ -17,3 +17,7 @@ Source of record for the **staged live-biology capital cascade** that funds Loop
 | 6 Community QoL | Zone 1 habitat | Surplus cash only |
 
 **Active now:** Stage 1 (worms) only, until the cash or prepaid-runway gate in [`CASCADE.md`](./CASCADE.md) is met and Rod clears Stage 2+.
+
+## Quail (Stage 4 — planning only)
+
+See [`../research/quail/`](../research/quail/) — jumbo Coturnix production-rate model, Grit kit capacity, fair prepaid forward. **Not active spend.**
