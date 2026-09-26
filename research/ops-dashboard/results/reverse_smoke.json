@@ -5,7 +5,7 @@
   "n0": 16500.0,
   "target_income_usd": 2000.0,
   "months": 12,
-  "reliability": 0.9,
+  "reliability": 0.1,
   "breed_floor_headcount": 16500.0,
   "f_prelim_usd_per_unit": 36.28093457943925,
   "f_prelim_at_month": 12,

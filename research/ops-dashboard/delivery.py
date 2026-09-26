@@ -57,17 +57,17 @@ def keep_headcount(species: str) -> int:
     return int(floor["genetics_floor"])
 
 
-def safe_lb(n0: float, month: int, species: str = "quail", reliability: float = 0.9, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> float:
-    """P90 dressed pounds at month T if the starting herd is kept intact."""
+def safe_lb(n0: float, month: int, species: str = "quail", reliability: float = engine.DEFAULT_QUANTILE, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> float:
+    """P10 dressed pounds at month T if the starting herd is kept intact."""
     model = _model(species)
     weeks = engine.weeks_for_month(month)
     head = engine._max_headcount(
-        n0, float(n0), weeks, {}, [weeks - 1], model, reliability, n_paths, seed
+        n0, float(n0), weeks, {}, [weeks - 1], model, engine.clear_fraction(reliability), n_paths, seed
     )
     return head / model.headcount_per_unit
 
 
-def birds_per_lb(month: int, species: str = "quail", reliability: float = 0.9, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> float:
+def birds_per_lb(month: int, species: str = "quail", reliability: float = engine.DEFAULT_QUANTILE, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> float:
     """Starters required per delivered pound. Falls as T rises.
 
     The growth curve scales with the starting herd (the bin cap is a multiple
@@ -80,25 +80,26 @@ def birds_per_lb(month: int, species: str = "quail", reliability: float = 0.9, n
     return PROBE / produced
 
 
-def n0_required(q_lb: float, month: int, species: str = "quail", reliability: float = 0.9, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> dict:
+def n0_required(q_lb: float, month: int, species: str = "quail", reliability: float = engine.DEFAULT_QUANTILE, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> dict:
     """Smallest starting herd that can deliver q_lb at month T and still keep breeders."""
     if q_lb <= 0:
         raise ValueError("q_lb must be > 0")
     profile = _profile(species)
-    per_lb = birds_per_lb(month, species, reliability, n_paths, seed)
+    quantile = engine.planning_quantile(reliability)
+    per_lb = birds_per_lb(month, species, quantile, n_paths, seed)
     keep = keep_headcount(species)
     growth_n0 = q_lb * per_lb
     n0 = max(float(keep), growth_n0)
     # Confirm the rounded herd still clears the order. Scale-free, so one bump is enough.
-    if safe_lb(n0, month, species, reliability, n_paths, seed) + 1e-6 < q_lb:
+    if safe_lb(n0, month, species, quantile, n_paths, seed) + 1e-6 < q_lb:
         n0 = max(n0, growth_n0) * 1.01
-    produced = safe_lb(n0, month, species, reliability, n_paths, seed)
+    produced = safe_lb(n0, month, species, quantile, n_paths, seed)
     feasible = produced + 1e-6 >= q_lb and n0 <= N0_CAP
     return {
         "species": species,
         "month": month,
         "q_lb": q_lb,
-        "reliability": reliability,
+        "reliability": quantile,
         "birds_per_lb": per_lb,
         "birds_per_lb_with_floor": n0 / q_lb,
         "growth_only_n0": growth_n0,
@@ -125,10 +126,12 @@ def _lots_harvest(lots: list[tuple[int, float]], species: str) -> tuple[dict[int
     return harvest, last
 
 
-def schedule_n0(lots: list[tuple[int, float]], species: str = "quail", reliability: float = 0.9, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> dict:
-    """Smallest N0 that can meet every lot and keep the breeding herd in `reliability` of scenarios."""
+def schedule_n0(lots: list[tuple[int, float]], species: str = "quail", reliability: float = engine.DEFAULT_QUANTILE, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> dict:
+    """Smallest N0 that can meet every lot on the P10 harsh tail and still keep breeders."""
     if not lots or any(qty <= 0 for _, qty in lots):
         raise ValueError("lots must be positive")
+    quantile = engine.planning_quantile(reliability)
+    clear = engine.clear_fraction(quantile)
     profile = _profile(species)
     model = _model(species)
     keep = float(keep_headcount(species))
@@ -137,7 +140,7 @@ def schedule_n0(lots: list[tuple[int, float]], species: str = "quail", reliabili
     def fits(n0: float) -> bool:
         if n0 + 1e-9 < keep:
             return False
-        return engine._survival(n0, n0, weeks, harvest, model, n_paths, seed) + 1e-12 >= reliability
+        return engine._survival(n0, n0, weeks, harvest, model, n_paths, seed) + 1e-12 >= clear
 
     if not fits(keep):
         lo = keep
@@ -152,7 +155,7 @@ def schedule_n0(lots: list[tuple[int, float]], species: str = "quail", reliabili
             if hi == lo:
                 break
         if not found:
-            return _schedule_result(lots, N0_CAP, False, 0.0, profile, keep, reliability)
+            return _schedule_result(lots, N0_CAP, False, 0.0, profile, keep, quantile)
         for _ in range(24):
             mid = 0.5 * (lo + hi)
             if fits(mid):
@@ -162,9 +165,9 @@ def schedule_n0(lots: list[tuple[int, float]], species: str = "quail", reliabili
         n0 = hi
     else:
         n0 = keep
-    extra = engine._max_headcount(n0, n0, weeks, harvest, [weeks - 1], model, reliability, n_paths, seed)
+    extra = engine._max_headcount(n0, n0, weeks, harvest, [weeks - 1], model, clear, n_paths, seed)
     remaining = extra / model.headcount_per_unit
-    return _schedule_result(lots, n0, True, remaining, profile, keep, reliability)
+    return _schedule_result(lots, n0, True, remaining, profile, keep, quantile)
 
 
 def _schedule_result(lots, n0, feasible, remaining, profile, keep, reliability) -> dict:
@@ -198,10 +201,10 @@ def _windows_from_request(body: dict) -> list[dict]:
     return [{"qty_lb": qty, "earliest_month": min(months), "latest_month": max(months), "candidates": months}]
 
 
-def recommend(orders: list[dict], species: str = "quail", reliability: float = 0.9, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> dict:
+def recommend(orders: list[dict], species: str = "quail", reliability: float = engine.DEFAULT_QUANTILE, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> dict:
     """Pick the feasible assignment with the smallest starting herd.
 
-    Ties go to the plan with more P90 room left after the deliveries.
+    Ties go to the plan with more P10 room left after the deliveries.
     All-soon is the earliest month in each window. The recommendation may be
     a later single month or a split. Infeasible plans fail closed.
     """
@@ -301,7 +304,8 @@ def _merge(lots: list[tuple[int, float]]) -> list[tuple[int, float]]:
 
 def plan_request(body: dict, n_paths: int = engine.DEFAULT_PATHS) -> dict:
     species = str(body.get("species") or "quail")
-    reliability = float(body.get("reliability") or 0.9)
+    raw = body.get("reliability")
+    reliability = engine.planning_quantile(None if raw in (None, "") else float(raw))
     orders = _windows_from_request(body)
     months = []
     for order in orders:
@@ -323,8 +327,9 @@ def plan_request(body: dict, n_paths: int = engine.DEFAULT_PATHS) -> dict:
         "birds_per_lb_falls_with_T": table_falls,
         "recommendation": rec,
         "formula": (
-            "birds_per_lb(T) = N_probe / Q_P90(N_probe, T); "
+            "birds_per_lb(T) = N_probe / Q_P10(N_probe, T); "
             "N0(Q, T) = max(N_keep, Q * birds_per_lb(T)); "
+            "Q_P10 is the harsh lower tail (only 10% of futures are this low or lower); "
             "N_keep is the strict Ne floor"
         ),
         "stage_gate": "Planning only. Stage 1 worms remain the only active spend. No Stage 2-5 CapEx.",
@@ -332,18 +337,18 @@ def plan_request(body: dict, n_paths: int = engine.DEFAULT_PATHS) -> dict:
 
 
 def smoke(path: Path | None = None) -> dict:
-    table = [n0_required(10, month, "quail", 0.9) for month in (3, 6, 12)]
+    table = [n0_required(10, month, "quail", 0.10) for month in (3, 6, 12)]
     per_lb = [row["birds_per_lb"] for row in table]
     assert per_lb[0] > per_lb[1] > per_lb[2]
 
-    one = plan_request({"species": "quail", "qty_lb": 10, "months": [3, 6, 12], "reliability": 0.9})
+    one = plan_request({"species": "quail", "qty_lb": 10, "months": [3, 6, 12], "reliability": 0.10})
     assert one["birds_per_lb_falls_with_T"]
     assert one["recommendation"]["feasible"]
     assert one["recommendation"]["recommended_name"] != "all_soon"
     late_lots = one["recommendation"]["recommended"]["lots"]
     assert max(lot["month"] for lot in late_lots) > 3
 
-    big = plan_request({"species": "quail", "qty_lb": 40, "months": [3, 6, 12], "reliability": 0.9})
+    big = plan_request({"species": "quail", "qty_lb": 40, "months": [3, 6, 12], "reliability": 0.10})
     by_month = {row["month"]: row for row in big["table"]}
     assert by_month[3]["n0"] > by_month[12]["n0"]
     assert big["recommendation"]["recommended"]["n0"] + 1e-6 < big["recommendation"]["all_soon"]["n0"]
@@ -354,7 +359,7 @@ def smoke(path: Path | None = None) -> dict:
             {"qty_lb": 15, "earliest_month": 3, "latest_month": 12},
         ],
         "quail",
-        0.9,
+        0.10,
     )
     assert split["feasible"]
     assert split["recommended"]["n0"] + 1e-6 < split["all_soon"]["n0"]
@@ -364,9 +369,18 @@ def smoke(path: Path | None = None) -> dict:
     tiny_window = recommend(
         [{"qty_lb": 5000, "earliest_month": 1, "latest_month": 1}],
         "quail",
-        0.9,
+        0.10,
     )
     assert tiny_window["fail_closed"] is True
+    assert abs(table[0]["reliability"] - 0.10) < 1e-9
+    # A higher percentile counts on better growth, so it needs fewer starters per pound.
+    assert birds_per_lb(6, "quail", 0.10) > birds_per_lb(6, "quail", 0.50)
+    try:
+        engine.planning_quantile(0.90)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("P90 is not a sell-room or delivery quantile")
 
     payload = {
         "ok": True,
@@ -374,6 +388,7 @@ def smoke(path: Path | None = None) -> dict:
         "birds_per_lb": per_lb,
         "ten_lb_recommendation": one["recommendation"]["recommended"],
         "forty_lb_n0": {str(k): by_month[k]["n0"] for k in (3, 6, 12)},
+        "forty_lb": big["table"],
         "split_n0": split["recommended"]["n0"],
         "all_soon_split_case_n0": split["all_soon"]["n0"],
         "formula": one["formula"],
@@ -393,4 +408,9 @@ if __name__ == "__main__":
             f"safe_lb={row['safe_lb']:.2f} floor_binds={row['floor_binds']}"
         )
     print("40 lb N0", {k: round(v, 1) for k, v in result["forty_lb_n0"].items()})
+    for row in result["forty_lb"]:
+        print(
+            f"40lb T={row['month']} N0={row['n0']:.1f} birds/lb={row['birds_per_lb']:.3f} "
+            f"safe_lb={row['safe_lb']:.2f} room={row['remaining_lb']:.2f}"
+        )
     print("split", round(result["split_n0"], 1), "vs all soon", round(result["all_soon_split_case_n0"], 1))

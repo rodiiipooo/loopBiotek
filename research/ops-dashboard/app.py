@@ -47,17 +47,25 @@ def _num(value, name: str, *, minimum: float | None = None, maximum: float | Non
     return number
 
 
+def _quantile(value) -> float:
+    if value in (None, ""):
+        value = engine.DEFAULT_QUANTILE
+    try:
+        return engine.planning_quantile(float(value))
+    except ValueError as err:
+        raise ApiError(400, str(err)) from None
+
+
 def _herd_from_body(body: dict) -> dict:
     herd = body.get("herd") if isinstance(body.get("herd"), dict) else body
     if "n0" not in herd:
         raise ApiError(400, "Starting herd is required.")
-    reliability = herd.get("reliability", 0.9)
     horizon = herd.get("horizon_months", 12)
     return {
         "n0": _num(herd.get("n0"), "Starting herd", minimum=0.0001),
         "n_start": None if herd.get("n_start") in (None, "") else _num(herd.get("n_start"), "Planned start", minimum=0),
         "n_safety": None if herd.get("n_safety") in (None, "") else _num(herd.get("n_safety"), "Safety reserve", minimum=0),
-        "reliability": _num(reliability, "How sure", minimum=0.5, maximum=0.999),
+        "reliability": _quantile(herd.get("reliability", engine.DEFAULT_QUANTILE)),
         "horizon_months": int(_num(horizon, "Month", minimum=1, maximum=engine.MAX_MONTH)),
     }
 
@@ -96,7 +104,7 @@ def _normalize(book: store.Book, body: dict, herd: dict, exclude_id: int | None 
             others + [row],
             n_start=herd.get("n_start"),
             n_safety=herd.get("n_safety"),
-            reliability=float(herd.get("reliability") or 0.9),
+            reliability=_quantile(herd.get("reliability")),
         )
         if not safe:
             raise ApiError(409, BLOCK_MESSAGE)
@@ -116,9 +124,10 @@ def meta() -> dict:
             "F_prelim = 0.9 * E[P(T)] / (1+r_prime)^T"
         ),
         "species": {key: model.to_public() for key, model in engine.SPECIES.items()},
-        "p90_plain": (
-            "Safe to sell (P90) is the amount you can promise and still have the breeding herd "
-            "in at least 90 of 100 simulated futures. It is not the middle outcome."
+        "p10_plain": (
+            "Safe to sell (P10) is the amount you can still deliver in the harsh futures. "
+            "Only 10% of scenarios are this low or lower. You plan as if outcomes are bad. "
+            "P90 is not used."
         ),
     }
 
@@ -131,7 +140,7 @@ def sell_limit_for(book: store.Book, species: str, herd: dict) -> dict:
         book.list_forwards(),
         n_start=saved.get("n_start"),
         n_safety=saved.get("n_safety"),
-        reliability=float(saved.get("reliability") or 0.9),
+        reliability=_quantile(saved.get("reliability")),
         horizon_months=int(saved.get("horizon_months") or 12),
     )
 
@@ -145,7 +154,7 @@ def dashboard_for(book: store.Book, species: str) -> dict:
         book.list_forwards(),
         n_start=herd.get("n_start"),
         n_safety=herd.get("n_safety"),
-        reliability=float(herd.get("reliability") or 0.9),
+        reliability=_quantile(herd.get("reliability")),
         horizon_months=int(herd.get("horizon_months") or 12),
     )
     return {"herd": herd, "forwards": book.list_forwards(), "sell_limit": limit, "meta": meta()}
@@ -239,7 +248,7 @@ def make_handler(book: store.Book):
                         _num(body.get("n0"), "Starting herd", minimum=0.0001),
                         _num(body.get("target_income_usd"), "Target income", minimum=0),
                         months,
-                        reliability=_num(body.get("reliability", 0.9), "How sure", minimum=0.5, maximum=0.999),
+                        reliability=_quantile(body.get("reliability", engine.DEFAULT_QUANTILE)),
                         n_start=None if body.get("n_start") in (None, "") else _num(body.get("n_start"), "Planned start", minimum=0),
                         n_safety=None if body.get("n_safety") in (None, "") else _num(body.get("n_safety"), "Safety reserve", minimum=0),
                     )

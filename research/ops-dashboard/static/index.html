@@ -133,8 +133,8 @@
     </div>
     <div class="row">
       <div>
-        <label for="reliability">How sure, percent</label>
-        <input id="reliability" type="number" min="50" max="99" step="1" value="90" />
+        <label for="reliability">Harsh-case percentile (P10)</label>
+        <input id="reliability" type="number" min="1" max="50" step="1" value="10" />
       </div>
       <div>
         <label for="horizon">Delivery month you are checking</label>
@@ -142,6 +142,7 @@
       </div>
     </div>
     <button id="refresh" type="button">Update the safe amount</button>
+    <p class="note">P10 is the amount you can still deliver in the harsh futures. Only 10% of scenarios are this low or lower. You plan as if outcomes are bad. P90 is not used.</p>
     <p class="note" id="model-note"></p>
   </section>
 
@@ -152,7 +153,7 @@
       <div class="value" id="floor">—</div>
     </article>
     <article class="card stat" id="card-safe">
-      <div class="label">Safe to sell (P90)</div>
+      <div class="label">Safe to sell (P10)</div>
       <div class="value" id="safe">—</div>
     </article>
     <article class="card stat" id="card-promised">
@@ -225,7 +226,7 @@
 
   <section class="card" style="margin-top:14px">
     <h2>Delivery structure (quail)</h2>
-    <p class="note">Shorter time until delivery means more starting birds for each pound. The breeding flock still cannot shrink below the genetics floor (68 birds). This does not approve buying birds.</p>
+    <p class="note">Shorter time until delivery means more starting birds for each pound. Pounds are the P10 harsh case: the amount you can still deliver when outcomes are bad. The breeding flock still cannot shrink below the genetics floor (68 birds). This does not approve buying birds.</p>
     <div class="row">
       <div>
         <label for="plan-qty">Desired pounds</label>
@@ -542,7 +543,7 @@ async function planDeliveries() {
         <thead><tr><th>Month</th><th>Starting herd</th><th>Birds per lb</th><th>Safe lb</th><th>Room left</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      <p class="note">Birds per lb is how many starters each pound needs from growth. A small order still keeps the 68-bird breeding floor, so the starting herd does not fall below that. ${escapeHtml(result.stage_gate)}</p>`;
+      <p class="note">Birds per lb is how many starters each pound needs on the P10 harsh case. A small order still keeps the 68-bird breeding floor, so the starting herd does not fall below that. ${escapeHtml(result.stage_gate)}</p>`;
   } catch (err) {
     $("plan-out").innerHTML = `<div class="alert">${escapeHtml(err.message)}</div>`;
   } finally {
@@ -568,7 +569,7 @@ $("delivery").addEventListener("change", refreshPriceHint);
   $("pricing").innerHTML =
     `Fair prepaid defaults: food inflation <strong>${(meta.r_inf * 100).toFixed(1)}%</strong> (August 2026), ` +
     `prime <strong>${(meta.r_prime * 100).toFixed(0)}%</strong>, fairness <strong>${meta.fairness}</strong>. ` +
-    `<span class="formula">${escapeHtml(meta.formula)}</span>. ${escapeHtml(meta.p90_plain)}`;
+    `<span class="formula">${escapeHtml(meta.formula)}</span>. ${escapeHtml(meta.p10_plain)}`;
   await loadAll();
   await refreshPriceHint();
 })();

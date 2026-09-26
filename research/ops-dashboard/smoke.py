@@ -34,7 +34,7 @@ def _request(base: str, method: str, path: str, payload: dict | None = None) -> 
 
 
 def main() -> None:
-    result = reverse_income("worms", n0=16500, target_income_usd=2000, months=12, reliability=0.9)
+    result = reverse_income("worms", n0=16500, target_income_usd=2000, months=12, reliability=0.10)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
 
@@ -48,7 +48,7 @@ def main() -> None:
             base,
             "POST",
             "/api/sell-limit?species=worms",
-            {"n0": 16500, "reliability": 0.9, "horizon_months": 12},
+            {"n0": 16500, "reliability": 0.10, "horizon_months": 12},
         )
         assert empty_status == 200, empty
         room_before = empty["remaining_room_units"]
@@ -63,7 +63,7 @@ def main() -> None:
                 "qty": 10,
                 "delivery_month": 12,
                 "status": "promised",
-                "herd": {"n0": 16500, "reliability": 0.9, "horizon_months": 12},
+                "herd": {"n0": 16500, "reliability": 0.10, "horizon_months": 12},
             },
         )
         assert created_status == 200, created
@@ -78,7 +78,7 @@ def main() -> None:
             base,
             "POST",
             "/api/sell-limit?species=worms",
-            {"n0": 16500, "reliability": 0.9, "horizon_months": 12},
+            {"n0": 16500, "reliability": 0.10, "horizon_months": 12},
         )
         assert after_status == 200, after
         room_after = after["remaining_room_units"]
@@ -88,7 +88,7 @@ def main() -> None:
             base,
             "POST",
             "/api/sell-limit?species=worms",
-            {"n0": 30000, "reliability": 0.9, "horizon_months": 12},
+            {"n0": 30000, "reliability": 0.10, "horizon_months": 12},
         )
         assert bigger_status == 200, bigger
         assert bigger["safe_to_sell_units"] > after["safe_to_sell_units"]
@@ -97,7 +97,7 @@ def main() -> None:
             base,
             "POST",
             "/api/sell-limit?species=worms",
-            {"n0": 16500, "reliability": 0.9, "horizon_months": 12},
+            {"n0": 16500, "reliability": 0.10, "horizon_months": 12},
         )
         blocked_status, blocked = _request(
             base,
@@ -109,7 +109,7 @@ def main() -> None:
                 "qty": 5000,
                 "delivery_month": 12,
                 "status": "promised",
-                "herd": {"n0": 16500, "reliability": 0.9, "horizon_months": 12},
+                "herd": {"n0": 16500, "reliability": 0.10, "horizon_months": 12},
             },
         )
         assert blocked_status == 409, blocked
@@ -125,7 +125,7 @@ def main() -> None:
                 "qty": 8,
                 "delivery_month": 12,
                 "status": "promised",
-                "herd": {"n0": 16500, "reliability": 0.9, "horizon_months": 12},
+                "herd": {"n0": 16500, "reliability": 0.10, "horizon_months": 12},
             },
         )
         assert edited_status == 200, edited
@@ -146,7 +146,7 @@ def main() -> None:
 
     assert result["n0"] == 16500
     assert result["months"] == 12
-    assert result["reliability"] == 0.9
+    assert result["reliability"] == 0.10
     assert result["feasible"] is False
     assert result["lump_covers_target"] is True
     assert result["min_n0"] is not None
