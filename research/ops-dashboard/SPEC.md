@@ -100,3 +100,17 @@ with \(N_{\mathrm{keep}} = 68\). A 10 lb order is smaller than what 68 birds can
 Given several sales, each with a month window, the screen tries the earliest month in every window, the latest month, a single month when every sale can use it, and an even split. It keeps the plan with the smallest \(N_0\). Ties go to the plan with more safe pounds left. If none of the windows can be filled without the breeding flock, the promise is refused.
 
 Ops uses this to choose a delivery month from realized sales: push pounds later, or split a sale that must go out early from one that can wait, instead of lumping everything into the soonest month.
+
+## $2,000 a month from month 2
+
+Planning question: how many quail `N0` must be on hand at purchase so that, on the P10 tail, meat sales can bring in about $2,000 every month starting in month 2 and continuing through month 24. Month 1 is growth only. This is Stage 4 planning. It does not buy birds or feed, and Stage 1 worms remain the only spend.
+
+Growth is the quail ASSUMPTION stub in this folder (doubling about 26 weeks, bin cap 8 times the starters, weekly noise 0.01). It is not the cohort simulator. The birds that cannot be sold are `keep = max(N0, 68)`, where 68 is the strict genetics floor (Ne ≥ 50, F_max = 0, 1 male : 3 females). The purchased flock stays. The meat is growth above that floor.
+
+Pounds in month `m` are `$2,000 / F_prelim(m)`, using the quail prepaid already in this package. At month 2 that price is about $11.14/lb, so the order is about 180 lb. By month 24 the prepaid is a little lower, so the same dollars are a few more pounds.
+
+`research/ops-dashboard/quail_income.py` searches the smallest such `N0`. The smoke writes `results/quail_income_smoke.json` and two plots: starters against monthly dollars, and worm plus plant feed against the herd.
+
+Feed is an ASSUMPTION, not a measured ration: 22 g as-fed per bird per day, split 30% live worms and 70% plant. The 0.41 waste ceiling in the synergy spec is a different limit. It is not this split. The standing count used for feed is the heavy herd (only 10% of futures are larger). On top of that month's ration, the synergy buffer keeps 2 weeks of feed on hand. If the supply is only enough for the light herd and has no buffer, the meat sale fails closed. The breeding floor is not cut to stretch the feed.
+
+Smoke (`python3 quail_income.py`, 2,000 paths, seed `20260926`): **N0 = 2,872**. Month 2 sells 179.52 lb at \(F_{\mathrm{prelim}} = \$11.1406\). Month 24 sells 193.54 lb at \$10.3336. Both months are \$2,000. At month 24 the heavy herd needs about 1,185 kg of worms and 2,764 kg of plant feed (1.18 t and 2.76 t), plus the 2-week buffer of that same ration.
