@@ -19,5 +19,6 @@ python3 decision_plots.py
 | `quail_n0_for_2000.png` | About 2,872 starters hold $2,000 a month of P10 meat from month 2 through month 24. |
 | `quail_feed_vs_herd.png` | Worm and plant feed follow the heavy herd. A short ration fails closed. |
 | `worm_p10_sell_room.png` | Worm P10 room grows with the starting herd and with a later month. |
+| `cascade_sale_vs_hold.png` | Selling 16 birds at month 4 leaves extra worms that keep reproducing until quail growth eats both bins back to the floor. The plant panel is an opening-sized stub. |
 
 The ops screen shows this gallery under **Decision charts**.

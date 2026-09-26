@@ -249,6 +249,48 @@
   </section>
 
   <section class="card" style="margin-top:14px">
+    <h2>Cascade sale</h2>
+    <p class="note">Selling birds or worms changes the feed those animals stop eating. Extra worms stay in the bin and keep reproducing. Fish and plants are a Stage 5 stub. This does not approve a purchase. Stage 1 worms remain the only spend.</p>
+    <div class="row">
+      <div>
+        <label for="cx-males">Quail males now</label>
+        <input id="cx-males" type="number" min="0" step="1" value="24" />
+      </div>
+      <div>
+        <label for="cx-females">Quail females now</label>
+        <input id="cx-females" type="number" min="0" step="1" value="72" />
+      </div>
+      <div>
+        <label for="cx-worms">Worms now (headcount)</label>
+        <input id="cx-worms" type="number" min="1" step="1000" value="250000" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="cx-species">Sell</label>
+        <select id="cx-species">
+          <option value="quail">Quail (birds)</option>
+          <option value="worms">Worms (lb)</option>
+        </select>
+      </div>
+      <div>
+        <label for="cx-n">How many</label>
+        <input id="cx-n" type="number" min="0" step="1" value="16" />
+      </div>
+      <div>
+        <label for="cx-month">At month</label>
+        <input id="cx-month" type="number" min="1" max="24" step="1" value="4" />
+      </div>
+      <div>
+        <label for="cx-fish">Fish herd (Stage 5 stub)</label>
+        <input id="cx-fish" type="number" min="0" step="1" value="0" />
+      </div>
+    </div>
+    <button id="cx-run" type="button">Read the cascade</button>
+    <div id="cx-out"></div>
+  </section>
+
+  <section class="card" style="margin-top:14px">
     <h2>Decision charts</h2>
     <p class="note">Pictures for the choices on this screen. Quail and worm growth curves are assumptions. The breeding-floor count is the Ne formula. P10 is the harsh tail. These charts do not approve a purchase. Stage 1 worms remain the only spend.</p>
     <div class="plots">
@@ -279,6 +321,10 @@
       <figure>
         <img src="/plots/worm_p10_sell_room.png" alt="P10 worm sell room versus starting herd and versus month" />
         <figcaption>Worm safe-to-sell is the same P10 tail. More starters, or a later month, leave more room.</figcaption>
+      </figure>
+      <figure>
+        <img src="/plots/cascade_sale_vs_hold.png" alt="Worm, quail, and plant stocks with and without selling 16 birds" />
+        <figcaption>Selling 16 birds at month 4 leaves extra worms that keep reproducing. The plant cushion is an opening-sized stub.</figcaption>
       </figure>
     </div>
   </section>
@@ -554,6 +600,52 @@ async function checkTarget() {
   }
 }
 
+async function readCascade() {
+  $("cx-run").disabled = true;
+  $("cx-out").textContent = "Checking the P10 tail…";
+  try {
+    const result = await api("/api/cascade-impact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        species: $("cx-species").value,
+        quail_males: Number($("cx-males").value),
+        quail_females: Number($("cx-females").value),
+        worm_headcount: Number($("cx-worms").value),
+        n: Number($("cx-n").value),
+        month: Number($("cx-month").value),
+        fish_n: Number($("cx-fish").value),
+        horizon_months: 12,
+      }),
+    });
+    const tone = result.status === "ok" ? "okmsg" : "alert";
+    const direct = result.direct;
+    const surplus = result.surplus;
+    const feed = result.consumption.at_sale_month;
+    const fish = result.fish;
+    const fishLine = fish.active
+      ? `Stage 5 stub: growth index ${fish.growth_index[result.direct.species === "quail" ? Number($("cx-month").value) - 1 : 0]} at the sale month. Extra plant demand is in the report.`
+      : "No fish herd, so the extra worms stay in the bin.";
+    $("cx-out").innerHTML = `
+      <div class="${tone}">${escapeHtml(result.message)}</div>
+      <p>${result.booked ? "Booked on this plan." : "Not booked."}
+        Remaining herd: <strong>${direct.remaining_herd}</strong>
+        ${direct.Ne_after == null ? "" : `(Ne ${direct.Ne_after})`}.
+        P10 room left: <strong>${direct.p10_room_left_birds ?? direct.p10_room_left_lb}</strong>
+        ${direct.unit === "birds" ? "birds" : "lb"}.</p>
+      <p>Worm excess at the sale month: <strong>${surplus.excess_lb_at_sale} lb</strong>.
+        Peak <strong>${surplus.excess_lb_peak} lb</strong> in month ${surplus.excess_peak_month}.
+        Worm demand change that month: <strong>${feed.worm_feed_kg_delta} kg</strong>.
+        Plant demand change: <strong>${feed.plant_kg_delta} kg</strong>.</p>
+      <p class="note">${escapeHtml(fishLine)} ${escapeHtml(result.stage_gate)}</p>
+      ${result.svg}`;
+  } catch (err) {
+    $("cx-out").innerHTML = `<div class="alert">${escapeHtml(err.message)}</div>`;
+  } finally {
+    $("cx-run").disabled = false;
+  }
+}
+
 async function planDeliveries() {
   $("plan").disabled = true;
   $("plan-out").textContent = "Checking scenarios…";
@@ -594,6 +686,7 @@ async function planDeliveries() {
 }
 
 $("plan").addEventListener("click", planDeliveries);
+$("cx-run").addEventListener("click", readCascade);
 $("refresh").addEventListener("click", saveHerdAndLimit);
 $("save").addEventListener("click", savePromise);
 $("clear").addEventListener("click", clearForm);

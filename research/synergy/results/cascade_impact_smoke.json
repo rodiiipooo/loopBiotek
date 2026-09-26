@@ -1,0 +1,130 @@
+{
+  "ok": true,
+  "stage_gate": "Stage 1 worms are the only spend. Quail is Stage 4 planning. Fish and plants are Stage 5 stubs.",
+  "sample_status": "warn",
+  "sample_excess_lb_at_sale": 7.453,
+  "sample_excess_lb_peak": 104.837,
+  "sample_excess_peak_month": 9,
+  "sample_excess_lb_at_horizon": 0.0,
+  "sample_feed_delta_kg": {
+    "worm_feed_kg_delta": -3.12,
+    "plant_kg_delta": -7.3
+  },
+  "sample_remaining": 80.0,
+  "sample_ne": 60.0,
+  "sample_p10_room_birds": 67.35,
+  "sample_p10_room_left_birds": 51.35,
+  "fish_growth_index_at_sale": 1.15,
+  "fish_extra_plant_kg_at_sale": 1.753,
+  "plant_gap_hold_kg": 499.31,
+  "plant_gap_sale_kg": 404.0,
+  "plant_gap_fish_kg": 416.27,
+  "refuse_status": "refuse",
+  "short_status": "refuse",
+  "short_fail_closed": true,
+  "breeders_raided": false,
+  "sample_message": "Sale fits the P10 room and the Ne floor. Plant production is an opening-sized stub, so quail growth outruns it on both paths. The sale makes that plant gap smaller. A higher plant growth rate is the open lever, not a modeled yield.",
+  "direct": {
+    "species": "quail",
+    "unit": "birds",
+    "sold": 16.0,
+    "requested": 16.0,
+    "sold_males": 4.0,
+    "sold_females": 12.0,
+    "remaining_males": 20.0,
+    "remaining_females": 60.0,
+    "remaining_herd": 80.0,
+    "Ne_after": 60.0,
+    "delta_F_after": 0.0083,
+    "floor": {
+      "synergy_floor": 68.0,
+      "ne_min": 50.0,
+      "males_min": 17,
+      "females_min": 51,
+      "genetics_floor": 68,
+      "keep": 68.0,
+      "delta_f_max": 0.01
+    },
+    "genetics_allowed": true,
+    "p10_room_birds": 67.35,
+    "p10_room_lb": 39.4,
+    "p10_room_left_birds": 51.35,
+    "p10_ok": true,
+    "reasons": []
+  },
+  "surplus_months": [
+    {
+      "month": 1,
+      "excess_headcount": 0.0,
+      "excess_lb": 0.0,
+      "feed_kg_delta": 0.0
+    },
+    {
+      "month": 2,
+      "excess_headcount": 0.0,
+      "excess_lb": 0.0,
+      "feed_kg_delta": 0.0
+    },
+    {
+      "month": 3,
+      "excess_headcount": 0.0,
+      "excess_lb": 0.0,
+      "feed_kg_delta": 0.0
+    },
+    {
+      "month": 4,
+      "excess_headcount": 7453.1,
+      "excess_lb": 7.453,
+      "feed_kg_delta": -3.12
+    },
+    {
+      "month": 5,
+      "excess_headcount": 19573.4,
+      "excess_lb": 19.573,
+      "feed_kg_delta": -4.17
+    },
+    {
+      "month": 6,
+      "excess_headcount": 30763.6,
+      "excess_lb": 30.764,
+      "feed_kg_delta": -3.57
+    },
+    {
+      "month": 7,
+      "excess_headcount": 48597.1,
+      "excess_lb": 48.597,
+      "feed_kg_delta": -3.81
+    },
+    {
+      "month": 8,
+      "excess_headcount": 73910.1,
+      "excess_lb": 73.91,
+      "feed_kg_delta": -5.03
+    },
+    {
+      "month": 9,
+      "excess_headcount": 104836.6,
+      "excess_lb": 104.837,
+      "feed_kg_delta": -4.3
+    },
+    {
+      "month": 10,
+      "excess_headcount": 54051.4,
+      "excess_lb": 54.051,
+      "feed_kg_delta": -4.53
+    },
+    {
+      "month": 11,
+      "excess_headcount": 0.0,
+      "excess_lb": 0.0,
+      "feed_kg_delta": -5.78
+    },
+    {
+      "month": 12,
+      "excess_headcount": 0.0,
+      "excess_lb": 0.0,
+      "feed_kg_delta": -4.77
+    }
+  ],
+  "fish_note": "ASSUMPTION stub: 12 g/fish/day, 20% worms / 80% plant. Not a measured ration."
+}

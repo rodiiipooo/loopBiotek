@@ -140,7 +140,29 @@ def main() -> None:
         with urllib.request.urlopen(base + "/") as res:
             page_status = res.status
             html = res.read().decode("utf-8")
-        assert page_status == 200 and "Forward book" in html
+        assert page_status == 200 and "Forward book" in html and "Cascade sale" in html
+        status, cascade = _request(base, "POST", "/api/cascade-impact", {
+            "quail_males": 24,
+            "quail_females": 72,
+            "worm_headcount": 250000,
+            "species": "quail",
+            "n": 16,
+            "month": 4,
+            "fish_n": 0,
+        })
+        assert status == 200
+        assert cascade["status"] in ("ok", "warn")
+        assert cascade["surplus"]["excess_lb_at_sale"] > 0
+        assert cascade["direct"]["Ne_after"] >= 50
+        status, refused = _request(base, "POST", "/api/cascade-impact", {
+            "quail_males": 24,
+            "quail_females": 72,
+            "worm_headcount": 250000,
+            "species": "quail",
+            "n": 40,
+            "month": 4,
+        })
+        assert status == 200 and refused["status"] == "refuse"
     finally:
         httpd.shutdown()
 
