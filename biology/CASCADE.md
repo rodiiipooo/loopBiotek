@@ -45,3 +45,4 @@ This file (`biology/CASCADE.md`) is the source of record in this repository. Wor
 - Stage 1 worms: `/workspace/worm-revenue-model/` (ops SoR).
 - Stage 4 quail (planning): `research/quail/` — jumbo Coturnix + Grit kit `U`, production-rate vs consumption; no live quail spend until Stage-1 gate.
 - Cross-species floors and shock guards (planning): [`../research/synergy/SPEC.md`](../research/synergy/SPEC.md). Not spend authority.
+- Ops forward book (planning assist): [`../research/ops-dashboard/README.md`](../research/ops-dashboard/README.md). Tracks promises and P90 sell room. Does not open Stage 2–5 spend.
