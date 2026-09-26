@@ -32,23 +32,25 @@ Default run: 2,000 paths, seed `20260926` in Python’s `random.Random`, so the 
 
 ## Sell limit
 
-Reliability \(x\) defaults to 0.90. That is “Safe to sell (P90)”: the breeding herd is still there in at least 90% of scenarios. At \(x = 0.90\) the allowed quantity is the low tail, in the same spirit as the firm book’s P10 rule. It is not the median herd, and it is not the deterministic \(0.9 \times N\) haircut in `circular_buffers.firm_surplus`.
+The default planning quantile is **P10** (\(x = 0.10\)). P10 is the amount you can still deliver in the harsh futures: only 10% of scenarios are this low or lower. You plan as if outcomes are bad. P90 of the same pound distribution is the good-growth case and is not a default for sell room or delivery planning. The screen refuses a percentile above 0.50.
+
+P10 is the 10th percentile of finished headroom, which is the largest \(H\) that at least 90% of futures can still clear. It is not the median herd, and it is not the deterministic \(0.9 \times N\) haircut in `circular_buffers.firm_surplus`.
 
 For a delivery in month \(T\), after draft and promised rows already on the book:
 
 \[
-H^{\star} = \max\Big\{ H : \Pr\big(N_w \ge N_{\mathrm{floor}}\ \text{for all}\ w \le w_T\big) \ge x \Big\}
+H^{\star} = Q_{P10}\big(\text{headroom at month } T\big)
 \]
 
 \(H\) is added on top of those existing deliveries. Remaining room is \(H^{\star}\) in the sale unit (pounds). Already promised is the sum of draft and promised quantities. Delivered and cancelled rows stay on the list and do not take room.
 
-A new draft or promised row is rejected when the book including that row fails the probability test. The UI shows that as a hard stop.
+A new draft or promised row is rejected when the book including that row misses the P10 bar. The UI shows that as a hard stop.
 
 ## Reverse tool
 
-Inputs: target dollars, month \(t\), reliability \(x\), species, \(N0\) (and optional floor inputs).
+Inputs: target dollars, month \(t\), harsh-case percentile \(x\) (default 0.10), species, \(N0\) (and optional floor inputs).
 
-Steady monthly cap: the same quantity \(q\) at each month-end from 1 through \(t\), largest \(q\) with probability at least \(x\).
+Steady monthly cap: the same quantity \(q\) at each month-end from 1 through \(t\), largest \(q\) that is still the P10 of that path.
 
 Cumulative quantity is \(q\) times the number of month-ends. Income prices each month on its own:
 
@@ -81,10 +83,10 @@ A separate one-delivery figure is the largest single removal at month \(t\), pri
 
 A shorter time until delivery leaves less growth above the breeding flock, so each promised pound needs more starters. The growth curve is the quail ASSUMPTION in this package (doubling about 26 weeks, bin cap 8 times the starters). It is not the cohort simulator. The floor that cannot be sold is the strict genetics floor from [`../genetics/SPEC.md`](../genetics/SPEC.md): \(N_e \ge 50\), \(F_{\max} = 0\), quail ratio 1 male : 3 females, which is 68 birds.
 
-Let \(Q_{\mathrm{P90}}(N, T)\) be the dressed pounds that can be delivered at month \(T\) while the starting herd is still there in at least 90% of scenarios. Because the bin cap scales with \(N\),
+Let \(Q_{\mathrm{P10}}(N, T)\) be the P10 dressed pounds at month \(T\): the amount you can still deliver in the harsh futures, with the starting herd kept. Only 10% of scenarios are this low or lower. Because the bin cap scales with \(N\),
 
 \[
-b(T) = \frac{N_{\mathrm{probe}}}{Q_{\mathrm{P90}}(N_{\mathrm{probe}}, T)}
+b(T) = \frac{N_{\mathrm{probe}}}{Q_{\mathrm{P10}}(N_{\mathrm{probe}}, T)}
 \]
 
 does not depend on the order size. \(b(T)\) falls as \(T\) rises. Starters for an order of \(Q\) pounds are

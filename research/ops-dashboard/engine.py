@@ -28,6 +28,32 @@ WEEKS_PER_MONTH = 52.0 / 12.0
 DEFAULT_PATHS = 2000
 DEFAULT_SEED = 20260926
 MAX_MONTH = 36
+# P10: 10th percentile of pounds you can still finish. Harsh futures.
+# The 90th percentile is the good-growth case and is not a sell-room default.
+DEFAULT_QUANTILE = 0.10
+
+
+def planning_quantile(value: float | None = None) -> float:
+    """Lower-tail percentile used for sell room and delivery planning.
+
+    0.10 is P10. About 10% of futures are this low or lower. Values above 0.50
+    would plan on a better-than-median future, so they are refused.
+    """
+    quantile = DEFAULT_QUANTILE if value is None else float(value)
+    if not 0.0 < quantile <= 0.5:
+        raise ValueError(
+            "Sell room uses the harsh tail. P10 is 0.10. "
+            "A percentile above 0.50 counts on a good future and is not used."
+        )
+    return quantile
+
+
+def clear_fraction(quantile: float) -> float:
+    """Share of scenarios that can still deliver the P-quantile amount.
+
+    P10 (0.10) means 90% of futures finish at least that many pounds.
+    """
+    return 1.0 - planning_quantile(quantile)
 
 # Ozark Worm Farms bulk listing: 10 lb at $420. Shelf price, not a farm-gate contract.
 WORM_SPOT_USD_PER_LB = 42.0
@@ -278,7 +304,11 @@ def _last_week_headrooms(
 
 
 def _headroom_cap(rooms: list[float], reliability: float) -> float:
-    """Largest H such that at least `reliability` of scenarios have room >= H."""
+    """Largest H such that at least `reliability` of scenarios have room >= H.
+
+    `reliability` here is the share of futures that must clear, not the P10
+    number. P10 passes 0.90 into this function.
+    """
     n_paths = len(rooms)
     if n_paths == 0:
         return 0.0
@@ -367,16 +397,19 @@ def sell_limit(
     bookings: list[dict],
     n_start: float | None = None,
     n_safety: float | None = None,
-    reliability: float = 0.9,
+    reliability: float = DEFAULT_QUANTILE,
     horizon_months: int = 12,
     n_paths: int = DEFAULT_PATHS,
     seed: int = DEFAULT_SEED,
 ) -> dict:
-    """Remaining room for one more delivery at horizon_months, after bookings."""
+    """Remaining room for one more delivery at horizon_months, after bookings.
+
+    `reliability` is the lower-tail percentile. Default 0.10 is P10.
+    """
     if species not in SPECIES:
         raise KeyError(species)
-    if not 0.5 <= reliability < 1.0:
-        raise ValueError("reliability must be in [0.5, 1)")
+    quantile = planning_quantile(reliability)
+    clear = clear_fraction(quantile)
     if horizon_months < 1 or horizon_months > MAX_MONTH:
         raise ValueError(f"horizon_months must be 1..{MAX_MONTH}")
     model = SPECIES[species]
@@ -387,18 +420,19 @@ def sell_limit(
     # but still count them in "already promised" so the overseer sees the whole book.
     base = {week: qty for week, qty in base.items() if week < weeks}
     already = promised_units(species, bookings)
-    clear = _survival(n0, floor, weeks, base, model, n_paths, seed)
+    clear_rate = _survival(n0, floor, weeks, base, model, n_paths, seed)
     at_week = weeks - 1
     extra_head = _max_headcount(
-        n0, floor, weeks, base, [at_week], model, reliability, n_paths, seed
+        n0, floor, weeks, base, [at_week], model, clear, n_paths, seed
     )
     extra_units = _units(extra_head, model)
     quote = price_quote(species, horizon_months)
-    booked_ok = clear + 1e-12 >= reliability
+    booked_ok = clear_rate + 1e-12 >= clear
+    tail = f"P{quantile * 100:.0f}"
     if not booked_ok:
         message = (
             "Stop. What is already promised does not leave the breeding herd intact "
-            f"in {reliability:.0%} of scenarios. Do not add another sale."
+            f"in the {tail} harsh futures. Do not add another sale."
         )
     elif extra_units <= 1e-6:
         message = (
@@ -408,8 +442,9 @@ def sell_limit(
     else:
         message = (
             f"You can still promise about {extra_units:.1f} {model.unit} "
-            f"for month {horizon_months} and keep the breeding herd in at least "
-            f"{reliability:.0%} of scenarios."
+            f"for month {horizon_months}. That is the {tail} amount: "
+            f"what you can still deliver when outcomes are bad. "
+            f"Only {quantile:.0%} of futures are this low or lower."
         )
     return {
         "species": species,
@@ -417,7 +452,7 @@ def sell_limit(
         "unit": model.unit,
         "n0": float(n0),
         "breed_floor_headcount": floor,
-        "reliability": reliability,
+        "reliability": quantile,
         "horizon_months": horizon_months,
         "safe_to_sell_units": round(extra_units, 4),
         "safe_to_sell_headcount": round(extra_head, 1),
@@ -487,24 +522,28 @@ def reverse_income(
     n0: float,
     target_income_usd: float,
     months: int,
-    reliability: float = 0.9,
+    reliability: float = DEFAULT_QUANTILE,
     n_start: float | None = None,
     n_safety: float | None = None,
     n_paths: int = DEFAULT_PATHS,
     seed: int = DEFAULT_SEED,
 ) -> dict:
-    """Largest safe monthly sell, and whether target cash is inside that cap."""
+    """Largest safe monthly sell, and whether target cash is inside that cap.
+
+    `reliability` is the lower-tail percentile. Default 0.10 is P10.
+    """
     if species not in SPECIES:
         raise KeyError(species)
     if target_income_usd < 0:
         raise ValueError("target income must be >= 0")
     if months < 1 or months > MAX_MONTH:
         raise ValueError(f"months must be 1..{MAX_MONTH}")
-    if not 0.5 <= reliability < 1.0:
-        raise ValueError("reliability must be in [0.5, 1)")
+    quantile = planning_quantile(reliability)
+    clear = clear_fraction(quantile)
+    tail = f"P{quantile * 100:.0f}"
     model = SPECIES[species]
     cap = _even_monthly_cap(
-        species, n0, n_start, n_safety, months, reliability, n_paths, seed
+        species, n0, n_start, n_safety, months, clear, n_paths, seed
     )
     quote = price_quote(species, months)
     per_month_value = _monthly_income(1.0, species, cap["month_ends"])
@@ -520,7 +559,7 @@ def reverse_income(
     weeks = weeks_for_month(months)
     floor = cap["breed_floor_headcount"]
     lump_head = _max_headcount(
-        n0, floor, weeks, {}, [weeks - 1], model, reliability, n_paths, seed
+        n0, floor, weeks, {}, [weeks - 1], model, clear, n_paths, seed
     )
     lump_units = _units(lump_head, model)
     lump_income = lump_units * quote["F_prelim"]
@@ -529,18 +568,17 @@ def reverse_income(
     later_month = None
     if not feasible and n0 > 0:
         min_n0 = _min_n0_for_target(
-            species, n0, n_start, n_safety, target_income_usd, months, reliability, n_paths, seed
+            species, n0, n_start, n_safety, target_income_usd, months, clear, n_paths, seed
         )
         later_month = _later_month_for_target(
-            species, n0, n_start, n_safety, target_income_usd, months, reliability, n_paths, seed
+            species, n0, n_start, n_safety, target_income_usd, months, clear, n_paths, seed
         )
 
     lump_covers = lump_income + 1e-6 >= target_income_usd
     if feasible:
         message = (
             f"Yes. Selling about {needed:.2f} {model.unit} each month through month {months} "
-            f"would bring in ${target_income_usd:,.0f} and still leave the breeding herd "
-            f"in at least {reliability:.0%} of scenarios. "
+            f"would bring in ${target_income_usd:,.0f} on the {tail} harsh case. "
             f"The safe monthly cap is {cap['max_monthly_units']:.2f} {model.unit}."
         )
     else:
@@ -566,7 +604,7 @@ def reverse_income(
             bits.append(f"The same starting herd can cover steady monthly sales by month {later_month}.")
         else:
             bits.append(
-                f"Waiting through month {MAX_MONTH} still does not cover steady monthly sales at this reliability."
+                f"Waiting through month {MAX_MONTH} still does not cover steady monthly sales on the {tail} harsh case."
             )
         message = " ".join(bits)
 
@@ -577,7 +615,7 @@ def reverse_income(
         "n0": float(n0),
         "target_income_usd": float(target_income_usd),
         "months": months,
-        "reliability": reliability,
+        "reliability": quantile,
         "breed_floor_headcount": floor,
         "f_prelim_usd_per_unit": quote["F_prelim"],
         "f_prelim_at_month": months,
@@ -662,11 +700,15 @@ def booking_is_safe(
     bookings_including_new: list[dict],
     n_start: float | None = None,
     n_safety: float | None = None,
-    reliability: float = 0.9,
+    reliability: float = DEFAULT_QUANTILE,
     n_paths: int = DEFAULT_PATHS,
     seed: int = DEFAULT_SEED,
 ) -> bool:
-    """True when every draft/promised delivery through its own month keeps the floor."""
+    """True when every draft/promised delivery through its own month keeps the floor.
+
+    `reliability` is the lower-tail percentile. Default 0.10 is P10, so the
+    book must still clear in 90% of futures.
+    """
     model = SPECIES[species]
     relevant = [
         row
@@ -681,4 +723,4 @@ def booking_is_safe(
     weeks = weeks_for_month(horizon)
     harvest = bookings_to_harvest(species, relevant)
     harvest = {week: qty for week, qty in harvest.items() if week < weeks}
-    return _survival(n0, floor, weeks, harvest, model, n_paths, seed) + 1e-12 >= reliability
+    return _survival(n0, floor, weeks, harvest, model, n_paths, seed) + 1e-12 >= clear_fraction(reliability)

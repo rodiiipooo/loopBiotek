@@ -26,7 +26,7 @@ py -3 --version
 .\run.bat
 ```
 
-Open http://127.0.0.1:8765 in a browser. The first page already has a sample herd (16,500 worms, 90% reliability, month 12) and a draft promise named “Demo buyer — delete me”.
+Open http://127.0.0.1:8765 in a browser. The first page already has a sample herd (16,500 worms, P10 harsh case, month 12) and a draft promise named “Demo buyer — delete me”.
 
 Stop the program with Ctrl-C in that same terminal.
 
@@ -77,10 +77,10 @@ Change the port with `OPS_PORT` (default `8765`).
 
 ### Use the screen
 
-- **Starting herd, planned start, safety reserve, how sure (percent), delivery month.** Edit the herd card, then click **Update the safe amount**. “How sure” at 90 means Safe to sell (P90): the breeding herd is still there in at least 90 of 100 simulated futures.
+- **Starting herd, planned start, safety reserve, harsh-case percentile, delivery month.** Edit the herd card, then click **Update the safe amount**. The percentile defaults to **10**. That is Safe to sell (P10): the amount you can still deliver in the harsh futures. Only 10% of scenarios are this low or lower. P90 is not used.
 - **Promises.** Add a buyer, quantity, and delivery month. Leave price blank to use the fair prepaid price. Save. A promise that would cut into the breeding herd is refused.
 - **Target income.** Set dollars and “by month”, then click **Check the target**. The answer is the safe monthly cap, whether that cap reaches the dollars, and what larger herd or later month would.
-- **Delivery structure.** For quail, enter pounds and candidate months (for example `3, 6, 12`), then click **Plan the deliveries**. Birds per pound fall as the month gets later. The starting herd never drops below the 68-bird breeding floor. A sooner lump is recommended only when a later month cannot take the order. This is planning, not a purchase.
+- **Delivery structure.** For quail, enter pounds and candidate months (for example `3, 6, 12`), then click **Plan the deliveries**. The plan uses the same P10 harsh case as Safe to sell. Birds per pound fall as the month gets later. The starting herd never drops below the 68-bird breeding floor. A sooner lump is recommended only when a later month cannot take the order. This is planning, not a purchase.
 - **Quail.** The species menu switches to a labeled planning stub. It does not approve buying birds or kits.
 
 ### Reset the forward book
@@ -103,9 +103,9 @@ Remove-Item -Force data\forwards.sqlite
 
 To keep your herd numbers and only remove promises, delete the rows in the table on the screen instead.
 
-## What “Safe to sell (P90)” means
+## What “Safe to sell (P10)” means
 
-The screen runs 2,000 seeded futures of herd growth. **Safe to sell (P90)** is the amount you can promise for the delivery month and still have the breeding herd in at least 90 of those 100 futures. It is the cautious tail, not the middle outcome. Draft and promised rows are already subtracted. If a new promise would miss that bar, the save is refused and the screen says the sale is blocked.
+The screen runs 2,000 seeded futures of herd growth. **Safe to sell (P10)** is the amount you can still deliver in the harsh futures. Only 10% of scenarios are this low or lower. You plan as if outcomes are bad. P90, the good-growth case, is not the default and the screen will not take a percentile above 50. Draft and promised rows are already subtracted. If a new promise would miss the P10 bar, the save is refused and the screen says the sale is blocked.
 
 Food inflation **2.7%** (BLS CPI-U Food, August 2026), prime **7%**, and fairness **0.9** are the prepaid defaults. The formula is on the screen and in `SPEC.md`.
 
@@ -121,4 +121,4 @@ python3 smoke.py
 py -3 smoke.py
 ```
 
-That writes `results/reverse_smoke.json` for 16,500 worms, $2,000 by month 12, 90% reliability, and checks that a saved promise changes the remaining room and that an oversized promise is blocked. It uses a temporary database, not `data/forwards.sqlite`.
+That writes `results/reverse_smoke.json` for 16,500 worms, $2,000 by month 12, P10, and checks that a saved promise changes the remaining room and that an oversized promise is blocked. It uses a temporary database, not `data/forwards.sqlite`.

@@ -8,11 +8,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 DEFAULT_HERD = {
-    "worms": {"n0": 16500, "n_start": None, "n_safety": None, "reliability": 0.9, "horizon_months": 12},
-    "quail": {"n0": 20, "n_start": None, "n_safety": None, "reliability": 0.9, "horizon_months": 12},
+    "worms": {"n0": 16500, "n_start": None, "n_safety": None, "reliability": 0.10, "horizon_months": 12},
+    "quail": {"n0": 20, "n_start": None, "n_safety": None, "reliability": 0.10, "horizon_months": 12},
 }
 
 STATUSES = ("draft", "promised", "delivered", "cancelled")
+
+
+def _stored_quantile(value) -> float:
+    """Books saved before P10 stored a success rate (0.90). That is the complement of the lower tail."""
+    try:
+        quantile = float(value)
+    except (TypeError, ValueError):
+        return 0.10
+    if quantile > 0.5:
+        quantile = 1.0 - quantile
+    return quantile
 
 
 class Book:
@@ -149,6 +160,7 @@ class Book:
             return base
         saved = json.loads(row["value"])
         base.update(saved)
+        base["reliability"] = _stored_quantile(base.get("reliability", 0.10))
         return base
 
     def save_herd(self, species: str, herd: dict) -> dict:

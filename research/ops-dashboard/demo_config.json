@@ -4,14 +4,14 @@
       "n0": 16500,
       "n_start": null,
       "n_safety": null,
-      "reliability": 0.9,
+      "reliability": 0.1,
       "horizon_months": 12
     },
     "quail": {
       "n0": 20,
       "n_start": null,
       "n_safety": null,
-      "reliability": 0.9,
+      "reliability": 0.1,
       "horizon_months": 12
     }
   },
