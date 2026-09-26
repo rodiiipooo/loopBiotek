@@ -1,0 +1,157 @@
+{
+  "stage_gate": "Stage 1 worms only. Synergy math is planning. No Stage 2-5 spend.",
+  "ok": true,
+  "fair_prepaid_T0.5": {
+    "E_P0": 12.463333333333333,
+    "E_P_T": 12.630467690381767,
+    "NPV": 12.210333990004361,
+    "F_prelim": 10.989300591003925,
+    "F_final": 10.989300591003925,
+    "T": 0.5,
+    "r_inf": 0.027,
+    "r_prime": 0.07,
+    "fairness": 0.9,
+    "transport": 0.0,
+    "formula": "E[P(T)] = E[P0] * (1+r_inf)^T; F_prelim = fairness * E[P(T)] / (1+r_prime)^T; F_final = F_prelim + transport"
+  },
+  "fair_prepaid_T0.5_r_inf_0": {
+    "F_prelim": 10.843883197625209
+  },
+  "waste_ceilings": {
+    "quail": {
+      "phi_max": 0.41,
+      "tag": "SOURCED",
+      "note": "Loop Module 2 break-even ~0.405; planning ceiling 0.41",
+      "species": "quail"
+    },
+    "bsfl": {
+      "phi_max": 0.71,
+      "tag": "SOURCED",
+      "note": "Loop Module 2 break-even ~0.705; planning ceiling 0.71",
+      "species": "bsfl"
+    },
+    "crickets": {
+      "phi_max": null,
+      "tag": "ASSUMPTION",
+      "note": "placeholder until sourced; no numeric ceiling",
+      "species": "crickets"
+    },
+    "isopods": {
+      "phi_max": null,
+      "tag": "ASSUMPTION",
+      "note": "placeholder until sourced; no numeric ceiling",
+      "species": "isopods"
+    },
+    "fish": {
+      "phi_max": null,
+      "tag": "ASSUMPTION",
+      "note": "placeholder until sourced; no numeric ceiling",
+      "species": "fish"
+    },
+    "worms": {
+      "phi_max": null,
+      "tag": "ASSUMPTION",
+      "note": "placeholder until sourced; no numeric ceiling",
+      "species": "worms"
+    }
+  },
+  "waste_checks": {
+    "quail_0.41": {
+      "phi_max": 0.41,
+      "tag": "SOURCED",
+      "note": "Loop Module 2 break-even ~0.405; planning ceiling 0.41",
+      "species": "quail",
+      "phi": 0.41,
+      "ok": true
+    },
+    "quail_0.50": {
+      "phi_max": 0.41,
+      "tag": "SOURCED",
+      "note": "Loop Module 2 break-even ~0.405; planning ceiling 0.41",
+      "species": "quail",
+      "phi": 0.5,
+      "ok": false
+    },
+    "bsfl_0.71": {
+      "phi_max": 0.71,
+      "tag": "SOURCED",
+      "note": "Loop Module 2 break-even ~0.705; planning ceiling 0.71",
+      "species": "bsfl",
+      "phi": 0.71,
+      "ok": true
+    },
+    "crickets_placeholder": {
+      "phi_max": null,
+      "tag": "ASSUMPTION",
+      "note": "placeholder until sourced; no numeric ceiling",
+      "species": "crickets",
+      "phi": 0.2,
+      "ok": null
+    }
+  },
+  "cull_cap_proxy": {
+    "H": 5.0,
+    "proxy": true,
+    "epsilon": 0.01,
+    "tau_weeks": 8.0,
+    "margin_headcount": 90.9090909090909,
+    "clipped_to_floor": true,
+    "note": "deterministic proxy for P(shortfall)<=epsilon; not a Monte Carlo"
+  },
+  "breed_floor_example": {
+    "floor": 12.0,
+    "surplus_above_floor": 3.0,
+    "firm_surplus_alpha_0.9": 1.5
+  },
+  "shocks": {
+    "quail_offtake_plus_50": {
+      "name": "quail_offtake_plus_50",
+      "export_halted": true,
+      "breeders_raided": false,
+      "fail_closed": true,
+      "breeders_before": 100.0,
+      "breeders_after": 90.0,
+      "floor": 80.0,
+      "proposed_offtake": 15.0,
+      "allowed_offtake": 10.0
+    },
+    "worm_hatch_minus_30": {
+      "name": "worm_hatch_minus_30",
+      "export_halted": true,
+      "breeders_raided": false,
+      "fail_closed": true,
+      "breeders_before": 1200.0,
+      "breeders_after": 1000.0,
+      "floor": 1000.0,
+      "naive_sell_if_floor_followed_hatch": 360.0,
+      "allowed_sell": 200.0,
+      "start_after_shock": 840.0
+    },
+    "feed_delay_2_weeks": {
+      "name": "feed_delay_2_weeks",
+      "export_halted": true,
+      "breeders_raided": false,
+      "fail_closed": true,
+      "breeders_before": 100.0,
+      "breeders_after": 100.0,
+      "floor": 80.0,
+      "buffer_weeks": 2.0,
+      "delay_weeks": 2.0,
+      "available_export_feed_weeks": 0.0
+    },
+    "insect_dieoff": {
+      "name": "insect_dieoff",
+      "export_halted": true,
+      "breeders_raided": false,
+      "fail_closed": true,
+      "breeders_before": 100.0,
+      "breeders_after": 75.0,
+      "floor": 70.0,
+      "mortality": 25.0,
+      "export_requested": 20.0,
+      "allowed_export": 5.0,
+      "mortality_rule": "surplus first; do not sell breeders to fill feed orders"
+    }
+  },
+  "legacy_note": "worm_forward_book flat 33% discount is legacy in the external worm model and is not used here. New planning prices use F_prelim."
+}

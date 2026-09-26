@@ -28,6 +28,8 @@ Population and forward-book models live outside this repository at `/workspace/w
 ## Synergy
 One nutrient spine: waste → worms/isopods; insects+greens → quail/fish; water → greens; castings → plants. Own the stack; no SaaS-per-stage.
 
+Circular-shock rule (planning only, not spend): each species keeps a breed floor \(\max(N0, N_{\mathrm{start}}, N_{\mathrm{safety}})\), feed and product buffers, and a waste-fraction ceiling, so a surge or a short hatch cannot be met by raiding another species’ breeders. Export halts before that floor is cut. Firm forwards use the unified prepaid \(F_{\mathrm{prelim}}\) on the reliability-quantile surplus, not the median herd. Math: [`../research/synergy/SPEC.md`](../research/synergy/SPEC.md). Stage 1 worms remain the only active spend.
+
 ## Anti-patterns
 - Parallel-launching stages 2–5 before Stage-1 cash
 - Funding QoL from breeding stock sales
@@ -37,3 +39,9 @@ One nutrient spine: waste → worms/isopods; insects+greens → quail/fish; wate
 ## LoopBiotek home
 
 This file (`biology/CASCADE.md`) is the source of record in this repository. Worm Monte Carlo models stay at the external sibling path `/workspace/worm-revenue-model/`.
+
+## Planning models (not spend)
+
+- Stage 1 worms: `/workspace/worm-revenue-model/` (ops SoR).
+- Stage 4 quail (planning): `research/quail/` — jumbo Coturnix + Grit kit `U`, production-rate vs consumption; no live quail spend until Stage-1 gate.
+- Cross-species floors and shock guards (planning): [`../research/synergy/SPEC.md`](../research/synergy/SPEC.md). Not spend authority.
