@@ -84,19 +84,27 @@ Flat forward (ASSUMPTION \(\mu=0\)):
 P_{\mathrm{meat}}(T) = E[P_{\mathrm{comp}}]\, e^{\mu T}
 \]
 
-Buyer prepay at \(t=0\) is a loan to Loop until delivery \(T\). Fair prepaid:
+Buyer prepay at $t=0$ is a loan to Loop until delivery $T$. **Most-fair prepaid** (Rod 2026-09-26):
 
-\[
-F_0 = \frac{E[P_{\mathrm{comp}}(T)]}{(1 + r_{\mathrm{prime}})^T}
-\]
+$$
+F_{\mathrm{prelim}} = 0.9 \cdot \frac{E[P_{\mathrm{comp}}(T)]}{(1 + r_{\mathrm{prime}})^T}
+$$
 
-(or continuous \(F_0 = E[P_{\mathrm{comp}}(T)]\, e^{-r T}\)).
+(or continuous $F_{\mathrm{prelim}} = 0.9 \cdot E[P_{\mathrm{comp}}(T)]\, e^{-r T}$). The factor $0.9$ is a **10% discount on the NPV** of competing goods.
 
-**Prime rate used:** \(r_{\mathrm{prime}} = 7.00\%\) — Fed H.15 bank prime loan, observation **2026-09-24**, release 2026-09-25. https://www.federalreserve.gov/releases/h15/
+**Sophisticated (network):** average transport cost by delivery location sits on top:
 
-Cash flows: deposit \(F_0\) per lb at 0; deliver 1 lb at \(T\); no further cash if fully prepaid at fair PV.
+$$
+F_{\mathrm{final}} = F_{\mathrm{prelim}} + c_{\mathrm{transport}}(\mathrm{location})
+$$
 
-**Pitch:** offer at \(F_0\) is actuarially fair vs competing delivery price given time-value of deposit. Margin = offer \(-\, F_0\) (positive = Loop captures surplus; negative = subsidy).
+That layer enables richer strategies for the network (hub placement, route pooling) without changing the goods-NPV fairness core.
+
+**Prime rate used:** $r_{\mathrm{prime}} = 7.00\%$ — Fed H.15 bank prime loan, observation **2026-09-24**, release 2026-09-25. https://www.federalreserve.gov/releases/h15/
+
+Cash flows: deposit $F_{\mathrm{final}}$ per lb at 0; deliver 1 lb at $T$; no further cash if fully prepaid.
+
+**Pitch:** $F_{\mathrm{prelim}}$ is the most-fair goods price (prime loan on deposit + 10% NPV discount). Add transparent transport only when using the location model. Margin vs $F_{\mathrm{prelim}}$ is Loop surplus/subsidy on the goods; transport should track cost, not hidden margin.
 
 ---
 

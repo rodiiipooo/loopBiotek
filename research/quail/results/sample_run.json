@@ -36,21 +36,26 @@
     "sustain_rule": "inventory_buffer"
   },
   "fair_forward_sample_T0.5": {
-    "F_0_usd_per_lb": 12.048759108472453,
+    "F_0_usd_per_lb": 10.843883197625209,
+    "F_prelim_usd_per_lb": 10.843883197625209,
+    "npv_comp_usd_per_lb": 12.048759108472453,
     "E_P_comp_at_T": 12.463333333333333,
     "P_comp_spot": 12.463333333333333,
     "T_years": 0.5,
     "r_prime": 0.07,
     "r_prime_as_of": "2026-09-24",
-    "discount_factor": 0.9667364890456636,
+    "time_value_discount_factor": 0.9667364890456636,
+    "fairness_factor": 0.9,
+    "transport_usd_per_lb": 0.0,
     "continuous": false,
-    "formula": "F_0 = E[P_comp(T)] / (1 + r_prime)^T",
+    "formula": "F_prelim = fairness_factor * E[P_comp(T)] / (1 + r_prime)^T; F_final = F_prelim + transport",
     "cash_flows": {
-      "t0_deposit_per_lb": 12.048759108472453,
+      "t0_deposit_per_lb": 10.843883197625209,
       "tT_delivery_lbs": 1.0,
       "tT_additional_cash": 0.0
     },
-    "implied_interest_credit_vs_pay_at_T": 0.41457422486088014
+    "implied_interest_credit_vs_pay_at_T": 0.41457422486088014,
+    "buyer_goods_discount_vs_npv": 1.2048759108472442
   },
   "E_P_comp": 12.463333333333333,
   "prime_rate": 0.07,

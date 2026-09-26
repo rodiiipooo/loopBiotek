@@ -36,15 +36,16 @@ Kit capex @U: $3,449.99   Caps: {'U': 1.0, 'breeder_heads': 45.0, 'brooder_heads
 t_ready: 77.0 days (week 11)  feasible=True
 At t_ready: r_prod=28.946 lb/wk  sustains=True  surplus=26.946
 
---- Fair forward / prepaid (prime=7.00% as of 2026-09-24 CT) ---
+--- Fair prepaid (prime=7.00% as of 2026-09-24; fairness=0.90; transport=$0/lb) ---
 E[P_comp] spot = $12.4633/lb (foodservice mean)
-  T_yr    P_meat(T)    F_0 prepaid       DF
-  0.25 $    12.4633 $      12.2543   0.9832
-  0.50 $    12.4633 $      12.0488   0.9667
-  0.75 $    12.4633 $      11.8467   0.9505
-  1.00 $    12.4633 $      11.6480   0.9346
-  1.50 $    12.4633 $      11.2605   0.9035
-  2.00 $    12.4633 $      10.8860   0.8734
-Cash flows (T=0.5y): deposit $12.0488/lb at t=0; deliver 1 lb at T.
+F_prelim = fairness * E[P_comp(T)] / (1+r)^T ; F_final = F_prelim + transport
+  T_yr    P_meat(T)     F_prelim      F_final       DF
+  0.25 $    12.4633 $    11.0289 $    11.0289   0.9832
+  0.50 $    12.4633 $    10.8439 $    10.8439   0.9667
+  0.75 $    12.4633 $    10.6620 $    10.6620   0.9505
+  1.00 $    12.4633 $    10.4832 $    10.4832   0.9346
+  1.50 $    12.4633 $    10.1345 $    10.1345   0.9035
+  2.00 $    12.4633 $     9.7974 $     9.7974   0.8734
+Cash flows (T=0.5y): deposit F_final $10.8439/lb at t=0 (F_prelim $10.8439); deliver 1 lb at T.
 
-Wrote /workspace/loopBiotek/research/quail/results/sample_run.json
+Wrote results/sample_run.json

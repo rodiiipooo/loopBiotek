@@ -8,7 +8,7 @@ This module is planning math only — do not open quail spend until Stage-1 gate
 Capacity unit: Grit "Quail Professional Kit" (U = number of kits).
 Core inverse: kits_needed(X, t, y, z) s.t. meat_lbs(t,y,z,U) >= X under kit caps.
 
-Also: P_meat(t) competing forward $/lb; fair prepaid F_0 = E[P_comp]/(1+r_prime)^T.
+Also: fair prepaid F_0 = 0.9 * E[P_comp]/(1+r_prime)^T (+ optional transport $/lb).
 
 Tags: SOURCED vs ASSUMPTION — see SPEC.md. No fabricated Admin-analytics labels.
 """
@@ -76,6 +76,7 @@ KIT_GROWOUT_HEADS = KIT_GROWOUT_HEADS_JUMBO
 # ---------------------------------------------------------------------------
 
 PRIME_RATE = 0.07  # SOURCED Fed H.15 bank prime 7.00% as of 2026-09-24 (release 2026-09-25)
+FAIRNESS_DISCOUNT_FACTOR = 0.9  # Rod: 10% discount on NPV of competing goods (most-fair prepaid)
 PRIME_RATE_AS_OF = "2026-09-24"
 PRIME_RATE_SOURCE = "https://www.federalreserve.gov/releases/h15/"
 
@@ -194,45 +195,71 @@ def fair_prepaid_forward_per_lb(
     r_prime: float = PRIME_RATE,
     continuous: bool = False,
     drift_per_year: float = FORWARD_DRIFT_PER_YEAR,
+    fairness_factor: float = FAIRNESS_DISCOUNT_FACTOR,
+    transport_usd_per_lb: float = 0.0,
 ) -> dict:
     """
-    Fair prepaid forward $/lb. Buyer deposit at 0 is a loan to Loop until delivery T.
+    Most-fair prepaid forward $/lb (Rod 2026-09-26).
 
-    Discrete:  F_0 = E[P_comp(T)] / (1 + r_prime)^T
-    Continuous: F_0 = E[P_comp(T)] * exp(-r_prime * T)
+    Preliminary (no transport):
+        F_prelim = fairness_factor * E[P_comp(T)] / (1 + r_prime)^T
+    with default fairness_factor = 0.9 (10% discount on NPV of competing goods).
+    Deposit at t=0 is a loan to Loop until delivery T (prime discount).
 
-    Cash flows: deposit F_0 at t=0; deliver 1 lb at T; no further cash if fully prepaid.
+    Sophisticated (network / location):
+        F_final = F_prelim + transport_usd_per_lb
+    where transport is average delivery cost for the buyer location (USD/lb).
+    Enables richer network strategies (route pooling, hub placement) on top of
+    the fair goods NPV.
+
+    Continuous equivalent uses exp(-r_prime * T) for the time-value factor.
     """
     if p_comp is None:
         p_comp = expected_comp_price()
     if T_years < 0:
         raise ValueError("T_years must be >= 0")
+    if fairness_factor < 0:
+        raise ValueError("fairness_factor must be >= 0")
+    if transport_usd_per_lb < 0:
+        raise ValueError("transport_usd_per_lb must be >= 0")
     p_delivery = P_meat(T_years, p_spot=p_comp, drift_per_year=drift_per_year)
     if continuous:
         df = math.exp(-r_prime * T_years)
-        formula = "F_0 = E[P_comp(T)] * exp(-r_prime * T)"
+        formula = (
+            "F_prelim = fairness_factor * E[P_comp(T)] * exp(-r_prime * T); "
+            "F_final = F_prelim + transport"
+        )
     else:
         df = 1.0 / ((1.0 + r_prime) ** T_years)
-        formula = "F_0 = E[P_comp(T)] / (1 + r_prime)^T"
-    f0 = p_delivery * df
+        formula = (
+            "F_prelim = fairness_factor * E[P_comp(T)] / (1 + r_prime)^T; "
+            "F_final = F_prelim + transport"
+        )
+    npv_comp = p_delivery * df
+    f_prelim = fairness_factor * npv_comp
+    f_final = f_prelim + float(transport_usd_per_lb)
     return {
-        "F_0_usd_per_lb": f0,
+        "F_0_usd_per_lb": f_final,
+        "F_prelim_usd_per_lb": f_prelim,
+        "npv_comp_usd_per_lb": npv_comp,
         "E_P_comp_at_T": p_delivery,
         "P_comp_spot": p_comp,
         "T_years": T_years,
         "r_prime": r_prime,
         "r_prime_as_of": PRIME_RATE_AS_OF,
-        "discount_factor": df,
+        "time_value_discount_factor": df,
+        "fairness_factor": fairness_factor,
+        "transport_usd_per_lb": float(transport_usd_per_lb),
         "continuous": continuous,
         "formula": formula,
         "cash_flows": {
-            "t0_deposit_per_lb": f0,
+            "t0_deposit_per_lb": f_final,
             "tT_delivery_lbs": 1.0,
             "tT_additional_cash": 0.0,
         },
-        "implied_interest_credit_vs_pay_at_T": p_delivery - f0,
+        "implied_interest_credit_vs_pay_at_T": p_delivery - npv_comp,
+        "buyer_goods_discount_vs_npv": npv_comp - f_prelim,
     }
-
 
 def kit_caps(U: float, kit: Optional[KitParams] = None) -> dict:
     k = kit or KitParams()

@@ -9,6 +9,7 @@ from pathlib import Path
 
 from quail_model import (
     DRESS_WEIGHT_LBS,
+    FAIRNESS_DISCOUNT_FACTOR,
     KIT_PRICE_USD,
     PRIME_RATE,
     PRIME_RATE_AS_OF,
@@ -74,16 +75,24 @@ def main() -> None:
 
     print()
     p_comp = expected_comp_price()
-    print(f"--- Fair forward / prepaid (prime={PRIME_RATE*100:.2f}% as of {PRIME_RATE_AS_OF} CT) ---")
+    print(
+        f"--- Fair prepaid (prime={PRIME_RATE*100:.2f}% as of {PRIME_RATE_AS_OF}; "
+        f"fairness={FAIRNESS_DISCOUNT_FACTOR:.2f}; transport=$0/lb) ---"
+    )
     print(f"E[P_comp] spot = ${p_comp:.4f}/lb (foodservice mean)")
-    print(f"{'T_yr':>6} {'P_meat(T)':>12} {'F_0 prepaid':>14} {'DF':>8}")
+    print("F_prelim = fairness * E[P_comp(T)] / (1+r)^T ; F_final = F_prelim + transport")
+    print(f"{'T_yr':>6} {'P_meat(T)':>12} {'F_prelim':>12} {'F_final':>12} {'DF':>8}")
     for row in forward_table([0.25, 0.5, 0.75, 1.0, 1.5, 2.0], p_comp=p_comp):
         print(
             f"{row['T_years']:6.2f} ${row['E_P_comp_at_T']:11.4f} "
-            f"${row['F_0_usd_per_lb']:13.4f} {row['discount_factor']:8.4f}"
+            f"${row['F_prelim_usd_per_lb']:11.4f} "
+            f"${row['F_0_usd_per_lb']:11.4f} {row['time_value_discount_factor']:8.4f}"
         )
     sample = fair_prepaid_forward_per_lb(0.5, p_comp=p_comp)
-    print(f"Cash flows (T=0.5y): deposit ${sample['F_0_usd_per_lb']:.4f}/lb at t=0; deliver 1 lb at T.")
+    print(
+        f"Cash flows (T=0.5y): deposit F_final ${sample['F_0_usd_per_lb']:.4f}/lb at t=0 "
+        f"(F_prelim ${sample['F_prelim_usd_per_lb']:.4f}); deliver 1 lb at T."
+    )
 
     out = {
         "y": args.y,
