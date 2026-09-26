@@ -44,6 +44,6 @@ This file (`biology/CASCADE.md`) is the source of record in this repository. Wor
 
 - Stage 1 worms: `/workspace/worm-revenue-model/` (ops SoR).
 - Stage 4 quail (planning): `research/quail/` — jumbo Coturnix + Grit kit `U`, production-rate vs consumption; no live quail spend until Stage-1 gate.
-- Cross-species floors and shock guards (planning): [`../research/synergy/SPEC.md`](../research/synergy/SPEC.md). Not spend authority.
+- Cross-species floors and shock guards (planning): [`../research/synergy/SPEC.md`](../research/synergy/SPEC.md). A sale of one species also reports the feed it frees and the worm surplus that keeps reproducing (`cascade_impact.py`). Not spend authority.
 - Ops forward book (planning assist): [`../research/ops-dashboard/README.md`](../research/ops-dashboard/README.md). Tracks promises and P10 sell room. Does not open Stage 2–5 spend. It is not the CAD tile viewer.
 - Reproduction math (planning): [`../research/genetics/SPEC.md`](../research/genetics/SPEC.md). Quail is Stage 4 and aquaponics fish are Stage 5. Strict mode refuses matings above the inbreeding cap (default \(F = 0\)). Surplus sales also have to leave an effective population large enough that the pedigree does not collapse. If some inbred offspring are expected anyway, hatch, growth, fecundity, and reject rate are haircut. This does not open Stage 2–5 spend.
