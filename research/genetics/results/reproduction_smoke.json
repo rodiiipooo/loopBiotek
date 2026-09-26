@@ -1,0 +1,42 @@
+{
+  "ok": true,
+  "stage_gate": "Stage 1 worms only. Quail is Stage 4 planning. Fish is Stage 5 planning. No Stage 2-5 spend.",
+  "defaults": {
+    "F_max": 0.0,
+    "delta_F_max": 0.01,
+    "Ne_min": 50,
+    "full_sib_F": 0.25,
+    "quail_points_per_0.10_F": {
+      "fertility": 0.0216,
+      "hatch": 0.0598,
+      "viability": 0.055,
+      "egg_rate": 0.0338
+    },
+    "quail_reject_points_per_0.10_F": 0.02,
+    "fish_relative_loss_per_0.10_F": {
+      "hatch": 0.05,
+      "growth": 0.03,
+      "fecundity": 0.05,
+      "viability": 0.05
+    },
+    "formulas": {
+      "Ne": "4*Nm*Nf/(Nm+Nf)",
+      "delta_F": "1/(2*Ne)",
+      "offspring_F": "a_sire_dam/2",
+      "F_bar": "x * F_class"
+    }
+  },
+  "checks": {
+    "Ne_10_10": 20.0,
+    "Ne_10_30": 30.0,
+    "delta_F_at_50": 0.01,
+    "full_sib_F": 0.25,
+    "half_sib_F": 0.125,
+    "quail_hatch_at_F_0.10": 0.6902,
+    "quail_F_bar_when_20pct_full_sib": 0.05,
+    "fish_growth_index_at_F_0.10": 0.97,
+    "cull_to_Ne_30_allowed": false,
+    "cull_leaving_Ne_90_allowed": true,
+    "genetics_floor_above_synergy_floor": true
+  }
+}

@@ -1,5 +1,7 @@
 # Community ops forward dashboard
 
+This screen is the operations forward book (promises, safe-to-sell, and the income check). It is not the CAD tile viewer.
+
 A local screen for tracking prepaid promises and how much of the herd is still safe to sell. It runs on a laptop with Python only. Nothing here is a cloud service, and nothing here approves spending beyond Stage 1 worms. Quail on the screen is a planning stand-in.
 
 ## Laptop setup (5 min)

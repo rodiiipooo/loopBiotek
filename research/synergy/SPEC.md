@@ -18,6 +18,8 @@ N_{\mathrm{floor}}(s,w) = \max\big(N0_s,\ N_{\mathrm{start}}(s,w),\ N_{\mathrm{s
 
 \(N0_s\) is the founding breeder count. \(N_{\mathrm{start}}\) is this week’s planned start (it can fall after a bad hatch). \(N_{\mathrm{safety}}\) is the reserve that does not follow a bad week down. Surplus is \(\max(0,\ N - N_{\mathrm{floor}})\). Revenue, meat orders, and another species’ feed ration stop at that line.
 
+For quail and aquaponics fish, the count that must stay is the larger of this floor and the effective-population floor in [`../genetics/SPEC.md`](../genetics/SPEC.md). A sale that clears \(N_{\mathrm{floor}}\) but leaves too few unrelated males and females is still refused. That package is planning only.
+
 ## 2. Culling governor
 
 From the Loop report (Module 1b; \(\alpha_Q = 0.01\) in the worked example, horizon \(L\) in weeks):
