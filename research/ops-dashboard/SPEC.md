@@ -28,7 +28,7 @@ N_{w+1} = N_w + N_w\,(f_w - 1)\,\max\big(0,\ 1 - N_w/K\big) - H_w
 
 \(H_w\) is headcount removed that week (a delivery, or one month of a steady cull). A scenario fails if any week ends below \(N_{\mathrm{floor}}\).
 
-Default run: 2,000 paths, seed `20260926`, so the screen does not jump on refresh. Worm weekly \(\sigma = 0.015\). Quail stub weekly \(\sigma = 0.01\). Both are **ASSUMPTION** values chosen so a year with no sales still keeps the breed floor in at least 90% of scenarios, which leaves a surplus that can be tested.
+Default run: 2,000 paths, seed `20260926` in Python’s `random.Random`, so the screen does not jump on refresh. No extra numerical library is required. Worm weekly \(\sigma = 0.015\). Quail stub weekly \(\sigma = 0.01\). Both are **ASSUMPTION** values chosen so a year with no sales still keeps the breed floor in at least 90% of scenarios, which leaves a surplus that can be tested.
 
 ## Sell limit
 

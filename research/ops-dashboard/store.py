@@ -16,12 +16,43 @@ STATUSES = ("draft", "promised", "delivered", "cancelled")
 
 
 class Book:
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, seed_demo: bool = True) -> None:
         self.path = path
         path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._init()
+        if seed_demo:
+            self.seed_demo()
+
+    def seed_demo(self) -> None:
+        """Load the shipped sample herd and one draft promise into an empty book."""
+        if self.list_forwards():
+            return
+        existing = self._conn.execute("SELECT COUNT(*) AS c FROM settings").fetchone()["c"]
+        if existing:
+            return
+        demo_path = Path(__file__).resolve().parent / "demo_config.json"
+        demo = json.loads(demo_path.read_text(encoding="utf-8"))
+        for species, herd in demo["herds"].items():
+            self.save_herd(species, herd)
+        import engine
+
+        for row in demo["forwards"]:
+            price = row.get("price_usd")
+            if price is None:
+                price = engine.price_quote(row["species"], int(row["delivery_month"]))["F_prelim"]
+            self.insert_forward(
+                {
+                    "buyer": row["buyer"],
+                    "species": row["species"],
+                    "qty": float(row["qty"]),
+                    "unit": row["unit"],
+                    "delivery_month": int(row["delivery_month"]),
+                    "price_usd": float(price),
+                    "status": row["status"],
+                }
+            )
 
     def _init(self) -> None:
         self._conn.execute(

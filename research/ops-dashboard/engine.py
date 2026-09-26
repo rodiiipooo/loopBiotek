@@ -1,22 +1,28 @@
 """Stochastic sell limits for the community ops dashboard. Planning only.
 
-The external worm_growth_mc tree is not in this repository. Worm and quail
-paths here are a seeded logistic stand-in so the app can run on its own.
-They are not the Stage-1 spend model.
+Uses the Python standard library (no numpy). Worm and quail paths are a seeded
+logistic stand-in so a laptop can run the screen on its own. They are not the
+Stage-1 spend model, and they do not authorize later-stage purchases.
 """
 
 from __future__ import annotations
 
+import math
+import random
 import sys
 from pathlib import Path
-
-import numpy as np
 
 _SYNERGY = Path(__file__).resolve().parents[1] / "synergy"
 if str(_SYNERGY) not in sys.path:
     sys.path.insert(0, str(_SYNERGY))
 
-from circular_buffers import FAIRNESS, R_INF, R_PRIME, breed_floor, fair_prepaid  # noqa: E402
+try:
+    from circular_buffers import FAIRNESS, R_INF, R_PRIME, breed_floor, fair_prepaid  # noqa: E402
+except ImportError as err:
+    raise ImportError(
+        "This folder expects research/synergy next to it. Clone the whole repository, "
+        "then run from research/ops-dashboard."
+    ) from err
 
 WEEKS_PER_MONTH = 52.0 / 12.0
 DEFAULT_PATHS = 2000
@@ -160,6 +166,69 @@ def price_quote(species: str, delivery_month: int, transport: float = 0.0) -> di
     return quoted
 
 
+_SHOCKS: dict[tuple, list[list[float]]] = {}
+
+
+def _shocks(model: SpeciesModel, weeks: int, n_paths: int, seed: int) -> list[list[float]]:
+    """Weekly growth factors. Cached so a binary search replays the same futures."""
+    key = (model.key, model.doubling_weeks, model.weekly_sigma, weeks, n_paths, seed)
+    cached = _SHOCKS.get(key)
+    if cached is not None:
+        return cached
+    mu = math.log(2.0 ** (1.0 / model.doubling_weeks))
+    rng = random.Random(seed)
+    table = [
+        [math.exp(rng.gauss(mu, model.weekly_sigma)) for _ in range(weeks)]
+        for _ in range(n_paths)
+    ]
+    _SHOCKS[key] = table
+    return table
+
+
+def _capacity(model: SpeciesModel, n0: float, floor: float) -> float:
+    return model.carrying_multiple * max(float(n0), float(floor), 1.0)
+
+
+def _replay(
+    n0: float,
+    floor: float,
+    shocks: list[list[float]],
+    harvest_at_week: dict[int, float],
+    capacity: float,
+    reliability: float | None = None,
+) -> float:
+    """Share of scenarios that stay at or above the breed floor.
+
+    If reliability is set, stop once too many scenarios have already failed.
+    """
+    n_paths = len(shocks)
+    fails = 0
+    fail_limit = None
+    if reliability is not None:
+        fail_limit = n_paths - math.ceil(reliability * n_paths - 1e-12)
+    for row in shocks:
+        n = float(n0)
+        good = True
+        for week, factor in enumerate(row):
+            room = 1.0 - n / capacity
+            if room < 0.0:
+                room = 0.0
+            n = n + n * (factor - 1.0) * room
+            take = harvest_at_week.get(week, 0.0)
+            if take:
+                n -= take
+            if n < 0.0:
+                n = 0.0
+            if n + 1e-6 < floor:
+                good = False
+                break
+        if not good:
+            fails += 1
+            if fail_limit is not None and fails > fail_limit:
+                return (n_paths - fails) / n_paths
+    return (n_paths - fails) / n_paths
+
+
 def _survival(
     n0: float,
     floor: float,
@@ -172,25 +241,52 @@ def _survival(
     """Share of scenarios whose headcount stays at or above the breed floor."""
     if weeks < 1:
         raise ValueError("weeks must be >= 1")
-    median_factor = 2.0 ** (1.0 / model.doubling_weeks)
-    capacity = model.carrying_multiple * max(float(n0), float(floor), 1.0)
-    rng = np.random.default_rng(seed)
-    shocks = rng.lognormal(
-        mean=np.log(median_factor),
-        sigma=model.weekly_sigma,
-        size=(n_paths, weeks),
-    )
-    n = np.full(n_paths, float(n0), dtype=float)
-    breached = np.zeros(n_paths, dtype=bool)
-    for week in range(weeks):
-        room = np.maximum(0.0, 1.0 - n / capacity)
-        n = n + n * (shocks[:, week] - 1.0) * room
-        take = harvest_at_week.get(week, 0.0)
-        if take:
-            n = n - take
-        n = np.maximum(n, 0.0)
-        breached |= n + 1e-6 < floor
-    return float(np.mean(~breached))
+    shocks = _shocks(model, weeks, n_paths, seed)
+    return _replay(n0, floor, shocks, harvest_at_week, _capacity(model, n0, floor))
+
+
+def _last_week_headrooms(
+    n0: float,
+    floor: float,
+    shocks: list[list[float]],
+    base_harvest: dict[int, float],
+    capacity: float,
+) -> list[float]:
+    """Spare headcount at the final week, after any harvest already on the book.
+
+    A scenario that already broke the floor contributes no spare (negative).
+    """
+    rooms: list[float] = []
+    for row in shocks:
+        n = float(n0)
+        broken = False
+        for week, factor in enumerate(row):
+            room = 1.0 - n / capacity
+            if room < 0.0:
+                room = 0.0
+            n = n + n * (factor - 1.0) * room
+            take = base_harvest.get(week, 0.0)
+            if take:
+                n -= take
+            if n < 0.0:
+                n = 0.0
+            if n + 1e-6 < floor:
+                broken = True
+                break
+        rooms.append(-1.0 if broken else n - floor)
+    return rooms
+
+
+def _headroom_cap(rooms: list[float], reliability: float) -> float:
+    """Largest H such that at least `reliability` of scenarios have room >= H."""
+    n_paths = len(rooms)
+    if n_paths == 0:
+        return 0.0
+    need = math.ceil(reliability * n_paths - 1e-12)
+    if need > n_paths:
+        return 0.0
+    ordered = sorted(rooms)
+    return max(0.0, ordered[n_paths - need])
 
 
 def _max_headcount(
@@ -205,23 +301,27 @@ def _max_headcount(
     seed: int,
 ) -> float:
     """Largest equal headcount added on each week in add_weeks that stays safe."""
+    if not add_weeks:
+        return 0.0
+    shocks = _shocks(model, weeks, n_paths, seed)
+    capacity = _capacity(model, n0, floor)
+    if add_weeks == [weeks - 1]:
+        rooms = _last_week_headrooms(n0, floor, shocks, base_harvest, capacity)
+        return _headroom_cap(rooms, reliability)
 
     def ok(extra: float) -> bool:
         harvest = dict(base_harvest)
         for week in add_weeks:
             harvest[week] = harvest.get(week, 0.0) + extra
-        return (
-            _survival(n0, floor, weeks, harvest, model, n_paths, seed)
-            >= reliability - 1e-12
-        )
+        return _replay(n0, floor, shocks, harvest, capacity, reliability) >= reliability - 1e-12
 
-    if not add_weeks or not ok(0.0):
+    if not ok(0.0):
         return 0.0
-    hi = model.carrying_multiple * max(float(n0), float(floor), 1.0)
+    hi = capacity
     if ok(hi):
         return hi
     lo = 0.0
-    for _ in range(36):
+    for _ in range(24):
         mid = 0.5 * (lo + hi)
         if ok(mid):
             lo = mid
