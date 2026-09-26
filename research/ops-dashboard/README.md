@@ -80,6 +80,7 @@ Change the port with `OPS_PORT` (default `8765`).
 - **Starting herd, planned start, safety reserve, how sure (percent), delivery month.** Edit the herd card, then click **Update the safe amount**. “How sure” at 90 means Safe to sell (P90): the breeding herd is still there in at least 90 of 100 simulated futures.
 - **Promises.** Add a buyer, quantity, and delivery month. Leave price blank to use the fair prepaid price. Save. A promise that would cut into the breeding herd is refused.
 - **Target income.** Set dollars and “by month”, then click **Check the target**. The answer is the safe monthly cap, whether that cap reaches the dollars, and what larger herd or later month would.
+- **Delivery structure.** For quail, enter pounds and candidate months (for example `3, 6, 12`), then click **Plan the deliveries**. Birds per pound fall as the month gets later. The starting herd never drops below the 68-bird breeding floor. A sooner lump is recommended only when a later month cannot take the order. This is planning, not a purchase.
 - **Quail.** The species menu switches to a labeled planning stub. It does not approve buying birds or kits.
 
 ### Reset the forward book
