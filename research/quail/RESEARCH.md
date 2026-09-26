@@ -57,6 +57,16 @@ Note: foodservice comps are often standard-size birds; $/lb still used as compet
 | As-of used in model | 2026-09-24 | SOURCED | H.15 observation column |
 | Context | Raised from 6.75% after Sep 16, 2026 FOMC | SOURCED | Reuters / U.S. Bank IR 2026-09-16 |
 
+## Food inflation (competing-goods drift)
+
+| Item | Value | Tag | Source |
+|------|-------|-----|--------|
+| CPI-U Food, 12-month % change | **2.7%** | SOURCED | BLS CPI news release, August 2026, archived 2026-09-11. https://www.bls.gov/news.release/archives/cpi_09112026.htm |
+| Same window, all items | 3.4% | SOURCED | Same release. Not the default. |
+| Same window, meats, poultry, fish, and eggs | 1.1% | SOURCED | Same release. Not the default. |
+
+Default \(r_{\mathrm{inf}}\) for this meat forward is **Food 2.7%** (`INFLATION_RATE`). Override with `r_inf` or `drift_per_year`, including 0 for a flat curve.
+
 ## Model limitations (honest)
 
 - Deterministic weekly cohorts; no stochastic disease / fertility shock.

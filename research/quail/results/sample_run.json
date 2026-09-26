@@ -36,19 +36,47 @@
     "sustain_rule": "inventory_buffer"
   },
   "fair_forward_sample_T0.5": {
+    "F_0_usd_per_lb": 10.989300591003925,
+    "F_prelim_usd_per_lb": 10.989300591003925,
+    "npv_comp_usd_per_lb": 12.210333990004361,
+    "E_P_comp_at_0": 12.463333333333333,
+    "E_P_comp_at_T": 12.630467690381767,
+    "P_comp_spot": 12.463333333333333,
+    "T_years": 0.5,
+    "r_prime": 0.07,
+    "r_prime_as_of": "2026-09-24",
+    "r_inf": 0.027,
+    "r_inf_as_of": "2026-08",
+    "time_value_discount_factor": 0.9667364890456636,
+    "fairness_factor": 0.9,
+    "transport_usd_per_lb": 0.0,
+    "continuous": false,
+    "formula": "E[P_comp(T)] = E[P_comp(0)] * (1 + r_inf)^T; NPV_comp(T) = E[P_comp(T)] / (1 + r_prime)^T; F_prelim = fairness_factor * NPV_comp(T); F_final = F_prelim + transport",
+    "cash_flows": {
+      "t0_deposit_per_lb": 10.989300591003925,
+      "tT_delivery_lbs": 1.0,
+      "tT_additional_cash": 0.0
+    },
+    "implied_interest_credit_vs_pay_at_T": 0.4201337003774057,
+    "buyer_goods_discount_vs_npv": 1.2210333990004365
+  },
+  "fair_forward_sample_T0.5_r_inf_0": {
     "F_0_usd_per_lb": 10.843883197625209,
     "F_prelim_usd_per_lb": 10.843883197625209,
     "npv_comp_usd_per_lb": 12.048759108472453,
+    "E_P_comp_at_0": 12.463333333333333,
     "E_P_comp_at_T": 12.463333333333333,
     "P_comp_spot": 12.463333333333333,
     "T_years": 0.5,
     "r_prime": 0.07,
     "r_prime_as_of": "2026-09-24",
+    "r_inf": 0.0,
+    "r_inf_as_of": "2026-08",
     "time_value_discount_factor": 0.9667364890456636,
     "fairness_factor": 0.9,
     "transport_usd_per_lb": 0.0,
     "continuous": false,
-    "formula": "F_prelim = fairness_factor * E[P_comp(T)] / (1 + r_prime)^T; F_final = F_prelim + transport",
+    "formula": "E[P_comp(T)] = E[P_comp(0)] * (1 + r_inf)^T; NPV_comp(T) = E[P_comp(T)] / (1 + r_prime)^T; F_prelim = fairness_factor * NPV_comp(T); F_final = F_prelim + transport",
     "cash_flows": {
       "t0_deposit_per_lb": 10.843883197625209,
       "tT_delivery_lbs": 1.0,
@@ -60,6 +88,8 @@
   "E_P_comp": 12.463333333333333,
   "prime_rate": 0.07,
   "prime_as_of": "2026-09-24",
+  "r_inf": 0.027,
+  "r_inf_as_of": "2026-08",
   "defaults": [
     {
       "name": "species",
@@ -156,6 +186,12 @@
       "value": 0.07,
       "unit": "/yr",
       "tag": "SOURCED Fed H.15 2026-09-24"
+    },
+    {
+      "name": "inflation_rate_cpi_food",
+      "value": 0.027,
+      "unit": "/yr",
+      "tag": "SOURCED BLS CPI-U Food 2026-08"
     },
     {
       "name": "E_P_comp_default",

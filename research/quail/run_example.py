@@ -10,6 +10,8 @@ from pathlib import Path
 from quail_model import (
     DRESS_WEIGHT_LBS,
     FAIRNESS_DISCOUNT_FACTOR,
+    INFLATION_RATE,
+    INFLATION_RATE_AS_OF,
     KIT_PRICE_USD,
     PRIME_RATE,
     PRIME_RATE_AS_OF,
@@ -77,10 +79,15 @@ def main() -> None:
     p_comp = expected_comp_price()
     print(
         f"--- Fair prepaid (prime={PRIME_RATE*100:.2f}% as of {PRIME_RATE_AS_OF}; "
+        f"r_inf={INFLATION_RATE*100:.1f}% CPI-U Food {INFLATION_RATE_AS_OF}; "
         f"fairness={FAIRNESS_DISCOUNT_FACTOR:.2f}; transport=$0/lb) ---"
     )
-    print(f"E[P_comp] spot = ${p_comp:.4f}/lb (foodservice mean)")
-    print("F_prelim = fairness * E[P_comp(T)] / (1+r)^T ; F_final = F_prelim + transport")
+    print(f"E[P_comp(0)] spot = ${p_comp:.4f}/lb (foodservice mean)")
+    print(
+        "E[P_comp(T)] = E[P_comp(0)] * (1+r_inf)^T; "
+        "NPV = E[P_comp(T)] / (1+r_prime)^T; "
+        "F_prelim = 0.9 * NPV; F_final = F_prelim + transport"
+    )
     print(f"{'T_yr':>6} {'P_meat(T)':>12} {'F_prelim':>12} {'F_final':>12} {'DF':>8}")
     for row in forward_table([0.25, 0.5, 0.75, 1.0, 1.5, 2.0], p_comp=p_comp):
         print(
@@ -89,9 +96,16 @@ def main() -> None:
             f"${row['F_0_usd_per_lb']:11.4f} {row['time_value_discount_factor']:8.4f}"
         )
     sample = fair_prepaid_forward_per_lb(0.5, p_comp=p_comp)
+    flat = fair_prepaid_forward_per_lb(0.5, p_comp=p_comp, r_inf=0.0)
     print(
-        f"Cash flows (T=0.5y): deposit F_final ${sample['F_0_usd_per_lb']:.4f}/lb at t=0 "
-        f"(F_prelim ${sample['F_prelim_usd_per_lb']:.4f}); deliver 1 lb at T."
+        f"Cash flows (T=0.5y, r_inf={INFLATION_RATE:.3f}): "
+        f"deposit F_final ${sample['F_0_usd_per_lb']:.4f}/lb at t=0 "
+        f"(F_prelim ${sample['F_prelim_usd_per_lb']:.4f}; "
+        f"E[P_comp(T)] ${sample['E_P_comp_at_T']:.4f}); deliver 1 lb at T."
+    )
+    print(
+        f"Zero-inflation check (r_inf=0, same T, prime, fairness): "
+        f"F_prelim ${flat['F_prelim_usd_per_lb']:.4f}/lb"
     )
 
     out = {
@@ -101,9 +115,12 @@ def main() -> None:
         "c_bar_lb_per_week": args.c_bar,
         "t_ready": ready,
         "fair_forward_sample_T0.5": sample,
+        "fair_forward_sample_T0.5_r_inf_0": flat,
         "E_P_comp": p_comp,
         "prime_rate": PRIME_RATE,
         "prime_as_of": PRIME_RATE_AS_OF,
+        "r_inf": INFLATION_RATE,
+        "r_inf_as_of": INFLATION_RATE_AS_OF,
         "defaults": defaults_table(),
         "ramp": ramp,
     }

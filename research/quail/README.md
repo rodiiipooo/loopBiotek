@@ -14,4 +14,6 @@
 python run_example.py --y 5 --z 15 --U 1 --c-bar 2 --weeks 40
 ```
 
-Primary API: production rate vs average consumption \(\bar{c}\). Secondary: fair forward $/lb (prime-discounted prepaid) and `kits_needed`.
+Primary API: production rate vs average consumption \(\bar{c}\). Secondary: fair prepaid $/lb and `kits_needed`.
+
+Fair prepaid inflates the foodservice spot at BLS CPI-U Food **2.7%** (August 2026), discounts the deposit at prime **7%**, then applies fairness **0.9**. Transport is added after that and defaults to $0/lb. Pass `r_inf=0` for the pre-inflation prelim.

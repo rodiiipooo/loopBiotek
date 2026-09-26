@@ -8,7 +8,8 @@ This module is planning math only — do not open quail spend until Stage-1 gate
 Capacity unit: Grit "Quail Professional Kit" (U = number of kits).
 Core inverse: kits_needed(X, t, y, z) s.t. meat_lbs(t,y,z,U) >= X under kit caps.
 
-Also: fair prepaid F_0 = 0.9 * E[P_comp]/(1+r_prime)^T (+ optional transport $/lb).
+Also: fair prepaid F_prelim = 0.9 * E[P_comp(0)] * ((1+r_inf)/(1+r_prime))^T
+(+ optional transport $/lb). Default r_inf is BLS CPI-U Food.
 
 Tags: SOURCED vs ASSUMPTION — see SPEC.md. No fabricated Admin-analytics labels.
 """
@@ -79,6 +80,13 @@ PRIME_RATE = 0.07  # SOURCED Fed H.15 bank prime 7.00% as of 2026-09-24 (release
 FAIRNESS_DISCOUNT_FACTOR = 0.9  # Rod: 10% discount on NPV of competing goods (most-fair prepaid)
 PRIME_RATE_AS_OF = "2026-09-24"
 PRIME_RATE_SOURCE = "https://www.federalreserve.gov/releases/h15/"
+# BLS CPI-U Food, 12-month percent change, August 2026 (release 2026-09-11).
+# Same window: all-items CPI 3.4%; meats, poultry, fish, and eggs 1.1%.
+# Default meat forward uses Food 2.7%. Override with r_inf / drift_per_year.
+INFLATION_RATE = 0.027
+INFLATION_RATE_AS_OF = "2026-08"
+INFLATION_RATE_SOURCE = "https://www.bls.gov/news.release/archives/cpi_09112026.htm"
+FORWARD_DRIFT_PER_YEAR = INFLATION_RATE
 
 # Competing $/lb — whole-bird foodservice preferred for fair default.
 # Dress weight jumbo ≈ 9.4 oz; foodservice comps often quote 4–5 oz standard birds —
@@ -96,7 +104,6 @@ DEFAULT_P_COMP_LABELS = (
     "webstaurant_mf_whole_4_5oz_plus",
     "manchester_farms_case_4oz_approx",
 )
-FORWARD_DRIFT_PER_YEAR = 0.0  # ASSUMPTION flat competing forward curve
 
 
 @dataclass
@@ -179,14 +186,25 @@ def P_meat(
     t_years: float,
     p_spot: Optional[float] = None,
     drift_per_year: float = FORWARD_DRIFT_PER_YEAR,
+    continuous: bool = False,
 ) -> float:
     """
-    Fair forward competing price of quail meat $/lb at delivery t (years).
-    P_meat(t) = P_spot * exp(μ t); default μ=0 (flat).
+    Competing meat price $/lb at delivery t (years).
+
+    Discrete (default): E[P_comp(0)] * (1 + r_inf)^T
+    Continuous: E[P_comp(0)] * exp(r_inf * T)
+
+    ``drift_per_year`` is r_inf. Default is BLS CPI-U Food. Pass 0 for a flat curve.
     """
     if p_spot is None:
         p_spot = expected_comp_price()
-    return float(p_spot * math.exp(drift_per_year * t_years))
+    if t_years < 0:
+        raise ValueError("t_years must be >= 0")
+    if continuous:
+        return float(p_spot * math.exp(drift_per_year * t_years))
+    if drift_per_year <= -1.0:
+        raise ValueError("drift_per_year must be > -1 for discrete inflation")
+    return float(p_spot * ((1.0 + drift_per_year) ** t_years))
 
 
 def fair_prepaid_forward_per_lb(
@@ -195,44 +213,61 @@ def fair_prepaid_forward_per_lb(
     r_prime: float = PRIME_RATE,
     continuous: bool = False,
     drift_per_year: float = FORWARD_DRIFT_PER_YEAR,
+    r_inf: Optional[float] = None,
     fairness_factor: float = FAIRNESS_DISCOUNT_FACTOR,
     transport_usd_per_lb: float = 0.0,
 ) -> dict:
     """
-    Most-fair prepaid forward $/lb (Rod 2026-09-26).
+    Most-fair prepaid forward $/lb (Rod 2026-09-26, inflation in the prelim).
 
-    Preliminary (no transport):
-        F_prelim = fairness_factor * E[P_comp(T)] / (1 + r_prime)^T
-    with default fairness_factor = 0.9 (10% discount on NPV of competing goods).
-    Deposit at t=0 is a loan to Loop until delivery T (prime discount).
+    Spot stays E[P_comp(0)]. Inflate competing goods to delivery, discount at
+    prime, then apply fairness (default 0.9). ``r_inf`` overrides
+    ``drift_per_year`` when passed; either may be 0 for a flat goods curve.
+    Default r_inf is BLS CPI-U Food.
 
-    Sophisticated (network / location):
+    Discrete:
+        E[P_comp(T)] = E[P_comp(0)] * (1 + r_inf)^T
+        NPV_comp(T)  = E[P_comp(T)] / (1 + r_prime)^T
+        F_prelim     = fairness_factor * NPV_comp(T)
+    equivalently F_prelim = fairness_factor * E[P_comp(0)] * ((1+r_inf)/(1+r_prime))^T
+
+    Continuous (continuous=True):
+        E[P_comp(T)] = E[P_comp(0)] * exp(r_inf * T)
+        NPV_comp(T)  = E[P_comp(T)] * exp(-r_prime * T)
+        F_prelim     = fairness_factor * NPV_comp(T)
+
+    Network layer, unchanged:
         F_final = F_prelim + transport_usd_per_lb
-    where transport is average delivery cost for the buyer location (USD/lb).
-    Enables richer network strategies (route pooling, hub placement) on top of
-    the fair goods NPV.
-
-    Continuous equivalent uses exp(-r_prime * T) for the time-value factor.
     """
     if p_comp is None:
         p_comp = expected_comp_price()
+    if r_inf is None:
+        r_inf = drift_per_year
     if T_years < 0:
         raise ValueError("T_years must be >= 0")
     if fairness_factor < 0:
         raise ValueError("fairness_factor must be >= 0")
     if transport_usd_per_lb < 0:
         raise ValueError("transport_usd_per_lb must be >= 0")
-    p_delivery = P_meat(T_years, p_spot=p_comp, drift_per_year=drift_per_year)
+    if r_prime <= -1.0:
+        raise ValueError("r_prime must be > -1")
+    p_delivery = P_meat(
+        T_years, p_spot=p_comp, drift_per_year=r_inf, continuous=continuous
+    )
     if continuous:
         df = math.exp(-r_prime * T_years)
         formula = (
-            "F_prelim = fairness_factor * E[P_comp(T)] * exp(-r_prime * T); "
+            "E[P_comp(T)] = E[P_comp(0)] * exp(r_inf * T); "
+            "NPV_comp(T) = E[P_comp(T)] * exp(-r_prime * T); "
+            "F_prelim = fairness_factor * NPV_comp(T); "
             "F_final = F_prelim + transport"
         )
     else:
         df = 1.0 / ((1.0 + r_prime) ** T_years)
         formula = (
-            "F_prelim = fairness_factor * E[P_comp(T)] / (1 + r_prime)^T; "
+            "E[P_comp(T)] = E[P_comp(0)] * (1 + r_inf)^T; "
+            "NPV_comp(T) = E[P_comp(T)] / (1 + r_prime)^T; "
+            "F_prelim = fairness_factor * NPV_comp(T); "
             "F_final = F_prelim + transport"
         )
     npv_comp = p_delivery * df
@@ -242,11 +277,14 @@ def fair_prepaid_forward_per_lb(
         "F_0_usd_per_lb": f_final,
         "F_prelim_usd_per_lb": f_prelim,
         "npv_comp_usd_per_lb": npv_comp,
+        "E_P_comp_at_0": p_comp,
         "E_P_comp_at_T": p_delivery,
         "P_comp_spot": p_comp,
         "T_years": T_years,
         "r_prime": r_prime,
         "r_prime_as_of": PRIME_RATE_AS_OF,
+        "r_inf": r_inf,
+        "r_inf_as_of": INFLATION_RATE_AS_OF,
         "time_value_discount_factor": df,
         "fairness_factor": fairness_factor,
         "transport_usd_per_lb": float(transport_usd_per_lb),
@@ -935,6 +973,7 @@ def defaults_table() -> list:
         {"name": "kit_breeder_heads_jumbo", "value": KIT_BREEDER_HEADS_JUMBO, "unit": "birds", "tag": "SOURCED 3/section×15"},
         {"name": "kit_price_usd", "value": KIT_PRICE_USD, "unit": "USD", "tag": "SOURCED Grit sale"},
         {"name": "prime_rate", "value": PRIME_RATE, "unit": "/yr", "tag": f"SOURCED Fed H.15 {PRIME_RATE_AS_OF}"},
+        {"name": "inflation_rate_cpi_food", "value": INFLATION_RATE, "unit": "/yr", "tag": f"SOURCED BLS CPI-U Food {INFLATION_RATE_AS_OF}"},
         {"name": "E_P_comp_default", "value": round(expected_comp_price(), 4), "unit": "USD/lb", "tag": "DERIVED foodservice mean"},
     ]
 

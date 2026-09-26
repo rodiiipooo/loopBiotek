@@ -76,35 +76,48 @@ Weekly incubator set approx: \(U \times 216 \times 7/17.5\).
 
 ## Economics — deposit ≈ loan
 
-Competing spot \(E[P_{\mathrm{comp}}]\) = mean of foodservice whole-bird $/lb comps (Webstaurant Manchester Farms regular/plus, Manchester case) — see RESEARCH. Specialty retail (D’Artagnan) listed but **excluded** from default mean.
+Competing spot \(E[P_{\mathrm{comp}}(0)]\) = mean of foodservice whole-bird $/lb comps (Webstaurant Manchester Farms regular/plus, Manchester case) — see RESEARCH. Specialty retail (D’Artagnan) listed but **excluded** from default mean.
 
-Flat forward (ASSUMPTION \(\mu=0\)):
+Buyer prepay at \(t=0\) is a loan to Loop until delivery \(T\). **Most-fair prepaid** inflates competing goods first, then discounts at prime, then applies fairness 0.9 (Rod 2026-09-26):
 
 \[
-P_{\mathrm{meat}}(T) = E[P_{\mathrm{comp}}]\, e^{\mu T}
+E[P_{\mathrm{comp}}(T)] = E[P_{\mathrm{comp}}(0)]\,(1 + r_{\mathrm{inf}})^{T}
 \]
 
-Buyer prepay at $t=0$ is a loan to Loop until delivery $T$. **Most-fair prepaid** (Rod 2026-09-26):
+\[
+\mathrm{NPV}_{\mathrm{comp}}(T) = \frac{E[P_{\mathrm{comp}}(T)]}{(1 + r_{\mathrm{prime}})^{T}}
+\]
 
-$$
-F_{\mathrm{prelim}} = 0.9 \cdot \frac{E[P_{\mathrm{comp}}(T)]}{(1 + r_{\mathrm{prime}})^T}
-$$
+\[
+F_{\mathrm{prelim}} = 0.9 \cdot \mathrm{NPV}_{\mathrm{comp}}(T)
+= 0.9 \cdot E[P_{\mathrm{comp}}(0)] \left(\frac{1 + r_{\mathrm{inf}}}{1 + r_{\mathrm{prime}}}\right)^{T}
+\]
 
-(or continuous $F_{\mathrm{prelim}} = 0.9 \cdot E[P_{\mathrm{comp}}(T)]\, e^{-r T}$). The factor $0.9$ is a **10% discount on the NPV** of competing goods.
+Continuous flag (`continuous=True`):
 
-**Sophisticated (network):** average transport cost by delivery location sits on top:
+\[
+E[P_{\mathrm{comp}}(T)] = E[P_{\mathrm{comp}}(0)]\, e^{r_{\mathrm{inf}} T},\quad
+\mathrm{NPV}_{\mathrm{comp}}(T) = E[P_{\mathrm{comp}}(T)]\, e^{-r_{\mathrm{prime}} T},\quad
+F_{\mathrm{prelim}} = 0.9 \cdot \mathrm{NPV}_{\mathrm{comp}}(T)
+\]
+
+The factor \(0.9\) is a **10% discount on the NPV** of competing goods. The deposit is still discounted at prime.
+
+**Default \(r_{\mathrm{inf}} = 2.7\%\)** — BLS CPI-U **Food**, 12-month percent change, **August 2026** (release 2026-09-11). https://www.bls.gov/news.release/archives/cpi_09112026.htm Overridable via `r_inf` or `drift_per_year` (pass 0 for a flat goods curve, or another rate). Same window, not used as the default: all-items CPI **3.4%**; meats, poultry, fish, and eggs **1.1%**. This meat forward uses **Food 2.7%**.
+
+**Sophisticated (network):** average transport cost by delivery location sits on top and does not change the goods-NPV fairness core:
 
 $$
 F_{\mathrm{final}} = F_{\mathrm{prelim}} + c_{\mathrm{transport}}(\mathrm{location})
 $$
 
-That layer enables richer strategies for the network (hub placement, route pooling) without changing the goods-NPV fairness core.
+That layer enables richer strategies for the network (hub placement, route pooling).
 
-**Prime rate used:** $r_{\mathrm{prime}} = 7.00\%$ — Fed H.15 bank prime loan, observation **2026-09-24**, release 2026-09-25. https://www.federalreserve.gov/releases/h15/
+**Prime rate used:** \(r_{\mathrm{prime}} = 7.00\%\) — Fed H.15 bank prime loan, observation **2026-09-24**, release 2026-09-25. https://www.federalreserve.gov/releases/h15/
 
-Cash flows: deposit $F_{\mathrm{final}}$ per lb at 0; deliver 1 lb at $T$; no further cash if fully prepaid.
+Cash flows: deposit \(F_{\mathrm{final}}\) per lb at 0; deliver 1 lb at \(T\); no further cash if fully prepaid.
 
-**Pitch:** $F_{\mathrm{prelim}}$ is the most-fair goods price (prime loan on deposit + 10% NPV discount). Add transparent transport only when using the location model. Margin vs $F_{\mathrm{prelim}}$ is Loop surplus/subsidy on the goods; transport should track cost, not hidden margin.
+**Pitch:** \(F_{\mathrm{prelim}}\) is the most-fair goods price (food inflation, prime on the deposit, then 10% NPV discount). Add transparent transport only when using the location model. Margin vs \(F_{\mathrm{prelim}}\) is Loop surplus/subsidy on the goods; transport should track cost, not hidden margin.
 
 ---
 
