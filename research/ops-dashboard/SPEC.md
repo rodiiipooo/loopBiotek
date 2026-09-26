@@ -114,3 +114,14 @@ Pounds in month `m` are `$2,000 / F_prelim(m)`, using the quail prepaid already 
 Feed is an ASSUMPTION, not a measured ration: 22 g as-fed per bird per day, split 30% live worms and 70% plant. The 0.41 waste ceiling in the synergy spec is a different limit. It is not this split. The standing count used for feed is the heavy herd (only 10% of futures are larger). On top of that month's ration, the synergy buffer keeps 2 weeks of feed on hand. If the supply is only enough for the light herd and has no buffer, the meat sale fails closed. The breeding floor is not cut to stretch the feed.
 
 Smoke (`python3 quail_income.py`, 2,000 paths, seed `20260926`): **N0 = 2,872**. Month 2 sells 179.52 lb at \(F_{\mathrm{prelim}} = \$11.1406\). Month 24 sells 193.54 lb at \$10.3336. Both months are \$2,000. At month 24 the heavy herd needs about 1,185 kg of worms and 2,764 kg of plant feed (1.18 t and 2.76 t), plus the 2-week buffer of that same ration.
+
+## Decision charts
+
+`research/decision_plots.py` writes the PNG gallery in [`../plots/`](../plots/README.md). The ops screen serves that folder. Each file is labeled assumption versus measurement. P10 is the default tail.
+
+| Chart | Decision |
+|-------|----------|
+| `birds_per_lb_vs_month.png` | Shorter T needs more starters per pound. For 40 lb, N0 falls from about 925 at month 1 to the 68-bird floor by month 8. |
+| `delivery_split_vs_soon.png` | 15 lb locked in month 3 plus 15 lb that can wait needs about 87 starters. All 30 lb in month 3 needs about 173. |
+| `quail_n0_for_2000.png` and `quail_feed_vs_herd.png` | The $2,000 case above, and the feed that heavy herd eats. |
+| `worm_p10_sell_room.png` | At 16,500 worms, P10 room is about 13 lb in month 3 and about 113 lb in month 12. |

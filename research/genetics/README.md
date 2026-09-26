@@ -17,3 +17,5 @@ python3 reproduction.py
 ```
 
 Ops forwards stay in [`../ops-dashboard/README.md`](../ops-dashboard/README.md). That screen is not this math, and it is not the CAD tile viewer.
+
+Two charts in [`../plots/`](../plots/README.md): `ne_vs_sale.png` shows the sale that drops Ne below 50, and `quail_inbreeding_leakage.png` shows the Sato haircut as more offspring are full sibs. Regenerate with `python3 decision_plots.py` from `research/`.

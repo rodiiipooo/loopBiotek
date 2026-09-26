@@ -371,7 +371,14 @@ def write_pngs(curve: list[dict], n0: float, feed: dict, out_dir: Path) -> list[
     ax.set_ylabel("Monthly prepaid dollars")
     ax.set_title("Starting quail vs monthly meat dollars, P10")
     ax.legend(frameon=False)
-    fig.tight_layout()
+    fig.text(
+        0.01,
+        0.01,
+        "ASSUMPTION growth (26-week doubling). Genetics floor is the Ne formula. P10. Stage 4 planning. Not a purchase.",
+        fontsize=8,
+        color="#5c564c",
+    )
+    fig.tight_layout(rect=(0, 0.05, 1, 1))
     fig.savefig(income, dpi=140)
     plt.close(fig)
 
@@ -389,7 +396,14 @@ def write_pngs(curve: list[dict], n0: float, feed: dict, out_dir: Path) -> list[
     lines, labels = ax.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax.legend(lines + lines2, labels + labels2, frameon=False, loc="upper left")
-    fig.tight_layout()
+    fig.text(
+        0.01,
+        0.01,
+        "ASSUMPTION feed: 22 g/bird/day, 30% worms, 70% plant, plus a 2-week buffer. P10 meat sales. Stage 4 planning. Not a purchase.",
+        fontsize=8,
+        color="#5c564c",
+    )
+    fig.tight_layout(rect=(0, 0.05, 1, 1))
     fig.savefig(feed_path, dpi=140)
     plt.close(fig)
     return [income, feed_path]

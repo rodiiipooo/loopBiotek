@@ -82,6 +82,7 @@ Change the port with `OPS_PORT` (default `8765`).
 - **Target income.** Set dollars and “by month”, then click **Check the target**. The answer is the safe monthly cap, whether that cap reaches the dollars, and what larger herd or later month would.
 - **Delivery structure.** For quail, enter pounds and candidate months (for example `3, 6, 12`), then click **Plan the deliveries**. The plan uses the same P10 harsh case as Safe to sell. Birds per pound fall as the month gets later. The starting herd never drops below the 68-bird breeding floor. A sooner lump is recommended only when a later month cannot take the order. This is planning, not a purchase.
 - **$2,000 a month from month 2.** `python3 quail_income.py` prints the starting flock that can hold that prepaid income on the P10 tail through month 24, plus the worm and plant feed that heavy herd needs. The plots land in `results/`. Planning only. It does not buy birds or feed.
+- **Decision charts.** The screen shows the P10 pictures: starters versus month, split versus all-soon, the $2,000 flock and its feed, the Ne refuse line, quail leakage, and worm sell room. Files and the regenerate command are in [`../plots/README.md`](../plots/README.md).
 - **Quail.** The species menu switches to a labeled planning stub. It does not approve buying birds or kits.
 
 ### Reset the forward book

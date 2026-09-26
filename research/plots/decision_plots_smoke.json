@@ -1,0 +1,56 @@
+{
+  "ok": true,
+  "teachings": {
+    "birds_per_lb_vs_month.png": "Shorter delivery month, more starters per pound, and a larger N0 for a 40 lb order.",
+    "delivery_split_vs_soon.png": "A book that can wait for part of the pounds needs fewer starters than shipping all of it in month 3.",
+    "ne_vs_sale.png": "A quail sale that would leave Ne under 50 is refused.",
+    "quail_inbreeding_leakage.png": "More full-sib offspring lowers hatch and viability on the Sato slopes.",
+    "quail_n0_for_2000.png": "About 2,872 starters hold $2,000 a month from month 2 on the P10 tail.",
+    "quail_feed_vs_herd.png": "Worm and plant feed rise with the heavy herd; a short ration fails closed.",
+    "worm_p10_sell_room.png": "Worm P10 room grows with the starting herd and with a later month."
+  },
+  "birds": {
+    "months": [
+      1,
+      2,
+      3,
+      4,
+      6,
+      8,
+      10,
+      12,
+      15,
+      18
+    ],
+    "birds_per_lb": [
+      23.115177301997974,
+      8.932246837165888,
+      5.77613920730562,
+      4.1650704852575124,
+      2.453799826894129,
+      1.6712282355012675,
+      1.2644497007542135,
+      0.9730329313067639,
+      0.7125963896767624,
+      0.5555862093531098
+    ],
+    "n0": [
+      924.607092079919,
+      357.28987348663554,
+      231.0455682922248,
+      166.6028194103005,
+      98.15199307576515,
+      68.0,
+      68.0,
+      68.0,
+      68.0,
+      68.0
+    ]
+  },
+  "split": {
+    "all_soon_n0": 173.28417491912842,
+    "split_n0": 86.71928310394287
+  },
+  "income_n0": 2872.0,
+  "worm_lb_at_16500_month_12": 112.9759
+}

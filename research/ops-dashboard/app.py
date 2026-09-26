@@ -201,6 +201,15 @@ def make_handler(book: store.Book):
                     page = (PACKAGE / "static" / "index.html").read_bytes()
                     self._send(200, page, "text/html; charset=utf-8")
                     return
+                if method == "GET" and path.startswith("/plots/"):
+                    name = path[len("/plots/") :]
+                    if Path(name).name != name or not name.endswith(".png"):
+                        raise ApiError(404, "That chart is not on this screen.")
+                    chart = PACKAGE.parent / "plots" / name
+                    if not chart.is_file():
+                        raise ApiError(404, "That chart is not on this screen.")
+                    self._send(200, chart.read_bytes(), "image/png")
+                    return
                 if method == "GET" and path == "/api/meta":
                     self._send(200, meta())
                     return
