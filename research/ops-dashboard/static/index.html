@@ -224,6 +224,23 @@
   </section>
 
   <section class="card" style="margin-top:14px">
+    <h2>Delivery structure (quail)</h2>
+    <p class="note">Shorter time until delivery means more starting birds for each pound. The breeding flock still cannot shrink below the genetics floor (68 birds). This does not approve buying birds.</p>
+    <div class="row">
+      <div>
+        <label for="plan-qty">Desired pounds</label>
+        <input id="plan-qty" type="number" min="0.1" step="1" value="10" />
+      </div>
+      <div>
+        <label for="plan-months">Candidate delivery months</label>
+        <input id="plan-months" type="text" value="3, 6, 12" />
+      </div>
+    </div>
+    <button id="plan" type="button">Plan the deliveries</button>
+    <div id="plan-out"></div>
+  </section>
+
+  <section class="card" style="margin-top:14px">
     <h2>Promises</h2>
     <div style="overflow-x:auto">
       <table>
@@ -494,6 +511,46 @@ async function checkTarget() {
   }
 }
 
+async function planDeliveries() {
+  $("plan").disabled = true;
+  $("plan-out").textContent = "Checking scenarios…";
+  const months = $("plan-months").value.split(/[^0-9]+/).filter(Boolean).map(Number);
+  try {
+    const result = await api("/api/delivery-plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        species: "quail",
+        qty_lb: Number($("plan-qty").value),
+        months,
+        reliability: Number($("reliability").value) / 100,
+      }),
+    });
+    const rows = result.table.map((row) => {
+      const herd = row.feasible ? Math.round(row.n0).toLocaleString() : "not safe";
+      const safe = row.feasible ? row.safe_lb.toFixed(1) : "—";
+      const room = row.feasible ? row.remaining_lb.toFixed(1) : "—";
+      return `<tr><td>${row.month}</td><td>${herd}</td><td>${row.birds_per_lb.toFixed(2)}</td><td>${safe}</td><td>${room}</td></tr>`;
+    }).join("");
+    const rec = result.recommendation;
+    const banner = rec.fail_closed
+      ? `<div class="alert">${escapeHtml(rec.message)}</div>`
+      : `<div class="okmsg">${escapeHtml(rec.message)}</div>`;
+    $("plan-out").innerHTML = `
+      ${banner}
+      <table>
+        <thead><tr><th>Month</th><th>Starting herd</th><th>Birds per lb</th><th>Safe lb</th><th>Room left</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p class="note">Birds per lb is how many starters each pound needs from growth. A small order still keeps the 68-bird breeding floor, so the starting herd does not fall below that. ${escapeHtml(result.stage_gate)}</p>`;
+  } catch (err) {
+    $("plan-out").innerHTML = `<div class="alert">${escapeHtml(err.message)}</div>`;
+  } finally {
+    $("plan").disabled = false;
+  }
+}
+
+$("plan").addEventListener("click", planDeliveries);
 $("refresh").addEventListener("click", saveHerdAndLimit);
 $("save").addEventListener("click", savePromise);
 $("clear").addEventListener("click", clearForm);

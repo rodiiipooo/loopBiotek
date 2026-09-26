@@ -10,6 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+import delivery
 import engine
 import store
 
@@ -221,6 +222,12 @@ def make_handler(book: store.Book):
                     _check_species(species)
                     herd = _herd_from_body(self._body())
                     self._send(200, sell_limit_for(book, species, herd))
+                    return
+                if method == "POST" and path == "/api/delivery-plan":
+                    body = self._body()
+                    if body.get("species") not in (None, "", "quail", "fish"):
+                        raise ApiError(400, "Delivery structure is for quail or fish.")
+                    self._send(200, delivery.plan_request(body))
                     return
                 if method == "POST" and path == "/api/reverse":
                     body = self._body()

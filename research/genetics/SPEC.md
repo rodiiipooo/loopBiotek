@@ -89,6 +89,10 @@ Fish hatch baseline \(0.80\) is an **ASSUMPTION** so the formula has a number. R
 
 Reject rate is \(\min(1,\ r_0 + \beta_{10} \cdot F / 0.10)\). Saleable fraction is \(1\) minus that rate. Goods that fail the reject rate are not booked as production.
 
+## Delivery timing
+
+How many starters each pound needs, and which month to promise, is in [`../ops-dashboard/SPEC.md`](../ops-dashboard/SPEC.md). The count that must stay is the strict floor from this file. Shorter time until delivery raises starters per pound. The ops screen does not buy birds.
+
 ## What this does not do
 
 It does not open Stage 2–5 spend. It does not replace the quail cohort simulator or an aquaponics design. Fish slopes are not tilapia measurements. The Ne formula ignores selection and, unless you pass a pedigree, it cannot see a cousin mating.

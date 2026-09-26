@@ -76,3 +76,25 @@ A separate one-delivery figure is the largest single removal at month \(t\), pri
 |---------|----------------:|-------|-----|
 | Worms | $42/lb | 1,000 per lb | Spot is the Ozark Worm Farms 10 lb bulk shelf price ($420). Not a farm-gate contract. Count is a planning 1,000 (vendors often say 800–1,000). |
 | Quail | foodservice mean from `research/quail` (~$12.4633/lb) | ~1.709 birds per dressed lb (0.585 lb/bird) | Price source is the quail package. The path is an ASSUMPTION stub. |
+
+## Delivery structure (quail)
+
+A shorter time until delivery leaves less growth above the breeding flock, so each promised pound needs more starters. The growth curve is the quail ASSUMPTION in this package (doubling about 26 weeks, bin cap 8 times the starters). It is not the cohort simulator. The floor that cannot be sold is the strict genetics floor from [`../genetics/SPEC.md`](../genetics/SPEC.md): \(N_e \ge 50\), \(F_{\max} = 0\), quail ratio 1 male : 3 females, which is 68 birds.
+
+Let \(Q_{\mathrm{P90}}(N, T)\) be the dressed pounds that can be delivered at month \(T\) while the starting herd is still there in at least 90% of scenarios. Because the bin cap scales with \(N\),
+
+\[
+b(T) = \frac{N_{\mathrm{probe}}}{Q_{\mathrm{P90}}(N_{\mathrm{probe}}, T)}
+\]
+
+does not depend on the order size. \(b(T)\) falls as \(T\) rises. Starters for an order of \(Q\) pounds are
+
+\[
+N_0(Q, T) = \max\big(N_{\mathrm{keep}},\ Q \cdot b(T)\big)
+\]
+
+with \(N_{\mathrm{keep}} = 68\). A 10 lb order is smaller than what 68 birds can safely finish even by month 3, so \(N_0\) stays 68 and the inverse relationship shows up in \(b(T)\) and in the room left after the promise. A larger order (the smoke uses 40 lb) raises \(N_0\) when delivery is soon.
+
+Given several sales, each with a month window, the screen tries the earliest month in every window, the latest month, a single month when every sale can use it, and an even split. It keeps the plan with the smallest \(N_0\). Ties go to the plan with more safe pounds left. If none of the windows can be filled without the breeding flock, the promise is refused.
+
+Ops uses this to choose a delivery month from realized sales: push pounds later, or split a sale that must go out early from one that can wait, instead of lumping everything into the soonest month.
