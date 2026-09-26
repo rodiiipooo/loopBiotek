@@ -119,6 +119,12 @@ Cash flows: deposit \(F_{\mathrm{final}}\) per lb at 0; deliver 1 lb at \(T\); n
 
 **Pitch:** \(F_{\mathrm{prelim}}\) is the most-fair goods price (food inflation, prime on the deposit, then 10% NPV discount). Add transparent transport only when using the location model. Margin vs \(F_{\mathrm{prelim}}\) is Loop surplus/subsidy on the goods; transport should track cost, not hidden margin.
 
+This is the same identity implemented by `fair_prepaid_forward_per_lb` in `quail_model.py` and, for every sellable cascade good, by `fair_prepaid` in [`../synergy/circular_buffers.py`](../synergy/circular_buffers.py).
+
+## Cascade buffers
+
+Quail rate, kit caps, and this prepaid stay in this file. Multi-species breed floors, waste ceilings, offtake shocks, and the rule that a shock halts export before breeders are cut are in [`../synergy/SPEC.md`](../synergy/SPEC.md). That package is planning only. It does not open Stage 2–5 spend. Stage 1 worms remain the source of record.
+
 ---
 
 ## Evidence tiers
