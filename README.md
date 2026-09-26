@@ -1046,6 +1046,18 @@ These are **planning/model values rather than verified commercial performance**,
 
 ---
 
+# Ops dashboard on a laptop
+
+The forward-book screen runs from a fresh clone with Python 3.10 or newer. No extra packages. Full steps, including Windows PowerShell: [`research/ops-dashboard/README.md`](research/ops-dashboard/README.md).
+
+```bash
+git clone https://github.com/rodiiipooo/loopBiotek.git
+cd loopBiotek/research/ops-dashboard
+python3 app.py
+```
+
+Open http://127.0.0.1:8765. This screen does not approve Stage 2–5 spending.
+
 # Repository Structure
 
 ```text

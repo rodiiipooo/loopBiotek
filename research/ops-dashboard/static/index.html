@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Forward book — community ops</title>
+  <style>
+    :root {
+      --ink: #1c1915;
+      --muted: #5c564c;
+      --paper: #f6f1e7;
+      --card: #fffdf8;
+      --line: #e2d8c8;
+      --green: #1f6b45;
+      --green-soft: #e5f4eb;
+      --red: #8d1d1d;
+      --red-soft: #fde8e4;
+      --amber: #8a5a12;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 17px/1.45 "Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 64px; }
+    h1 { font-size: 1.8rem; margin: 0 0 8px; }
+    h2 { font-size: 1.25rem; margin: 0 0 12px; }
+    p { margin: 0 0 10px; }
+    .banner {
+      background: #efe6d4;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin: 12px 0 20px;
+    }
+    .grid { display: grid; gap: 14px; }
+    .stats { grid-template-columns: repeat(4, 1fr); }
+    .split { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 800px) {
+      .stats, .split { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .stat .label { color: var(--muted); font-size: 0.92rem; }
+    .stat .value { font-size: 1.7rem; font-variant-numeric: tabular-nums; margin-top: 4px; }
+    .stat.bad { background: var(--red-soft); border-color: #e3b2aa; }
+    .stat.ok { background: var(--green-soft); border-color: #b7dcc6; }
+    label { display: block; font-size: 0.95rem; margin: 8px 0 4px; }
+    input, select, button {
+      font: inherit;
+      color: inherit;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button {
+      background: var(--green);
+      color: white;
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    button.danger { background: var(--red); }
+    button:disabled { opacity: 0.6; cursor: wait; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    .note { color: var(--muted); font-size: 0.92rem; }
+    .alert {
+      background: var(--red-soft);
+      color: var(--red);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 10px 0;
+    }
+    .okmsg {
+      background: var(--green-soft);
+      color: var(--green);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 10px 0;
+    }
+    .warn { color: var(--amber); }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.82rem; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Forward book</h1>
+  <p>For the person watching the herd. Promises to buyers live here. Sales stop before the breeding animals are used up.</p>
+  <div class="banner" id="gate">Stage 1 worms are the only active spend. This screen does not approve later-stage purchases.</div>
+  <p class="note" id="pricing"></p>
+
+  <section class="card" style="margin-bottom:14px">
+    <h2>Herd</h2>
+    <div class="row">
+      <div>
+        <label for="species">What you are selling</label>
+        <select id="species">
+          <option value="worms">Worms (live)</option>
+          <option value="quail">Quail (dressed meat) — planning stand-in</option>
+        </select>
+      </div>
+      <div>
+        <label for="n0">Starting herd</label>
+        <input id="n0" type="number" min="1" step="1" value="16500" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="n_start">Planned start (optional)</label>
+        <input id="n_start" type="number" min="0" step="1" placeholder="Same as starting herd" />
+      </div>
+      <div>
+        <label for="n_safety">Safety reserve (optional)</label>
+        <input id="n_safety" type="number" min="0" step="1" placeholder="Same as starting herd" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="reliability">How sure, percent</label>
+        <input id="reliability" type="number" min="50" max="99" step="1" value="90" />
+      </div>
+      <div>
+        <label for="horizon">Delivery month you are checking</label>
+        <input id="horizon" type="number" min="1" max="36" step="1" value="12" />
+      </div>
+    </div>
+    <button id="refresh" type="button">Update the safe amount</button>
+    <p class="note" id="model-note"></p>
+  </section>
+
+  <div id="limit-alert"></div>
+  <section class="grid stats" aria-live="polite">
+    <article class="card stat" id="card-floor">
+      <div class="label">Breeding herd to keep</div>
+      <div class="value" id="floor">—</div>
+    </article>
+    <article class="card stat" id="card-safe">
+      <div class="label">Safe to sell (P90)</div>
+      <div class="value" id="safe">—</div>
+    </article>
+    <article class="card stat" id="card-promised">
+      <div class="label">Already promised</div>
+      <div class="value" id="promised">—</div>
+    </article>
+    <article class="card stat" id="card-room">
+      <div class="label">Remaining room</div>
+      <div class="value" id="room">—</div>
+    </article>
+  </section>
+  <p class="note" id="limit-msg" style="margin:10px 0 18px"></p>
+
+  <section class="grid split">
+    <article class="card">
+      <h2>Add or change a promise</h2>
+      <div id="form-alert"></div>
+      <input type="hidden" id="edit-id" />
+      <label for="buyer">Buyer</label>
+      <input id="buyer" type="text" placeholder="Farm or neighbor" />
+      <div class="row">
+        <div>
+          <label for="qty">Quantity</label>
+          <input id="qty" type="number" min="0.01" step="0.1" value="10" />
+        </div>
+        <div>
+          <label for="delivery">Delivery month</label>
+          <input id="delivery" type="number" min="1" max="36" step="1" value="12" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="price">Price per unit (blank uses the fair prepaid price)</label>
+          <input id="price" type="number" min="0" step="0.01" placeholder="Fair prepaid" />
+        </div>
+        <div>
+          <label for="status">Status</label>
+          <select id="status">
+            <option value="promised">Promised</option>
+            <option value="draft">Draft</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+      <p class="note" id="price-hint"></p>
+      <div class="actions">
+        <button id="save" type="button">Save promise</button>
+        <button id="clear" class="ghost" type="button">Clear form</button>
+      </div>
+    </article>
+
+    <article class="card">
+      <h2>Target income helper</h2>
+      <p class="note">Asks how much you could sell each month, through the month you name, and still keep the breeding herd in the share of scenarios you set.</p>
+      <div class="row">
+        <div>
+          <label for="target">Target income, dollars</label>
+          <input id="target" type="number" min="0" step="50" value="2000" />
+        </div>
+        <div>
+          <label for="target-month">By month</label>
+          <input id="target-month" type="number" min="1" max="36" step="1" value="12" />
+        </div>
+      </div>
+      <button id="check" type="button">Check the target</button>
+      <div id="reverse-out"></div>
+    </article>
+  </section>
+
+  <section class="card" style="margin-top:14px">
+    <h2>Promises</h2>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Buyer</th>
+            <th>What</th>
+            <th>Qty</th>
+            <th>Month</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="book"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let meta = null;
+let editing = null;
+
+function numOrNull(id) {
+  const raw = $(id).value.trim();
+  if (raw === "") return null;
+  return Number(raw);
+}
+
+function herdPayload() {
+  return {
+    n0: Number($("n0").value),
+    n_start: numOrNull("n_start"),
+    n_safety: numOrNull("n_safety"),
+    reliability: Number($("reliability").value) / 100,
+    horizon_months: Number($("horizon").value),
+  };
+}
+
+function money(n) {
+  return Number(n).toLocaleString(undefined, { style: "currency", currency: "USD" });
+}
+
+function qty(n, unit) {
+  return `${Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 })} ${unit}`;
+}
+
+function setAlert(id, text, bad) {
+  const el = $(id);
+  if (!text) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="${bad ? "alert" : "okmsg"}">${text}</div>`;
+}
+
+async function api(path, options) {
+  const res = await fetch(path, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const detail = data.detail || res.statusText;
+    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+  }
+  return data;
+}
+
+function paintLimit(limit) {
+  const unit = limit.unit;
+  const noun = limit.species === "quail" ? "birds" : "worms";
+  $("floor").textContent = `${Math.round(limit.breed_floor_headcount).toLocaleString()} ${noun}`;
+  $("safe").textContent = qty(limit.safe_to_sell_units, unit);
+  $("promised").textContent = qty(limit.already_promised_units, unit);
+  $("room").textContent = qty(limit.remaining_room_units, unit);
+  $("limit-msg").textContent = limit.message;
+  $("model-note").textContent = `${limit.model_tag}. ${limit.model_note}`;
+  $("card-room").classList.toggle("bad", limit.fail_closed);
+  $("card-safe").classList.toggle("ok", !limit.fail_closed);
+  $("card-room").classList.toggle("ok", !limit.fail_closed);
+  if (limit.fail_closed) {
+    setAlert("limit-alert", limit.message, true);
+  } else {
+    setAlert("limit-alert", "", false);
+  }
+}
+
+function paintBook(rows) {
+  const body = $("book");
+  body.innerHTML = "";
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="7" class="note">No promises yet.</td></tr>`;
+    return;
+  }
+  for (const row of rows) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(row.buyer)}</td>
+      <td>${escapeHtml(row.species)}</td>
+      <td>${qty(row.qty, row.unit)}</td>
+      <td>${row.delivery_month}</td>
+      <td>${money(row.price_usd)}</td>
+      <td>${escapeHtml(row.status)}</td>
+      <td class="actions"></td>`;
+    const cell = tr.querySelector("td:last-child");
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "ghost";
+    edit.textContent = "Edit";
+    edit.addEventListener("click", () => fillForm(row));
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "danger";
+    del.textContent = "Delete";
+    del.addEventListener("click", () => removeRow(row.id));
+    cell.append(edit, del);
+    body.append(tr);
+  }
+}
+
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[ch]));
+}
+
+function fillForm(row) {
+  editing = row.id;
+  $("edit-id").value = row.id;
+  $("buyer").value = row.buyer;
+  $("species").value = row.species;
+  $("qty").value = row.qty;
+  $("delivery").value = row.delivery_month;
+  $("price").value = row.price_usd;
+  $("status").value = row.status;
+  $("save").textContent = "Update promise";
+}
+
+function clearForm() {
+  editing = null;
+  $("edit-id").value = "";
+  $("buyer").value = "";
+  $("qty").value = "10";
+  $("price").value = "";
+  $("status").value = "promised";
+  $("save").textContent = "Save promise";
+  setAlert("form-alert", "", false);
+}
+
+async function refreshPriceHint() {
+  const species = $("species").value;
+  const month = Number($("delivery").value || $("horizon").value || 12);
+  const quote = meta.species[species];
+  const priced = await api(`/api/price?species=${species}&delivery_month=${month}`).catch(() => null);
+  if (!priced) {
+    $("price-hint").textContent = quote.spot_note;
+    return;
+  }
+  $("price-hint").textContent =
+    `Fair prepaid for month ${month}: ${money(priced.F_prelim)} per ${quote.unit}. ` +
+    quote.spot_note;
+}
+
+async function loadAll() {
+  const species = $("species").value;
+  const data = await api(`/api/dashboard?species=${species}`);
+  const herd = data.herd;
+  $("n0").value = herd.n0;
+  $("n_start").value = herd.n_start ?? "";
+  $("n_safety").value = herd.n_safety ?? "";
+  $("reliability").value = Math.round(herd.reliability * 100);
+  $("horizon").value = herd.horizon_months;
+  paintLimit(data.sell_limit);
+  paintBook(data.forwards);
+}
+
+async function saveHerdAndLimit() {
+  const species = $("species").value;
+  $("refresh").disabled = true;
+  try {
+    const limit = await api(`/api/sell-limit?species=${species}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(herdPayload()),
+    });
+    paintLimit(limit);
+    const forwards = await api("/api/forwards");
+    paintBook(forwards);
+  } catch (err) {
+    setAlert("limit-alert", err.message, true);
+  } finally {
+    $("refresh").disabled = false;
+  }
+}
+
+async function savePromise() {
+  $("save").disabled = true;
+  setAlert("form-alert", "", false);
+  const species = $("species").value;
+  const payload = {
+    buyer: $("buyer").value,
+    species,
+    qty: Number($("qty").value),
+    delivery_month: Number($("delivery").value),
+    price_usd: $("price").value.trim() === "" ? null : Number($("price").value),
+    status: $("status").value,
+    herd: herdPayload(),
+  };
+  try {
+    if (editing) {
+      await api(`/api/forwards/${editing}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } else {
+      await api("/api/forwards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    }
+    clearForm();
+    await saveHerdAndLimit();
+    setAlert("form-alert", "Saved. The safe amount above includes this promise.", false);
+  } catch (err) {
+    setAlert("form-alert", err.message, true);
+    await saveHerdAndLimit();
+  } finally {
+    $("save").disabled = false;
+  }
+}
+
+async function removeRow(id) {
+  await api(`/api/forwards/${id}`, { method: "DELETE" });
+  if (editing === id) clearForm();
+  await saveHerdAndLimit();
+}
+
+async function checkTarget() {
+  $("check").disabled = true;
+  $("reverse-out").textContent = "Checking scenarios…";
+  try {
+    const result = await api("/api/reverse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        species: $("species").value,
+        n0: Number($("n0").value),
+        n_start: numOrNull("n_start"),
+        n_safety: numOrNull("n_safety"),
+        target_income_usd: Number($("target").value),
+        months: Number($("target-month").value),
+        reliability: Number($("reliability").value) / 100,
+      }),
+    });
+    const unit = result.unit;
+    $("reverse-out").innerHTML = `
+      <div class="${result.feasible ? "okmsg" : "alert"}">${escapeHtml(result.message)}</div>
+      <p>Safe monthly cap: <strong>${qty(result.max_monthly_sell_units, unit)}</strong>
+        (${Math.round(result.monthly_offtake_cap_headcount).toLocaleString()} head).</p>
+      <p>Safe total if you sell that every month: <strong>${qty(result.max_cumulative_sell_units, unit)}</strong>,
+        about ${money(result.income_at_cap_usd)}.</p>
+      <p>Fair prepaid in month ${result.months}: <strong>${money(result.f_prelim_usd_per_unit)}</strong> per ${unit}.</p>
+      <p>One delivery in that month, with no monthly sales: up to ${qty(result.lump_at_horizon_units, unit)}
+        (about ${money(result.lump_income_usd)}).</p>
+      <p class="note">${escapeHtml(result.model_tag)}. ${escapeHtml(result.stage_gate)}</p>`;
+  } catch (err) {
+    $("reverse-out").innerHTML = `<div class="alert">${escapeHtml(err.message)}</div>`;
+  } finally {
+    $("check").disabled = false;
+  }
+}
+
+$("refresh").addEventListener("click", saveHerdAndLimit);
+$("save").addEventListener("click", savePromise);
+$("clear").addEventListener("click", clearForm);
+$("check").addEventListener("click", checkTarget);
+$("species").addEventListener("change", async () => {
+  clearForm();
+  await loadAll();
+  await refreshPriceHint();
+});
+$("delivery").addEventListener("change", refreshPriceHint);
+
+(async function init() {
+  meta = await api("/api/meta");
+  $("gate").textContent = meta.stage_gate;
+  $("pricing").innerHTML =
+    `Fair prepaid defaults: food inflation <strong>${(meta.r_inf * 100).toFixed(1)}%</strong> (August 2026), ` +
+    `prime <strong>${(meta.r_prime * 100).toFixed(0)}%</strong>, fairness <strong>${meta.fairness}</strong>. ` +
+    `<span class="formula">${escapeHtml(meta.formula)}</span>. ${escapeHtml(meta.p90_plain)}`;
+  await loadAll();
+  await refreshPriceHint();
+})();
+</script>
+</body>
+</html>

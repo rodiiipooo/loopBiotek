@@ -123,7 +123,7 @@ This is the same identity implemented by `fair_prepaid_forward_per_lb` in `quail
 
 ## Cascade buffers
 
-Quail rate, kit caps, and this prepaid stay in this file. Multi-species breed floors, waste ceilings, offtake shocks, and the rule that a shock halts export before breeders are cut are in [`../synergy/SPEC.md`](../synergy/SPEC.md). That package is planning only. It does not open Stage 2–5 spend. Stage 1 worms remain the source of record.
+Quail rate, kit caps, and this prepaid stay in this file. Multi-species breed floors, waste ceilings, offtake shocks, and the rule that a shock halts export before breeders are cut are in [`../synergy/SPEC.md`](../synergy/SPEC.md). Pedigree and inbreeding haircuts for this flock are in [`../genetics/SPEC.md`](../genetics/SPEC.md). Both are planning only. They do not open Stage 2–5 spend. Stage 1 worms remain the source of record.
 
 ---
 
