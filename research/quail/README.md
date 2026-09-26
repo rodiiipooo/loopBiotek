@@ -7,6 +7,7 @@
 | `SPEC.md` | Parameters, formulas, sustain rule, fair prepaid |
 | `RESEARCH.md` | Sourced vs assumed numbers + URLs |
 | `quail_model.py` | Jumbo Coturnix + Grit kit `U`; `production_rate`, `t_ready`, fair forward |
+| `bird_mc.py` | Individual male/female growth, age hazard, egg peak week 12, kit compartments. Meat N0 uses this, not 0.585 lb/bird |
 | `run_example.py` | CLI sample |
 | `results/` | Sample run outputs |
 

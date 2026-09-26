@@ -67,6 +67,27 @@ Note: foodservice comps are often standard-size birds; $/lb still used as compet
 
 Default \(r_{\mathrm{inf}}\) for this meat forward is **Food 2.7%** (`INFLATION_RATE`). Override with `r_inf` or `drift_per_year`, including 0 for a flat curve.
 
+## Individual-bird schedules (2026-09-26)
+
+Used by `bird_mc.py`. Not a published Coturnix life table.
+
+| Claim | Value | Tag |
+|-------|-------|-----|
+| Male live-weight asymptote | 12 oz | ASSUMPTION inside the sourced 12–14 oz jumbo band |
+| Female live-weight asymptote | 14 oz | ASSUMPTION, same band. Logistic midpoint at week 5, slope 0.70 |
+| Male dress yield | 74% | ASSUMPTION inside 70–75% |
+| Female dress yield | 70% | ASSUMPTION inside 70–75% |
+| Week-9 dressed weight | male 0.5232 lb, female 0.5774 lb | DERIVED. Replaces the single 0.585 lb bird for meat plans |
+| Egg peak week \(x\) | 12 | ASSUMPTION. Lay onset 6–8 weeks remains sourced |
+| Weekly hazard | 2% in week 0, then 0.4% plus 0.018 percentage points per week, cap 8% | ASSUMPTION |
+| Breeder pad | 25% above 17♂+51♀ | ASSUMPTION so the harvest does not start on the Ne cliff |
+
+## Mother Earth News kit page
+
+URL: https://store.motherearthnews.com/products/quail-professional-kit?currency=USD&country=US&variant=46564622795007
+
+Fetched 2026-09-26. List price **$3,729.96**. Getting-started steps: CT120SH up to 216 quail eggs, brooder for the first 4 weeks, grow-out weeks 4–6, breeding after week 6, with a disclaimer that counts vary by breed and temperature. The page does **not** state standing bird counts, an egg cooler, or meat cold storage. Brooder 150 and jumbo breeder 3/section (45) stay on the earlier sourced notes. Grow-out 75 jumbo stays an assumption. The Grit sale price $3,449.99 is not on this list line.
+
 ## Model limitations (honest)
 
 - Deterministic weekly cohorts; no stochastic disease / fertility shock.

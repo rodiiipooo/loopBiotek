@@ -77,7 +77,7 @@ A separate one-delivery figure is the largest single removal at month \(t\), pri
 | Species | Spot \(E[P_0]\) | Count | Tag |
 |---------|----------------:|-------|-----|
 | Worms | $42/lb | 1,000 per lb | Spot is the Ozark Worm Farms 10 lb bulk shelf price ($420). Not a farm-gate contract. Count is a planning 1,000 (vendors often say 800–1,000). |
-| Quail | foodservice mean from `research/quail` (~$12.4633/lb) | ~1.709 birds per dressed lb (0.585 lb/bird) | Price source is the quail package. The path is an ASSUMPTION stub. |
+| Quail | foodservice mean from `research/quail` (~$12.4633/lb) | Sex- and age-specific dressed lb (week 9: male 0.5232, female 0.5774). The flat 0.585 lb bird is retired | Price source is the quail package. The path is `research/quail/bird_mc.py`. |
 
 ## Delivery structure (quail)
 
@@ -105,7 +105,7 @@ Ops uses this to choose a delivery month from realized sales: push pounds later,
 
 Planning question: how many quail `N0` must be on hand at purchase so that, on the P10 tail, meat sales can bring in about $2,000 every month starting in month 2 and continuing through month 24. Month 1 is growth only. This is Stage 4 planning. It does not buy birds or feed, and Stage 1 worms remain the only spend.
 
-Growth is the quail ASSUMPTION stub in this folder (doubling about 26 weeks, bin cap 8 times the starters, weekly noise 0.01). It is not the cohort simulator. The birds that cannot be sold are `keep = max(N0, 68)`, where 68 is the strict genetics floor (Ne ≥ 50, F_max = 0, 1 male : 3 females). The purchased flock stays. The meat is growth above that floor.
+Growth is the individual jumbo Coturnix Monte Carlo in `research/quail/bird_mc.py`. Each bird has an age, a sex, a rising hazard, and a dressed weight. The flat 0.585 lb/bird scalar is retired. The birds that cannot be sold are the strict genetics floor (17 males and 51 females, Ne ≥ 50, F_max = 0) plus a 25% pad so the harvest does not start on that cliff. A logistic stub remains in this folder only so the fish screen still runs.
 
 Pounds in month `m` are `$2,000 / F_prelim(m)`, using the quail prepaid already in this package. At month 2 that price is about $11.14/lb, so the order is about 180 lb. By month 24 the prepaid is a little lower, so the same dollars are a few more pounds.
 
@@ -113,7 +113,15 @@ Pounds in month `m` are `$2,000 / F_prelim(m)`, using the quail prepaid already 
 
 Feed is an ASSUMPTION, not a measured ration: 22 g as-fed per bird per day, split 30% live worms and 70% plant. The 0.41 waste ceiling in the synergy spec is a different limit. It is not this split. The standing count used for feed is the heavy herd (only 10% of futures are larger). On top of that month's ration, the synergy buffer keeps 2 weeks of feed on hand. If the supply is only enough for the light herd and has no buffer, the meat sale fails closed. The breeding floor is not cut to stretch the feed.
 
-Smoke (`python3 quail_income.py`, 2,000 paths, seed `20260926`): **N0 = 2,872**. Month 2 sells 179.52 lb at \(F_{\mathrm{prelim}} = \$11.1406\). Month 24 sells 193.54 lb at \$10.3336. Both months are \$2,000. At month 24 the heavy herd needs about 1,185 kg of worms and 2,764 kg of plant feed (1.18 t and 2.76 t), plus the 2-week buffer of that same ration.
+Smoke (`python3 quail_income.py` and `python3 research/quail/bird_mc.py`, 48 paths, seed `20260926`):
+
+The previous smoke used one dressed weight, \((13/16)\times 0.72 \approx 0.585\) lb, and reported N0 = 2,872. That scalar is retired.
+
+Week-9 dressed weight is now **0.5232 lb male** and **0.5774 lb female**.
+
+**$1,000 at month 2** (about 89.8 lb at \(F_{\mathrm{prelim}}=\$11.1406\)): **N0 = 268**, **U = 4** kits, list planning total $14,919.84. Grow-out (75 jumbo per kit, ASSUMPTION) binds, near 86% of the cap. Unstored meat is 0. Breeder cages are 45 jumbo (3 per section).
+
+**$2,000 every month from month 2 through month 24**: **N0 = 780**, **U = 25**, list planning total $93,249.00. Month 2 is still 179.52 lb and month 24 is still 193.54 lb. Those kit dollars are not a purchase. Median unstored dressed meat is about 13,012 lb because the kit has no cooler: birds that do not fit the grow-out leave the same week, and pounds beyond that week's order are not stored. At month 24 the heavy herd needs about 762 kg of worms and 1,779 kg of plant feed, plus the 2-week buffer.
 
 ## Decision charts
 
@@ -121,7 +129,7 @@ Smoke (`python3 quail_income.py`, 2,000 paths, seed `20260926`): **N0 = 2,872**.
 
 | Chart | Decision |
 |-------|----------|
-| `birds_per_lb_vs_month.png` | Shorter T needs more starters per pound. For 40 lb, N0 falls from about 925 at month 1 to the 68-bird floor by month 8. |
-| `delivery_split_vs_soon.png` | 15 lb locked in month 3 plus 15 lb that can wait needs about 87 starters. All 30 lb in month 3 needs about 173. |
+| `birds_per_lb_vs_month.png` | A 40 lb order needs about 172 starters at month 2 and about 84 once offspring can be dressed. Month 1 has no dressed meat. |
+| `delivery_split_vs_soon.png` | 15 lb locked in month 3 plus 15 lb that can wait needs about 128 starters. All 30 lb in month 3 needs about 156. |
 | `quail_n0_for_2000.png` and `quail_feed_vs_herd.png` | The $2,000 case above, and the feed that heavy herd eats. |
 | `worm_p10_sell_room.png` | At 16,500 worms, P10 room is about 13 lb in month 3 and about 113 lb in month 12. |

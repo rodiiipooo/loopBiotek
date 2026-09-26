@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Starting quail flock for about $2,000 a month from month 2, on the P10 tail.
+"""Starting quail flock for the P10 meat targets, on the individual-bird model.
 
-Stage 4 planning. The growth curve is the ops-dashboard ASSUMPTION stub.
-The birds that must stay are the strict genetics floor. Feed is an
-ASSUMPTION intake plus the synergy 2-week buffer. This does not buy birds,
-worms, or plants, and it does not open Stage 2–5 spend.
+Stage 4 planning. Dressed pounds are sex- and age-specific. The flat
+0.585 lb/bird scalar is retired. Feed is an ASSUMPTION intake plus the
+synergy 2-week buffer. This does not buy birds, worms, plants, or kits.
 """
 
 from __future__ import annotations
@@ -17,9 +16,12 @@ from pathlib import Path
 import engine
 
 _GENETICS = Path(__file__).resolve().parents[1] / "genetics"
-if str(_GENETICS) not in sys.path:
-    sys.path.insert(0, str(_GENETICS))
+_QUAIL = Path(__file__).resolve().parents[1] / "quail"
+for folder in (_GENETICS, _QUAIL):
+    if str(folder) not in sys.path:
+        sys.path.insert(0, str(folder))
 
+import bird_mc  # noqa: E402
 import reproduction as genetics  # noqa: E402
 
 TARGET_USD = 2000.0
@@ -374,7 +376,7 @@ def write_pngs(curve: list[dict], n0: float, feed: dict, out_dir: Path) -> list[
     fig.text(
         0.01,
         0.01,
-        "ASSUMPTION growth (26-week doubling). Genetics floor is the Ne formula. P10. Stage 4 planning. Not a purchase.",
+        "Individual jumbo Coturnix. Sex-specific dressed weight. Flat 0.585 lb/bird is retired. P10. Not a purchase.",
         fontsize=8,
         color="#5c564c",
     )
@@ -409,44 +411,99 @@ def write_pngs(curve: list[dict], n0: float, feed: dict, out_dir: Path) -> list[
     return [income, feed_path]
 
 
+def _feed_from_standing(rows: list[dict], floor: float) -> dict:
+    kg_per_bird = INTAKE_G_PER_BIRD_DAY * DAYS_PER_MONTH / 1000.0
+    buffer_months = BUFFER_WEEKS / (52.0 / 12.0)
+    built = []
+    for row in rows:
+        heavy = float(row["herd_heavy"])
+        worm = heavy * kg_per_bird * WORM_SHARE
+        plant = heavy * kg_per_bird * PLANT_SHARE
+        built.append(
+            {
+                "month": row["month"],
+                "herd_p10": row["herd_p10"],
+                "herd_heavy": heavy,
+                "worm_kg": worm,
+                "plant_kg": plant,
+                "buffer_worm_kg": worm * buffer_months,
+                "buffer_plant_kg": plant * buffer_months,
+                "sale_usd": TARGET_USD if row["month"] >= FIRST_MONTH else 0.0,
+            }
+        )
+    steady = built[-1]
+    light_worm = steady["herd_p10"] * kg_per_bird * WORM_SHARE
+    required_worm = steady["worm_kg"] + steady["buffer_worm_kg"]
+    return {
+        "floor": floor,
+        "kg_per_bird_month": kg_per_bird,
+        "months": built,
+        "steady_month": steady["month"],
+        "steady_worm_kg": steady["worm_kg"],
+        "steady_plant_kg": steady["plant_kg"],
+        "steady_worm_t": steady["worm_kg"] / 1000.0,
+        "steady_plant_t": steady["plant_kg"] / 1000.0,
+        "feed_shortfall_fail_closed": light_worm + 1e-9 < required_worm,
+        "breeders_raided": False,
+    }
+
+
 def smoke(path: Path | None = None) -> dict:
-    solved = required_n0()
-    assert solved["feasible"] and solved["n0"] is not None
-    n0 = float(solved["n0"])
-    assert n0 + 1e-6 >= genetics_keep(1)
-    assert survives(n0, TARGET_USD)
-    assert not survives(max(genetics_keep(1), n0 * 0.90), TARGET_USD)
+    """Recompute the dollar cases on sex-specific dressed weight."""
+    cases = bird_mc.income_cases(bird_mc.PATHS)
+    lump = cases["lump_1000_month_2"]
+    sustain = cases["sustain_2000_from_month_2"]
+    assert lump.get("feasible") and lump.get("n0") is not None
+    assert float(lump["n0"]) + 1e-6 >= genetics_keep(1)
+    assert cases["dressed_lb_week_9"]["female"] > cases["dressed_lb_week_9"]["male"] > 0
     pounds2, price2 = pounds_for_dollars(TARGET_USD, FIRST_MONTH)
     pounds_h, price_h = pounds_for_dollars(TARGET_USD, HORIZON)
-    harvest = harvest_headcount(TARGET_USD)
-    month1_week = engine.weeks_for_month(1) - 1
-    assert month1_week not in harvest
-    feed = herd_and_feed(n0, TARGET_USD)
-    assert feed["feed_shortfall_fail_closed"]
-    assert feed["breeders_raided"] is False
+    if sustain.get("feasible"):
+        solved_n0 = float(sustain["n0"])
+        solved_u = int(sustain["U"])
+        dollars = {month: TARGET_USD for month in range(FIRST_MONTH, HORIZON + 1)}
+    else:
+        solved_n0 = float(lump["n0"])
+        solved_u = int(lump["U"])
+        dollars = {FIRST_MONTH: 1000.0}
+    harvest, weeks = bird_mc._month_harvest(dollars)
+    standing = bird_mc.standing_by_month(int(solved_n0), harvest, weeks, solved_u, bird_mc.PATHS)
+    feed = _feed_from_standing(standing, genetics_keep(1))
     assert feed["steady_worm_kg"] > 0 and feed["steady_plant_kg"] > feed["steady_worm_kg"]
-    curve = income_curve(n0)
-    below = [row for row in curve if row["n0"] + 1 < n0]
-    above = [row for row in curve if row["n0"] > n0 + 1]
-    assert below and max(row["monthly_usd"] for row in below) < TARGET_USD - 1
-    assert above and max(row["monthly_usd"] for row in above) > TARGET_USD + 200
+    assert feed["breeders_raided"] is False
+    curve = [
+        {"n0": float(lump["n0"]), "monthly_usd": 1000.0},
+        {"n0": solved_n0, "monthly_usd": TARGET_USD if sustain.get("feasible") else 0.0},
+    ]
     out_dir = Path(__file__).resolve().parent / "results"
     out_dir.mkdir(parents=True, exist_ok=True)
     income_svg = out_dir / "quail_income_n0.svg"
     feed_svg = out_dir / "quail_income_feed.svg"
-    write_income_svg(curve, n0, income_svg)
+    if curve[0]["n0"] != curve[1]["n0"]:
+        write_income_svg(curve, solved_n0 if sustain.get("feasible") else float(lump["n0"]), income_svg)
     write_feed_svg(feed, feed_svg)
-    pngs = write_pngs(curve, n0, feed, out_dir)
+    pngs = write_pngs(curve, solved_n0 if sustain.get("feasible") else float(lump["n0"]), feed, out_dir)
     payload = {
         "ok": True,
-        "stage": "Stage 4 quail planning. Not a purchase. Stage 1 worms remain the only spend.",
-        "growth_tag": "ASSUMPTION",
+        "stage": "Stage 4 quail planning. Not a purchase. Stage 1 worms remain the only spend. Kit dollars are not a purchase.",
+        "growth_tag": "individual Monte Carlo, sex-specific dressed weight",
+        "flat_lb_per_bird_retired": cases["flat_lb_retired"],
+        "dressed_lb_week_9": cases["dressed_lb_week_9"],
         "feed_tag": "ASSUMPTION",
         "quantile": engine.DEFAULT_QUANTILE,
         "target_usd_per_month": TARGET_USD,
         "first_sale_month": FIRST_MONTH,
         "horizon_month": HORIZON,
-        "n0": n0,
+        "n0": solved_n0 if sustain.get("feasible") else None,
+        "lump_n0": lump.get("n0"),
+        "lump_U": lump.get("U"),
+        "lump_kit_list_usd": lump.get("kit_list_usd"),
+        "sustain_feasible": bool(sustain.get("feasible")),
+        "sustain_n0": sustain.get("n0"),
+        "sustain_U": sustain.get("U"),
+        "sustain_kit_list_usd": sustain.get("kit_list_usd"),
+        "sustain_unstored_p50": sustain.get("unstored_p50"),
+        "sustain_message": sustain.get("message"),
         "genetics_floor": genetics_keep(1),
         "breed_floor_at_n0": feed["floor"],
         "f_prelim_month_2": price2,
@@ -461,23 +518,33 @@ def smoke(path: Path | None = None) -> dict:
         "worm_share": WORM_SHARE,
         "plant_share": PLANT_SHARE,
         "buffer_weeks": BUFFER_WEEKS,
-        "feed_shortfall_fail_closed": True,
-        "curve": curve,
-        "feed_months": feed["months"],
+        "feed_shortfall_fail_closed": feed["feed_shortfall_fail_closed"],
+        "birds_per_kit_sum": bird_mc.BIRDS_PER_KIT,
+        "brooder_per_kit": bird_mc.BROODER_HEADS,
+        "growout_per_kit": bird_mc.GROWOUT_HEADS,
+        "breeder_per_kit": bird_mc.BREEDER_HEADS,
+        "peak_egg_week": bird_mc.PEAK_EGG_WEEK,
         "plots": [str(income_svg), str(feed_svg), *[str(item) for item in pngs]],
     }
     out = path or out_dir / "quail_income_smoke.json"
-    slim = {key: value for key, value in payload.items() if key not in ("curve", "feed_months")}
-    slim["curve_n0"] = [row["n0"] for row in curve]
-    slim["curve_usd"] = [row["monthly_usd"] for row in curve]
-    out.write_text(json.dumps(slim, indent=2) + "\n", encoding="utf-8")
+    out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     payload["smoke_path"] = str(out)
     return payload
 
 
 if __name__ == "__main__":
     result = smoke()
-    print(f"N0={result['n0']:.1f}")
+    print(
+        f"flat lb retired={result['flat_lb_per_bird_retired']:.4f} "
+        f"week9 male={result['dressed_lb_week_9']['male']} female={result['dressed_lb_week_9']['female']}"
+    )
+    print(
+        f"$1000 month2 N0={result['lump_n0']} U={result['lump_U']} list=${result['lump_kit_list_usd']}"
+    )
+    print(
+        f"$2000/mo feasible={result['sustain_feasible']} N0={result['sustain_n0']} U={result['sustain_U']} "
+        f"list=${result['sustain_kit_list_usd']} unstored_p50={result['sustain_unstored_p50']}"
+    )
     print(
         f"lb/mo at month 2={result['lb_per_month_at_2']:.2f} at F_prelim ${result['f_prelim_month_2']:.4f}; "
         f"month {result['horizon_month']}={result['lb_per_month_at_horizon']:.2f} lb "

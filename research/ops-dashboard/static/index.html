@@ -254,15 +254,15 @@
     <div class="plots">
       <figure>
         <img src="/plots/birds_per_lb_vs_month.png" alt="Birds per pound and starting herd versus delivery month" />
-        <figcaption>A shorter month needs more starters per pound. A 40 lb order is where the starting herd itself falls.</figcaption>
+        <figcaption>A 40 lb order needs about 176 starters in month 3 and about 84 once offspring can be dressed. Pounds are sex- and age-specific, not one weight per bird.</figcaption>
       </figure>
       <figure>
         <img src="/plots/delivery_split_vs_soon.png" alt="Starting herd for shipping everything soon versus splitting the order" />
-        <figcaption>Same 30 lb book. Shipping the flexible half later needs fewer starters than putting it all in month 3.</figcaption>
+        <figcaption>Same 30 lb book. All of it in month 3 needs about 156 starters. Locking 15 lb in month 3 and letting 15 lb wait needs about 128.</figcaption>
       </figure>
       <figure>
         <img src="/plots/quail_n0_for_2000.png" alt="Starting birds needed for two thousand dollars a month" />
-        <figcaption>About 2,872 birds hold $2,000 a month from month 2 on the P10 tail. The purchased flock is not sold.</figcaption>
+        <figcaption>On the individual-bird model, about 780 starters and 25 kits hold $2,000 a month from month 2. Kit dollars are not a purchase. The previous flat 0.585 lb/bird plan is retired.</figcaption>
       </figure>
       <figure>
         <img src="/plots/quail_feed_vs_herd.png" alt="Worm and plant feed next to the heavy herd" />
@@ -570,10 +570,11 @@ async function planDeliveries() {
       }),
     });
     const rows = result.table.map((row) => {
-      const herd = row.feasible ? Math.round(row.n0).toLocaleString() : "not safe";
+      const herd = row.feasible && row.n0 != null ? Math.round(row.n0).toLocaleString() : "not safe";
       const safe = row.feasible ? row.safe_lb.toFixed(1) : "—";
       const room = row.feasible ? row.remaining_lb.toFixed(1) : "—";
-      return `<tr><td>${row.month}</td><td>${herd}</td><td>${row.birds_per_lb.toFixed(2)}</td><td>${safe}</td><td>${room}</td></tr>`;
+      const per = row.birds_per_lb == null ? "—" : Number(row.birds_per_lb).toFixed(2);
+      return `<tr><td>${row.month}</td><td>${herd}</td><td>${per}</td><td>${safe}</td><td>${room}</td></tr>`;
     }).join("");
     const rec = result.recommendation;
     const banner = rec.fail_closed
@@ -585,7 +586,7 @@ async function planDeliveries() {
         <thead><tr><th>Month</th><th>Starting herd</th><th>Birds per lb</th><th>Safe lb</th><th>Room left</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      <p class="note">Birds per lb is how many starters each pound needs on the P10 harsh case. A small order still keeps the 68-bird breeding floor, so the starting herd does not fall below that. ${escapeHtml(result.stage_gate)}</p>`;
+      <p class="note">Each pound is the sum of sex- and age-specific dressed weights. A flat 0.585 lb per bird is retired. Breeders stay. ${escapeHtml(result.stage_gate)}</p>`;
   } catch (err) {
     $("plan-out").innerHTML = `<div class="alert">${escapeHtml(err.message)}</div>`;
   } finally {
