@@ -15,3 +15,5 @@ python circular_buffers.py
 ```
 
 Quail’s own rate model stays in [`../quail/`](../quail/README.md). The prepaid identity is the same one.
+
+The quail feed chart [`../plots/quail_feed_vs_herd.png`](../plots/quail_feed_vs_herd.png) uses the 2-week feed buffer from this spec. A ration that misses the heavy herd plus that buffer fails closed. The intake grams are an assumption, not a measured diet.

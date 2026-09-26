@@ -91,7 +91,9 @@ Reject rate is \(\min(1,\ r_0 + \beta_{10} \cdot F / 0.10)\). Saleable fraction 
 
 ## Delivery timing
 
-How many starters each pound needs, and which month to promise, is in [`../ops-dashboard/SPEC.md`](../ops-dashboard/SPEC.md). The count that must stay is the strict floor from this file. The planner uses the P10 harsh tail (only 10% of futures are that low or lower), not P90. Shorter time until delivery raises starters per pound. The ops screen does not buy birds.
+The sale that crosses Ne = 50 is drawn in [`../plots/ne_vs_sale.png`](../plots/ne_vs_sale.png). The quail leakage curves are in [`../plots/quail_inbreeding_leakage.png`](../plots/quail_inbreeding_leakage.png).
+
+How many starters each pound needs, and which month to promise, is in [`../ops-dashboard/SPEC.md`](../ops-dashboard/SPEC.md). The count that must stay is the strict floor from this file. The planner uses the P10 harsh tail (only 10% of futures are that low or lower), not P90. The flock that holds about $2,000 a month from month 2 is in the ops spec. Shorter time until delivery raises starters per pound. The ops screen does not buy birds.
 
 ## What this does not do
 
