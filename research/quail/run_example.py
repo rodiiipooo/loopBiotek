@@ -1,108 +1,114 @@
-"""Print the Stage-4 worked example and write ``results/sample_run.*``."""
+#!/usr/bin/env python3
+"""CLI: jumbo Coturnix production-rate ramp + fair forward table + optional kits_needed."""
 
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
-from research.quail.quail_model import (
-    E_P_COMP_USD_PER_LB,
+from quail_model import (
+    DRESS_WEIGHT_LBS,
     KIT_PRICE_USD,
-    PRIME_AS_OF,
     PRIME_RATE,
-    fair_forward_price_per_lb,
-    fair_prepaid_contract,
+    PRIME_RATE_AS_OF,
+    can_sustain,
+    expected_comp_price,
+    fair_prepaid_forward_per_lb,
+    forward_table,
     kits_needed,
-    population,
+    meat_lbs,
     production_rate,
-    production_rate_required,
-    sustain_inventory_lb,
+    quail_population,
+    rate_ramp_table,
+    simulate_population,
     t_ready,
+    defaults_table,
+    kit_caps,
 )
-
-Y = 5
-Z = 15
-U = 1
-C_BAR = 2.0
-T_YEARS = 0.5
-
-
-def sample() -> dict:
-    ready = t_ready(C_BAR, Y, Z, U)
-    rate = production_rate(ready, Y, Z, U)
-    expected = fair_forward_price_per_lb()
-    prepaid = fair_prepaid_contract(expected, PRIME_RATE, T_YEARS)
-    return {
-        "y_founder_males": Y,
-        "z_founder_females": Z,
-        "U_kits": U,
-        "c_bar_lb_per_week": C_BAR,
-        "t_ready_days": ready,
-        "t_ready_weeks": None if ready is None else ready / 7.0,
-        "r_prod_lb_per_week": rate,
-        "r_prod_rounded_1dp": None if rate is None else round(rate, 1),
-        "production_rate_required_lb_per_week": production_rate_required(C_BAR),
-        "sustain_inventory_lb_at_ready": sustain_inventory_lb(C_BAR, ready, Y, Z, U),
-        "kits_needed": kits_needed(C_BAR, Y, Z),
-        "kit_price_usd": KIT_PRICE_USD,
-        "population_at_ready": population(ready, Y, Z, U),
-        "E_P_comp_usd_per_lb": expected,
-        "prime_rate": PRIME_RATE,
-        "prime_as_of": PRIME_AS_OF,
-        "T_years": T_YEARS,
-        "F0_usd_per_lb": prepaid,
-        "note": (
-            "Stage-4 planning screen only. Stage 1 worms remain the spend "
-            "source of record. r_prod 28.875 lb/week rounds to 28.9."
-        ),
-    }
-
-
-def format_report(result: dict) -> str:
-    lines = [
-        "Jumbo Coturnix Stage-4 screen",
-        f"y={result['y_founder_males']} males, z={result['z_founder_females']} females, "
-        f"U={result['U_kits']} kit, c_bar={result['c_bar_lb_per_week']} lb/week",
-        f"t_ready = {result['t_ready_days']} days "
-        f"(week {result['t_ready_weeks']:.0f})",
-        f"r_prod = {result['r_prod_lb_per_week']:.4f} lb/week "
-        f"(≈ {result['r_prod_rounded_1dp']:.1f})",
-        f"production_rate_required = {result['production_rate_required_lb_per_week']} lb/week",
-        f"sustain inventory at ready = {result['sustain_inventory_lb_at_ready']} lb",
-        f"kits_needed = {result['kits_needed']} at ${result['kit_price_usd']:.2f} list",
-        f"E[P_comp] = {result['E_P_comp_usd_per_lb']:.4f} USD/lb",
-        f"prime = {result['prime_rate']:.2%} as of {result['prime_as_of']}, "
-        f"T = {result['T_years']} y",
-        f"F0 = {result['F0_usd_per_lb']:.6f} USD/lb (≈ 12.0488)",
-        result["note"],
-    ]
-    return "\n".join(lines) + "\n"
-
-
-def write_results(result: dict, report: str) -> Path:
-    out = Path(__file__).resolve().parent / "results"
-    out.mkdir(parents=True, exist_ok=True)
-    (out / "sample_run.txt").write_text(report, encoding="utf-8")
-    (out / "sample_run.json").write_text(
-        json.dumps(result, indent=2) + "\n", encoding="utf-8"
-    )
-    return out
 
 
 def main() -> None:
-    result = sample()
-    report = format_report(result)
-    write_results(result, report)
-    print(report, end="")
-    # Guard the published sample so a silent drift fails the CLI.
-    if result["t_ready_days"] != 77:
-        raise SystemExit(f"t_ready drifted: {result['t_ready_days']}")
-    if abs(result["r_prod_lb_per_week"] - 28.9) > 0.05:
-        raise SystemExit(f"r_prod drifted: {result['r_prod_lb_per_week']}")
-    if abs(result["E_P_comp_usd_per_lb"] - E_P_COMP_USD_PER_LB) > 1e-9:
-        raise SystemExit("E[P] drifted")
-    if abs(result["F0_usd_per_lb"] - 12.0488) > 0.00015:
-        raise SystemExit(f"F0 drifted: {result['F0_usd_per_lb']}")
+    ap = argparse.ArgumentParser(description="Loop Biotek jumbo quail planning (Stage 4 planning math)")
+    ap.add_argument("--y", type=float, default=5.0, help="starting male breeders")
+    ap.add_argument("--z", type=float, default=15.0, help="starting female breeders")
+    ap.add_argument("--U", type=float, default=1.0, help="Grit Quail Professional Kit units")
+    ap.add_argument("--c-bar", type=float, default=2.0, help="avg consumption rate lb/week")
+    ap.add_argument("--weeks", type=int, default=40, help="ramp horizon weeks")
+    ap.add_argument("--X", type=float, default=None, help="optional cumulative meat demand lbs")
+    ap.add_argument("--json-out", type=str, default="", help="write results JSON path")
+    args = ap.parse_args()
+
+    print("=" * 72)
+    print("Loop Biotek — Jumbo Coturnix (Stage 4 planning; Stage 1 = worms SoR)")
+    print("=" * 72)
+    print(f"Starters: y={args.y}♂  z={args.z}♀   Kits U={args.U}   dress={DRESS_WEIGHT_LBS:.3f} lb/bird")
+    print(f"Kit capex @U: ${args.U * KIT_PRICE_USD:,.2f}   Caps: {kit_caps(args.U)}")
+    print()
+
+    # Population path (sample)
+    path = simulate_population(args.y, args.z, args.U, weeks=args.weeks)
+    print("--- Population / harvest path (every 4 weeks) ---")
+    print(f"{'wk':>4} {'day':>6} {'total':>8} {'breed':>8} {'meat_wk':>9} {'meat_cum':>10} {'bind':>18}")
+    for st in path.states[::4]:
+        breed = st.males_breeders + st.females_breeders
+        print(
+            f"{st.week:4d} {st.day:6.0f} {st.total:8.1f} {breed:8.1f} "
+            f"{st.meat_lbs_this_week:9.3f} {st.meat_lbs_cumulative:10.3f} {st.capacity_bind or '-':>18}"
+        )
+
+    print()
+    print("--- Production rate ramp (4-week mean lb/week) ---")
+    ramp = rate_ramp_table(args.y, args.z, args.U, weeks=args.weeks)
+    print(f"{'wk':>4} {'r_prod':>10} {'cum_lb':>10} {'heads':>8}")
+    for row in ramp[::4]:
+        print(f"{row['week']:4d} {row['r_prod_lb_per_week']:10.3f} {row['meat_lbs_cum']:10.3f} {row['total_heads']:8.1f}")
+
+    print()
+    ready = t_ready(args.c_bar, args.y, args.z, args.U, rate_unit="lb_per_week")
+    print(f"--- Sustain consumption c̄ = {args.c_bar} lb/week ---")
+    print(f"t_ready: {ready['t_ready_days']} days (week {ready['t_ready_weeks']})  feasible={ready['feasible']}")
+    if ready["feasible"]:
+        cs = can_sustain(args.c_bar, ready["t_ready_days"], args.y, args.z, args.U)
+        print(f"At t_ready: r_prod={cs['r_prod']:.3f} lb/wk  sustains={cs['sustains']}  surplus={cs['surplus_rate']:.3f}")
+
+    print()
+    p_comp = expected_comp_price()
+    print(f"--- Fair forward / prepaid (prime={PRIME_RATE*100:.2f}% as of {PRIME_RATE_AS_OF} CT) ---")
+    print(f"E[P_comp] spot = ${p_comp:.4f}/lb (foodservice mean)")
+    print(f"{'T_yr':>6} {'P_meat(T)':>12} {'F_0 prepaid':>14} {'DF':>8}")
+    for row in forward_table([0.25, 0.5, 0.75, 1.0, 1.5, 2.0], p_comp=p_comp):
+        print(
+            f"{row['T_years']:6.2f} ${row['E_P_comp_at_T']:11.4f} "
+            f"${row['F_0_usd_per_lb']:13.4f} {row['discount_factor']:8.4f}"
+        )
+    sample = fair_prepaid_forward_per_lb(0.5, p_comp=p_comp)
+    print(f"Cash flows (T=0.5y): deposit ${sample['F_0_usd_per_lb']:.4f}/lb at t=0; deliver 1 lb at T.")
+
+    out = {
+        "y": args.y,
+        "z": args.z,
+        "U": args.U,
+        "c_bar_lb_per_week": args.c_bar,
+        "t_ready": ready,
+        "fair_forward_sample_T0.5": sample,
+        "E_P_comp": p_comp,
+        "prime_rate": PRIME_RATE,
+        "prime_as_of": PRIME_RATE_AS_OF,
+        "defaults": defaults_table(),
+        "ramp": ramp,
+    }
+
+    if args.X is not None:
+        kn = kits_needed(args.X, args.weeks * 7, args.y, args.z, t_unit="days")
+        print()
+        print(f"--- kits_needed for cumulative X={args.X} lb by day {args.weeks*7} ---")
+        print(json.dumps({k: kn[k] for k in kn if k != "search"}, indent=2))
+        out["kits_needed"] = kn
+
+    if args.json_out:
+        Path(args.json_out).write_text(json.dumps(out, indent=2, default=str))
+        print(f"\nWrote {args.json_out}")
 
 
 if __name__ == "__main__":

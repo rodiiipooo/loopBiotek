@@ -1,146 +1,117 @@
-# Jumbo Coturnix production-rate screen (Stage 4 planning)
+# Jumbo Coturnix quail — production-rate & fair-forward SPEC
 
-This file is a planning screen for cascade **Stage 4 (quail)**. It does not authorize equipment, bird, or feed purchases.
+**Stage gate:** Quail is **Stage 4** in the Loop Biotek bio cascade. **Stage 1 (worms) remains source of record** for live ops spend. This package is **planning math only**.
 
-**Stage 1 worms remain the source of record for spend.** `biology/CASCADE.md` is the capital-order SoR. Quail spend stays closed until vermiculture revenue is at least $2k/month, or a firm prepaid forward runway covers Stage-1 costs, and Rod clears the gate.
+Canonical tree (repo): `research/quail/` in [rodiiipooo/loopBiotek](https://github.com/rodiiipooo/loopBiotek).  
+Scratch sibling of worm model: `/workspace/quail-revenue-model/`.
 
-## Decision variables
+Product: **jumbo Coturnix japonica** meat (not standard small Coturnix unless labeled).  
+Capacity unit: **Grit Quail Professional Kit** — decision variable \(U\).
 
-| Symbol | Sample | Meaning |
-|--------|--------|---------|
-| `y` | 5 | Founder males |
-| `z` | 15 | Founder females (point-of-lay) |
-| `U` | 1 | Quail Professional Kits |
-| `c_bar` | 2 lb/week | Average dressed-meat consumption to sustain |
-| `t` | days from first egg set | Clock |
+---
 
-The 5:15 male:female founder pen is the Padgett & Ivey (1959) fertility trial ratio (about 90% fertility). It is not a license to stock only that pen and ignore kit caps.
+## Primary question
 
-## Pipeline clock
+Given average buyer/community consumption \(\bar{c}\) (lb/week) of product \(p\) = dressed jumbo quail meat, starting breeders \(y\) males / \(z\) females, and \(U\) kits:
 
-Biological incubation for *Coturnix japonica* is **17 days** (Mississippi State University Extension). This screen uses the **21-day** operational setter/hatcher cycle already in `reference/loop_params.xlsx` (216 eggs over 21 days = 72 eggs/week per kit).
+1. What production rate \(r_{\mathrm{prod}}(t; y,z,U)\) is achievable at/after \(t\)?
+2. Is \(r_{\mathrm{prod}}(t) \ge \bar{c}\) (steady supply)?
+3. What is \(t_{\mathrm{ready}}(\bar{c}, y, z, U)\) — earliest time the rate sustains \(\bar{c}\)?
 
-Jumbo table age is **56 days** (8 weeks), an assumption. Grit's own card moves birds to breeder cages after 6 weeks.
+**Sustain rule (inventory buffer):** batch harvest is OK. With weekly draw \(\bar{c}\), inventory \(I_{w+1}=I_w+\mathrm{harvest}_w-\bar{c}\) must stay \(\ge 0\) for `hold_weeks`, and the window-mean \(r_{\mathrm{prod}}\ge\bar{c}\).
+4. What ramp path (weekly rates) gets you there?
 
-\[
-\tau = 21 + 56 = 77 \text{ days} = 11 \text{ weeks}
-\]
+### Functions
 
-\[
-t_{\mathrm{ready}}(c_{\bar}, y, z, U) =
-\begin{cases}
-\tau & \text{if } r_{\mathrm{prod}}(\tau, y, z, U) \ge c_{\bar} \\
-\text{undefined} & \text{otherwise}
-\end{cases}
-\]
+| Function | Role |
+|----------|------|
+| `production_rate(t, y, z, U, ...)` | \(r_{\mathrm{prod}}\) ≈ mean weekly dressed lbs over a window after \(t\) |
+| `can_sustain(c_bar, t, y, z, U, ...)` | whether rate meets \(\bar{c}\) for `hold_weeks` |
+| `t_ready(c_bar, y, z, U, ...)` | earliest day/week rate sustains \(\bar{c}\) + ramp path |
+| `rate_ramp_table(y, z, U, weeks)` | full ramp |
+| `meat_lbs(t, y, z, U)` | cumulative dressed lbs (helper) |
+| `kits_needed(X, t, y, z)` | min \(U\) for cumulative demand \(X\) (helper) |
+| `P_meat(t)`, `fair_prepaid_forward_per_lb(T)` | competing forward + prime-discounted prepaid |
 
-Sample: \(t_{\mathrm{ready}}(2, 5, 15, 1) = 77\).
+---
 
-## Production rate
+## Biology (jumbo defaults)
 
-Let weekly eggs from founders be \(z \times 6\) (6 eggs/hen/week, assumed, inside a high Coturnix lay rate). Fertility \(f(y,z) = 0.90\) when \(y/z \ge 1/5\), and scales down linearly below that. Hatch rate 0.80 and survival to process 0.95 are planning factors (assumed inside published ranges).
+See `RESEARCH.md` for citations. Tags: **SOURCED** vs **ASSUMPTION**.
 
-Incubator throughput per kit:
+| Param | Default | Tag |
+|-------|---------|-----|
+| Eggs/hen/year | 280 | SOURCED range 200–300 |
+| Hatch rate | 0.75 | ASSUMPTION (lit. ~0.625–0.925) |
+| Sex ratio ♀ | 0.50 | ASSUMPTION |
+| Incubation | 17.5 d | SOURCED 17–18 |
+| Maturity | 49 d | ASSUMPTION mid 6–8 wk |
+| Slaughter (jumbo) | 63 d | ASSUMPTION mid 8–10 wk meat window |
+| Live weight | 13 oz | ASSUMPTION mid 12–14 oz |
+| Dress yield | 0.72 | ASSUMPTION mid 70–75% |
+| Dress weight | ~0.585 lb | DERIVED |
+| Weekly mortality | 0.01 | ASSUMPTION |
+| Breeder ratio | 1♂:3♀ | ASSUMPTION |
 
-\[
-\frac{216}{21/7} = 72 \text{ eggs/week}
-\]
+---
 
-Housing throughput. These standing caps are **assumed** (the product page states 216 eggs/batch and the week-bands, not bird counts):
+## Kit capacity \(U\) (Grit Quail Professional Kit)
 
-| Stage | Standing cap (assumed) | Published time in stage | Birds/week |
-|-------|-----------------------:|-------------------------|----------:|
-| Brooder | 150 | 4 weeks (Grit: first 4 weeks) | 37.5 |
-| Grow-out, jumbo | 75 (= 5 layers × 15) | 2 weeks (Grit: weeks 4–6) | 37.5 |
-| Breeders | 45 | held | egg supply, not meat throughput |
+Product: https://store.grit.com/products/quail-professional-kit?variant=47213766246652  
+SKU `QUAIL-PROKIT`, sale **$3,449.99** (list $3,729.96) — **SOURCED** page fetch 2026-09-26.
 
-The two housing stages bind together at 37.5 birds/week/kit. Chick placement cannot exceed that.
+| Component | Capacity | Tag |
+|-----------|----------|-----|
+| CT120SH incubator | 216 quail eggs/batch | SOURCED kit page |
+| CB25-03-5K brooder 5-layer | 150 quail | SOURCED Hatching Time same SKU |
+| GL25-03-5K grow-out 5-layer | 75 jumbo (derated) | **ASSUMPTION** (vendor: “depends on breed”) |
+| BYK-03-5K breeding cage | 75 standard; **45 jumbo** (3/section × 15) | SOURCED HT/Grit capacity notes |
+| Breeding cage footprint | 38.6 × 24 × 77.2 in | SOURCED |
 
-\[
-n(y,z,U) = \min\Big(
-  \min(z \cdot 6,\ 72 U) \cdot f(y,z) \cdot 0.80 \cdot 0.95,\ 
-  37.5\, U
-\Big)
-\]
+Simulator **throttles egg set** when incubator, brooder, or grow-out caps bind; excess breeders above cage cap are culled to meat.
 
-Dressed weight is **assumed**: 16 oz live (top of advertised jumbo claims) times 0.77 ready-to-cook yield.
+Weekly incubator set approx: \(U \times 216 \times 7/17.5\).
 
-\[
-r_{\mathrm{prod}}(t, y, z, U) =
-\begin{cases}
-0 & t < \tau \\
-n(y,z,U) \times 0.77 & t \ge \tau
-\end{cases}
-\quad \text{lb/week}
-\]
+---
 
-Sample: \(n(5,15,1) = 37.5\), so
+## Economics — deposit ≈ loan
 
-\[
-r_{\mathrm{prod}}(77, 5, 15, 1) = 37.5 \times 0.77 = 28.875 \approx 28.9 \text{ lb/week}
-\]
+Competing spot \(E[P_{\mathrm{comp}}]\) = mean of foodservice whole-bird $/lb comps (Webstaurant Manchester Farms regular/plus, Manchester case) — see RESEARCH. Specialty retail (D’Artagnan) listed but **excluded** from default mean.
 
-Egg supply from 15 hens (90 eggs/week) is above the 72-egg incubator cap, and chicks after fertility, hatch, and survival are above 37.5, so **housing binds**. Extra hens do not raise the rate until another kit is added.
-
-### Housing caveat (do not skip)
-
-An 8-week finish at 37.5 birds/week needs about \(37.5 \times 8 = 300\) standing meat-bird spaces. Brooder 150 + grow-out 75 = 225. The kit as assumed **cannot** hold that full 8-week pipeline at 37.5 birds/week. Little's law on 225 spaces and an 8-week age is about 28 birds/week, not 37.5.
-
-This screen still reports the Grit window rate (4-week brooder and 2-week grow-out, both 37.5 birds/week) because that is the figure that matches the worked example. Treat 28.9 lb/week as a **screening ceiling**, not a build quantity. Reconcile residence and finish age before any purchase.
-
-## Sustain inventory
-
-Average consumption is \(c_{\bar}\) lb/week. Required production to meet it, with no extra loss term:
+Flat forward (ASSUMPTION \(\mu=0\)):
 
 \[
-r_{\mathrm{required}}(c_{\bar}) = c_{\bar}
+P_{\mathrm{meat}}(T) = E[P_{\mathrm{comp}}]\, e^{\mu T}
 \]
 
-Pounds that must already be in the freezer at day \(t\):
+Buyer prepay at \(t=0\) is a loan to Loop until delivery \(T\). Fair prepaid:
 
 \[
-I_{\mathrm{sustain}}(c_{\bar}, t, y, z, U) =
-\begin{cases}
-\infty & \text{if } r_{\mathrm{prod}}(\tau) < c_{\bar} \\
-0 & \text{if } t \ge t_{\mathrm{ready}} \\
-c_{\bar} \cdot (\tau - t) / 7 & \text{if } t < \tau
-\end{cases}
+F_0 = \frac{E[P_{\mathrm{comp}}(T)]}{(1 + r_{\mathrm{prime}})^T}
 \]
 
-`can_sustain` is true only when \(t \ge t_{\mathrm{ready}}\) and the steady rate covers \(c_{\bar}\). At the sample ready day the buffer is 0 lb because 28.875 ≥ 2. Seven days earlier the buffer is 2 lb.
+(or continuous \(F_0 = E[P_{\mathrm{comp}}(T)]\, e^{-r T}\)).
 
-## Kits
+**Prime rate used:** \(r_{\mathrm{prime}} = 7.00\%\) — Fed H.15 bank prime loan, observation **2026-09-24**, release 2026-09-25. https://www.federalreserve.gov/releases/h15/
 
-\[
-\text{kits\_needed}(c_{\bar}, y, z) = \left\lceil \frac{c_{\bar}}{r_{\mathrm{prod}}(\tau, y, z, 1)} \right\rceil
-\]
+Cash flows: deposit \(F_0\) per lb at 0; deliver 1 lb at \(T\); no further cash if fully prepaid at fair PV.
 
-One kit covers the sample 2 lb/week. List price used for the count is the Grit sale price **$3,449.99** (variant `47213766246652`).
+**Pitch:** offer at \(F_0\) is actuarially fair vs competing delivery price given time-value of deposit. Margin = offer \(-\, F_0\) (positive = Loop captures surplus; negative = subsidy).
 
-## Fair prepaid price
+---
 
-Comparable expected meat price used by the worked example:
+## Evidence tiers
 
-\[
-\mathbb{E}[P_{\mathrm{comp}}] = 12.4633 \text{ USD/lb}
-\]
+- **Trusted:** Fed H.15; Grit/Hatching Time product pages with explicit numbers; peer-reviewed hatchability/slaughter ranges.
+- **Candidate (quarantine):** blog retail $/lb guides; grow-out headcount derate; mortality; replacement fractions.
 
-This anchor is **assumed**. Distributor quotes in `SOURCES.md` are higher and are not averaged into it. Prime is the Fed H.15 bank prime loan, **7.00%** on **2026-09-24**.
+Do **not** invent “Source: Admin analytics” labels.
 
-The fair forward price per lb is the expected comparable itself (delivery-date expectation). The fair prepaid contract discounts it for \(T\) years:
+---
 
-\[
-F_0 = \frac{\mathbb{E}[P_{\mathrm{comp}}]}{(1 + r_{\mathrm{prime}})^{T}}
-\]
+## Run
 
-Sample: \(r_{\mathrm{prime}} = 0.07\), \(T = 0.5\),
-
-\[
-F_0 = \frac{12.4633}{\sqrt{1.07}} \approx 12.0488 \text{ USD/lb}
-\]
-
-## What this screen is not
-
-- Not a Monte Carlo and not a cash-flow model
-- Not permission to buy the kit, chicks, or feed
-- Not a change to Stage 1 worm accounting
+```bash
+cd research/quail   # or /workspace/quail-revenue-model
+python run_example.py --y 5 --z 15 --U 1 --c-bar 2 --weeks 40
+```

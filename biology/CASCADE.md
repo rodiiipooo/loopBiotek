@@ -25,8 +25,6 @@ Locked 2026-09-25. Objective: compound biological businesses into land, subterra
 
 Population and forward-book models live outside this repository at `/workspace/worm-revenue-model/` (growth MC + forward book). Do not vendor that tree here. Do not open land, quail, or aquaponics spend until the Stage-1 gate is cleared.
 
-Stage 4 quail **planning** math (production rate, kit screen, prepaid meat price) lives in [`../research/quail/SPEC.md`](../research/quail/SPEC.md). That package is not spend authority. Stage 1 worms remain the only active spend.
-
 ## Synergy
 One nutrient spine: waste → worms/isopods; insects+greens → quail/fish; water → greens; castings → plants. Own the stack; no SaaS-per-stage.
 
@@ -39,3 +37,8 @@ One nutrient spine: waste → worms/isopods; insects+greens → quail/fish; wate
 ## LoopBiotek home
 
 This file (`biology/CASCADE.md`) is the source of record in this repository. Worm Monte Carlo models stay at the external sibling path `/workspace/worm-revenue-model/`.
+
+## Planning models (not spend)
+
+- Stage 1 worms: `/workspace/worm-revenue-model/` (ops SoR).
+- Stage 4 quail (planning): `research/quail/` — jumbo Coturnix + Grit kit `U`, production-rate vs consumption; no live quail spend until Stage-1 gate.

@@ -3,7 +3,6 @@
 Source of record for the **staged live-biology capital cascade** that funds LoopBiotek build-out before (and into) the 10-acre site.
 
 - **[`CASCADE.md`](./CASCADE.md)** — singular track: worms → crickets+isopods (rollie pollies) → land/underground greens+algae → quail → aquaponics → community QoL from surplus only.
-- **[`../research/quail/`](../research/quail/README.md)** — Stage 4 jumbo Coturnix planning screen only (rate, kit cap, prepaid price). Does not open quail spend. Stage 1 worms stay the source of record.
 - Population + forward-sales Monte Carlo (Stage 1) lives **outside this repository** at `/workspace/worm-revenue-model/` (`worm_growth_mc.py`, `worm_forward_book.py`). Do not commit that tree here.
 
 ## Zone mapping (when on-site)
@@ -18,3 +17,7 @@ Source of record for the **staged live-biology capital cascade** that funds Loop
 | 6 Community QoL | Zone 1 habitat | Surplus cash only |
 
 **Active now:** Stage 1 (worms) only, until the cash or prepaid-runway gate in [`CASCADE.md`](./CASCADE.md) is met and Rod clears Stage 2+.
+
+## Quail (Stage 4 — planning only)
+
+See [`../research/quail/`](../research/quail/) — jumbo Coturnix production-rate model, Grit kit capacity, fair prepaid forward. **Not active spend.**

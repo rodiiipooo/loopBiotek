@@ -1,11 +1,50 @@
-Jumbo Coturnix Stage-4 screen
-y=5 males, z=15 females, U=1 kit, c_bar=2.0 lb/week
-t_ready = 77 days (week 11)
-r_prod = 28.8750 lb/week (≈ 28.9)
-production_rate_required = 2.0 lb/week
-sustain inventory at ready = 0.0 lb
-kits_needed = 1 at $3449.99 list
-E[P_comp] = 12.4633 USD/lb
-prime = 7.00% as of 2026-09-24, T = 0.5 y
-F0 = 12.048727 USD/lb (≈ 12.0488)
-Stage-4 planning screen only. Stage 1 worms remain the spend source of record. r_prod 28.875 lb/week rounds to 28.9.
+========================================================================
+Loop Biotek — Jumbo Coturnix (Stage 4 planning; Stage 1 = worms SoR)
+========================================================================
+Starters: y=5.0♂  z=15.0♀   Kits U=1.0   dress=0.585 lb/bird
+Kit capex @U: $3,449.99   Caps: {'U': 1.0, 'breeder_heads': 45.0, 'brooder_heads': 150.0, 'growout_heads': 75.0, 'incub_eggs_per_batch': 216.0, 'incub_eggs_per_week': 86.4, 'kit_capex_usd': 3449.99}
+
+--- Population / harvest path (every 4 weeks) ---
+  wk    day    total    breed   meat_wk   meat_cum               bind
+   0      0     19.8     19.8     0.000      0.000                  -
+   4     28    194.7     19.0     0.000      0.000 brooder_or_growout_cap
+   8     56    275.5     18.3     0.000      0.000 brooder_or_growout_cap
+  12     84    289.2     34.8    29.090     58.475      incubator_cap
+  16    112    308.3     35.9     0.000    131.935 brooder_or_growout_cap
+  20    140    307.2     45.0    26.843    161.369      incubator_cap
+  24    168    319.3     44.1    14.291    275.713 brooder_or_growout_cap
+  28    196    306.7     45.0     0.000    275.713      incubator_cap
+  32    224    321.2     44.5    34.372    410.343 brooder_or_growout_cap
+  36    252    309.8     45.0     0.000    423.835 brooder_or_growout_cap
+  40    280    319.4     45.0    34.372    524.868 brooder_or_growout_cap
+
+--- Production rate ramp (4-week mean lb/week) ---
+  wk     r_prod     cum_lb    heads
+   0      0.000      0.000     19.8
+   4      0.000      0.000    194.7
+   8      7.346      0.000    275.5
+  12     25.638     58.475    289.2
+  16      0.648    131.935    308.3
+  20     31.724    161.369    307.2
+  24      3.573    275.713    319.3
+  28     25.065    275.713    306.7
+  32     11.966    410.343    321.2
+  36     16.665    423.835    309.8
+  40     20.369    524.868    319.4
+
+--- Sustain consumption c̄ = 2.0 lb/week ---
+t_ready: 77.0 days (week 11)  feasible=True
+At t_ready: r_prod=28.946 lb/wk  sustains=True  surplus=26.946
+
+--- Fair forward / prepaid (prime=7.00% as of 2026-09-24 CT) ---
+E[P_comp] spot = $12.4633/lb (foodservice mean)
+  T_yr    P_meat(T)    F_0 prepaid       DF
+  0.25 $    12.4633 $      12.2543   0.9832
+  0.50 $    12.4633 $      12.0488   0.9667
+  0.75 $    12.4633 $      11.8467   0.9505
+  1.00 $    12.4633 $      11.6480   0.9346
+  1.50 $    12.4633 $      11.2605   0.9035
+  2.00 $    12.4633 $      10.8860   0.8734
+Cash flows (T=0.5y): deposit $12.0488/lb at t=0; deliver 1 lb at T.
+
+Wrote /workspace/loopBiotek/research/quail/results/sample_run.json

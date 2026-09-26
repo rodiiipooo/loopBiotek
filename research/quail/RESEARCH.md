@@ -1,25 +1,66 @@
-# Research note — jumbo Coturnix, Stage 4 only
+# Research notes — jumbo Coturnix + Grit kit + comps
 
-Planning note for cascade Stage 4. Formulas and the worked example are in [`SPEC.md`](SPEC.md). Citations and the ASSUMED / SOURCED split are in [`SOURCES.md`](SOURCES.md). Run `python -m research.quail` from the repo root.
+Fetched / searched **2026-09-26** (America/Chicago). Every number tagged.
 
-## Why this is not a purchase
+## Cascade context
 
-`biology/CASCADE.md` still locks spend at Stage 1 (worms) until vermiculture revenue is at least $2k/month, or a firm prepaid runway covers Stage-1 costs, and Rod clears the next gate. Quail are stage 4: eggs and meat after on-site insect and greens feed is reliable, and only if quail margin beats feed cost. This package does not clear that gate.
+- Quail = Stage 4. Worms = Stage 1 SoR. Planning only.
+- Cascade: `loopBiotek/biology/CASCADE.md`
 
-## What the screen says
+## Species — jumbo Coturnix japonica
 
-One Grit Quail Professional Kit (sale price $3,449.99, incubator 216 eggs/batch) is the capacity unit. Brooder 150, jumbo grow-out 75, and breeders 45 are assumptions; the product page gives week-bands, not those bird counts.
+| Claim | Value | Tag | Source |
+|-------|-------|-----|--------|
+| Eggs/hen/year | 200–300 (default 280) | SOURCED range | Agroproductividad review (Fagundes et al. cited 280–300); Incubator Warehouse guide 200–300 |
+| Incubation | 17–18 d | SOURCED | Same guides; standard Coturnix |
+| Lay onset | 6–8 wk | SOURCED | Incubator Warehouse; hobby guides |
+| Jumbo live weight | 12–14 oz (default 13) | ASSUMPTION mid | Homesteading Place; Thank Chickens / JMF jumbo notes; Pips Farm “jumbo” ≥12 oz |
+| Jumbo harvest window | 8–10 wk (default 63 d) | ASSUMPTION mid | Incubator Warehouse jumbo section; homestead harvest 8–10 wk |
+| Dress yield | 70–75% (default 72%) | ASSUMPTION mid | Incubator Warehouse; Agroproductividad carcass 65–75% |
+| Hatchability | 62.5–92.5% band (default 75%) | ASSUMPTION mid | Romão et al. LRRD meat-type Italian quail onset study |
+| Standard (non-jumbo) live | 150–200 g | SOURCED (label separately) | Agroproductividad commercial meat lines — **not** used as jumbo default |
 
-Founders in the sample are 5 males and 15 females, the Padgett & Ivey ratio. With those hens the incubator fills, and brooder and grow-out both limit throughput at 37.5 birds/week. At an assumed 0.77 lb dressed, the steady rate is 28.875 lb/week, which rounds to 28.9.
+## Grit Quail Professional Kit
 
-The clock is 21 days of operational incubation plus 56 days to a jumbo table age: day 77, week 11. Average consumption of 2 lb/week is covered that day with no opening freezer buffer. See SPEC for the space caveat: an 8-week pipeline at 37.5 birds/week does not fit in 225 brooder-plus-grow-out spaces. Do not treat 28.9 lb/week as a build quantity.
+URL: https://store.grit.com/products/quail-professional-kit?variant=47213766246652
 
-## Price
+| Item | Spec | Tag | Source |
+|------|------|-----|--------|
+| Price | $3,449.99 sale / $3,729.96 list | SOURCED | Grit page WebFetch 2026-09-26 |
+| Incubator | CT120SH, ≤216 quail eggs/batch | SOURCED | Kit page “Getting Started” |
+| Brooder | CB25-03-5K 5-layer, ≤150 quail | SOURCED | Hatching Time chick brooder same SKU |
+| Grow-out | GL25-03-5K 5-layer H:9.5" | SOURCED model; capacity ASSUMED 75 jumbo | Kit page + HT grow-out (“capacity depends on breed”) |
+| Breeding cage | BYK-03-5K, 15/layer, 75 standard; larger birds 3/section → 45 | SOURCED | Grit/HT quail cage pages |
+| Footprint (breed) | 38.6 × 24 × 77.2 in | SOURCED | HT specs |
+| Footprint (grow-out) | ~36.3 × 21.6 × 77.2 in | SOURCED | Gone Broody / HT family listing |
+| Brood narrative | wk 0–4 brood, 4–6 grow, ≥6 breed | SOURCED | Kit page steps (notes vary by breed/temp) |
 
-The worked prepaid uses an assumed foodservice composite of $12.4633/lb, not the higher Manchester Farms and 123 Farmers quotes listed in SOURCES. Prime is 7.00% (Fed H.15, 2026-09-24). Half a year of discount:
+## Competing meat prices ($/lb dressed)
 
-\[
-F_0 = 12.4633 / (1.07)^{0.5} \approx 12.0488 \text{ USD/lb}
-\]
+| Comp | $/lb | Channel | Tag | Calc / source |
+|------|------|---------|-----|----------------|
+| Webstaurant MF whole 4–5 oz ×24 | **13.17** | foodservice | SOURCED | $118.49 / 9 lb case (page: total case size 9 lb; $0.82/oz) https://www.webstaurantstore.com/manchester-farms-4-5-oz-fresh-whole-quail-with-feet-case/871MAN33398.html |
+| Same Plus member | **10.06** | foodservice | SOURCED | $90.55 / 9 lb |
+| Manchester Farms case ~4 oz 6/4 @ $84.93 | **~14.16** | producer | SOURCED | $84.93 / (24×0.25 lb) from manchesterfarms.com shop table |
+| D’Artagnan semi-boneless 4×4 oz | **31.99** | specialty retail | SOURCED | dartagnan.com — excluded from default E[P_comp] |
+| Blog “farm-raised $6–10” | 8 mid | blog | **candidate / quarantine** | lowfodmapeating 2026 guide — not in default mean |
 
-That identity is the whole pricing model. It is not a forecast of what a buyer will sign.
+**Default \(E[P_{\mathrm{comp}}]\)** = mean(13.17, 10.06, 14.16) = **$12.4633/lb**.
+
+Note: foodservice comps are often standard-size birds; $/lb still used as competing meat price for fair forward. Jumbo portion size differs; adjust comps when Loop SKU is quoted.
+
+## Prime rate
+
+| Item | Value | Tag | Source |
+|------|-------|-----|--------|
+| Bank prime loan | **7.00%** | SOURCED | Fed H.15 daily; 2026-09-18…24 all 7.00; release date 2026-09-25 https://www.federalreserve.gov/releases/h15/ |
+| As-of used in model | 2026-09-24 | SOURCED | H.15 observation column |
+| Context | Raised from 6.75% after Sep 16, 2026 FOMC | SOURCED | Reuters / U.S. Bank IR 2026-09-16 |
+
+## Model limitations (honest)
+
+- Deterministic weekly cohorts; no stochastic disease / fertility shock.
+- Grow-out jumbo headcount is an **assumption**.
+- Continuous incubator utilization approximates batch setter/hatcher cycling.
+- Replacement fractions and mortality are placeholders until farm data.
+- No live trading / Kalshi.

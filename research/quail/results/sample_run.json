@@ -1,31 +1,574 @@
 {
-  "y_founder_males": 5,
-  "z_founder_females": 15,
-  "U_kits": 1,
+  "y": 5.0,
+  "z": 15.0,
+  "U": 1.0,
   "c_bar_lb_per_week": 2.0,
-  "t_ready_days": 77,
-  "t_ready_weeks": 11.0,
-  "r_prod_lb_per_week": 28.875,
-  "r_prod_rounded_1dp": 28.9,
-  "production_rate_required_lb_per_week": 2.0,
-  "sustain_inventory_lb_at_ready": 0.0,
-  "kits_needed": 1,
-  "kit_price_usd": 3449.99,
-  "population_at_ready": {
-    "day": 77,
-    "founder_males": 5,
-    "founder_females": 15,
-    "breeders": 20,
-    "eggs_in_incubator": 216.0,
-    "brooder": 150.0,
-    "grow_out": 75.0,
-    "meat_birds_per_week": 37.5,
-    "r_prod_lb_per_week": 28.875
+  "t_ready": {
+    "c_bar": 2.0,
+    "rate_unit": "lb_per_week",
+    "y": 5.0,
+    "z": 15.0,
+    "U": 1.0,
+    "t_ready_days": 77.0,
+    "t_ready_weeks": 11,
+    "feasible": true,
+    "r_prod_required": 2.0,
+    "ramp_path": [
+      {
+        "week": 9,
+        "day": 63.0,
+        "r_prod_lb_per_week": 14.61864412095807,
+        "sustains": false
+      },
+      {
+        "week": 10,
+        "day": 70.0,
+        "r_prod_lb_per_week": 21.81851000183797,
+        "sustains": false
+      },
+      {
+        "week": 11,
+        "day": 77.0,
+        "r_prod_lb_per_week": 28.946377223909074,
+        "sustains": true
+      }
+    ],
+    "sustain_rule": "inventory_buffer"
   },
-  "E_P_comp_usd_per_lb": 12.4633,
+  "fair_forward_sample_T0.5": {
+    "F_0_usd_per_lb": 12.048759108472453,
+    "E_P_comp_at_T": 12.463333333333333,
+    "P_comp_spot": 12.463333333333333,
+    "T_years": 0.5,
+    "r_prime": 0.07,
+    "r_prime_as_of": "2026-09-24",
+    "discount_factor": 0.9667364890456636,
+    "continuous": false,
+    "formula": "F_0 = E[P_comp(T)] / (1 + r_prime)^T",
+    "cash_flows": {
+      "t0_deposit_per_lb": 12.048759108472453,
+      "tT_delivery_lbs": 1.0,
+      "tT_additional_cash": 0.0
+    },
+    "implied_interest_credit_vs_pay_at_T": 0.41457422486088014
+  },
+  "E_P_comp": 12.463333333333333,
   "prime_rate": 0.07,
   "prime_as_of": "2026-09-24",
-  "T_years": 0.5,
-  "F0_usd_per_lb": 12.04872688392282,
-  "note": "Stage-4 planning screen only. Stage 1 worms remain the spend source of record. r_prod 28.875 lb/week rounds to 28.9."
+  "defaults": [
+    {
+      "name": "species",
+      "value": "jumbo Coturnix japonica",
+      "unit": "",
+      "tag": "SCOPE"
+    },
+    {
+      "name": "eggs_per_hen_per_year",
+      "value": 280.0,
+      "unit": "eggs/hen/yr",
+      "tag": "SOURCED range 200\u2013300"
+    },
+    {
+      "name": "hatch_rate",
+      "value": 0.75,
+      "unit": "fraction",
+      "tag": "ASSUMPTION (lit. 0.625\u20130.925)"
+    },
+    {
+      "name": "incubation_days",
+      "value": 17.5,
+      "unit": "days",
+      "tag": "SOURCED 17\u201318"
+    },
+    {
+      "name": "maturity_days",
+      "value": 49.0,
+      "unit": "days",
+      "tag": "ASSUMPTION mid 6\u20138 wk"
+    },
+    {
+      "name": "slaughter_days",
+      "value": 63.0,
+      "unit": "days",
+      "tag": "ASSUMPTION mid 8\u201310 wk jumbo"
+    },
+    {
+      "name": "live_weight_oz",
+      "value": 13.0,
+      "unit": "oz",
+      "tag": "ASSUMPTION mid 12\u201314"
+    },
+    {
+      "name": "dress_yield",
+      "value": 0.72,
+      "unit": "fraction",
+      "tag": "ASSUMPTION mid 70\u201375%"
+    },
+    {
+      "name": "dress_weight_lbs",
+      "value": 0.585,
+      "unit": "lb/bird",
+      "tag": "DERIVED"
+    },
+    {
+      "name": "weekly_mortality",
+      "value": 0.01,
+      "unit": "/week",
+      "tag": "ASSUMPTION"
+    },
+    {
+      "name": "kit_incub_eggs_batch",
+      "value": 216,
+      "unit": "eggs",
+      "tag": "SOURCED Grit kit"
+    },
+    {
+      "name": "kit_brooder_heads",
+      "value": 150,
+      "unit": "birds",
+      "tag": "SOURCED CB25-03-5K"
+    },
+    {
+      "name": "kit_growout_heads_jumbo",
+      "value": 75,
+      "unit": "birds",
+      "tag": "ASSUMPTION derated"
+    },
+    {
+      "name": "kit_breeder_heads_jumbo",
+      "value": 45,
+      "unit": "birds",
+      "tag": "SOURCED 3/section\u00d715"
+    },
+    {
+      "name": "kit_price_usd",
+      "value": 3449.99,
+      "unit": "USD",
+      "tag": "SOURCED Grit sale"
+    },
+    {
+      "name": "prime_rate",
+      "value": 0.07,
+      "unit": "/yr",
+      "tag": "SOURCED Fed H.15 2026-09-24"
+    },
+    {
+      "name": "E_P_comp_default",
+      "value": 12.4633,
+      "unit": "USD/lb",
+      "tag": "DERIVED foodservice mean"
+    }
+  ],
+  "ramp": [
+    {
+      "week": 0,
+      "day": 0.0,
+      "r_prod_lb_per_week": 0.0,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 0.0,
+      "total_heads": 19.8,
+      "breeders": 19.8,
+      "bind": ""
+    },
+    {
+      "week": 1,
+      "day": 7.0,
+      "r_prod_lb_per_week": 0.0,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 0.0,
+      "total_heads": 19.602,
+      "breeders": 19.602,
+      "bind": ""
+    },
+    {
+      "week": 2,
+      "day": 14.0,
+      "r_prod_lb_per_week": 0.0,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 0.0,
+      "total_heads": 79.1718937577002,
+      "breeders": 19.40598,
+      "bind": ""
+    },
+    {
+      "week": 3,
+      "day": 21.0,
+      "r_prod_lb_per_week": 0.0,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 0.0,
+      "total_heads": 137.5484294402464,
+      "breeders": 19.211920199999998,
+      "bind": ""
+    },
+    {
+      "week": 4,
+      "day": 28.0,
+      "r_prod_lb_per_week": 0.0,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 0.0,
+      "total_heads": 194.7495172197659,
+      "breeders": 19.019800997999997,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 5,
+      "day": 35.0,
+      "r_prod_lb_per_week": 0.0,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 0.0,
+      "total_heads": 250.792828400751,
+      "breeders": 18.82960298802,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 6,
+      "day": 42.0,
+      "r_prod_lb_per_week": 0.0,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 0.0,
+      "total_heads": 281.13175596889954,
+      "breeders": 18.6413069581398,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 7,
+      "day": 49.0,
+      "r_prod_lb_per_week": 0.0,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 0.0,
+      "total_heads": 278.32043840921057,
+      "breeders": 18.454893888558402,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 8,
+      "day": 56.0,
+      "r_prod_lb_per_week": 7.3460523220894824,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 0.0,
+      "total_heads": 275.53723402511844,
+      "breeders": 18.27034494967282,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 9,
+      "day": 63.0,
+      "r_prod_lb_per_week": 14.61864412095807,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 0.0,
+      "total_heads": 272.7818616848673,
+      "breeders": 22.54410047614009,
+      "bind": ""
+    },
+    {
+      "week": 10,
+      "day": 70.0,
+      "r_prod_lb_per_week": 21.81851000183797,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 0.0,
+      "total_heads": 275.3239968199467,
+      "breeders": 26.73055385758305,
+      "bind": "incubator_cap"
+    },
+    {
+      "week": 11,
+      "day": 77.0,
+      "r_prod_lb_per_week": 28.946377223909074,
+      "meat_lbs_week": 29.38420928835793,
+      "meat_lbs_cum": 29.38420928835793,
+      "total_heads": 276.93853229408955,
+      "breeders": 30.83102376134953,
+      "bind": "incubator_cap"
+    },
+    {
+      "week": 12,
+      "day": 84.0,
+      "r_prod_lb_per_week": 25.637654987398367,
+      "meat_lbs_week": 29.09036719547435,
+      "meat_lbs_cum": 58.47457648383228,
+      "total_heads": 289.2420235600814,
+      "breeders": 34.846811211654924,
+      "bind": "incubator_cap"
+    },
+    {
+      "week": 13,
+      "day": 91.0,
+      "r_prod_lb_per_week": 18.36506318852978,
+      "meat_lbs_week": 28.799463523519602,
+      "meat_lbs_cum": 87.27404000735189,
+      "total_heads": 301.91975114752404,
+      "breeders": 36.94757638973762,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 14,
+      "day": 98.0,
+      "r_prod_lb_per_week": 11.16519730764988,
+      "meat_lbs_week": 28.51146888828441,
+      "meat_lbs_cum": 115.7855088956363,
+      "total_heads": 314.96299998086175,
+      "breeders": 36.57810062584025,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 15,
+      "day": 105.0,
+      "r_prod_lb_per_week": 4.037330085578777,
+      "meat_lbs_week": 16.149320342315107,
+      "meat_lbs_cum": 131.93482923795142,
+      "total_heads": 311.43155443868545,
+      "breeders": 36.21231961958185,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 16,
+      "day": 112.0,
+      "r_prod_lb_per_week": 0.6477497550460843,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 131.93482923795142,
+      "total_heads": 308.3172388942986,
+      "breeders": 35.85019642338602,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 17,
+      "day": 119.0,
+      "r_prod_lb_per_week": 7.358495252192079,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 131.93482923795142,
+      "total_heads": 305.2340665053556,
+      "breeders": 35.88464976133174,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 18,
+      "day": 126.0,
+      "r_prod_lb_per_week": 15.323305970242346,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 131.93482923795142,
+      "total_heads": 302.1817258403021,
+      "breeders": 39.59685540096482,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 19,
+      "day": 133.0,
+      "r_prod_lb_per_week": 23.778942129740376,
+      "meat_lbs_week": 2.5909990201843374,
+      "meat_lbs_cum": 134.52582825813576,
+      "total_heads": 294.7308504277378,
+      "breeders": 44.032713610505006,
+      "bind": "incubator_cap"
+    },
+    {
+      "week": 20,
+      "day": 140.0,
+      "r_prod_lb_per_week": 31.724092497846755,
+      "meat_lbs_week": 26.84298198858398,
+      "meat_lbs_cum": 161.36881024671973,
+      "total_heads": 307.2361967957512,
+      "breeders": 45.0,
+      "bind": "incubator_cap"
+    },
+    {
+      "week": 21,
+      "day": 147.0,
+      "r_prod_lb_per_week": 28.58600355547746,
+      "meat_lbs_week": 31.859242872201072,
+      "meat_lbs_cum": 193.2280531189208,
+      "total_heads": 314.503590601809,
+      "breeders": 45.0,
+      "bind": "incubator_cap"
+    },
+    {
+      "week": 22,
+      "day": 154.0,
+      "r_prod_lb_per_week": 20.621192837427195,
+      "meat_lbs_week": 33.82254463799211,
+      "meat_lbs_cum": 227.0505977569129,
+      "total_heads": 318.34223907529156,
+      "breeders": 45.00000000000001,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 23,
+      "day": 161.0,
+      "r_prod_lb_per_week": 12.165556677929166,
+      "meat_lbs_week": 34.37160049260986,
+      "meat_lbs_cum": 261.42219824952275,
+      "total_heads": 321.20394404759867,
+      "breeders": 44.55,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 24,
+      "day": 168.0,
+      "r_prod_lb_per_week": 3.5726565547767013,
+      "meat_lbs_week": 14.290626219106805,
+      "meat_lbs_cum": 275.71282446862955,
+      "total_heads": 319.29401762470843,
+      "breeders": 44.10450000000001,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 25,
+      "day": 175.0,
+      "r_prod_lb_per_week": 0.0,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 275.71282446862955,
+      "total_heads": 316.1010774484614,
+      "breeders": 43.663455000000006,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 26,
+      "day": 182.0,
+      "r_prod_lb_per_week": 7.878757712521708,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 275.71282446862955,
+      "total_heads": 312.9400666739768,
+      "breeders": 43.226820450000005,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 27,
+      "day": 189.0,
+      "r_prod_lb_per_week": 16.471657835674172,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 275.71282446862955,
+      "total_heads": 309.81066600723705,
+      "breeders": 45.0,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 28,
+      "day": 196.0,
+      "r_prod_lb_per_week": 25.06455795882664,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 275.71282446862955,
+      "total_heads": 306.71255934716464,
+      "breeders": 45.00000000000001,
+      "bind": "incubator_cap"
+    },
+    {
+      "week": 29,
+      "day": 203.0,
+      "r_prod_lb_per_week": 33.6574580819791,
+      "meat_lbs_week": 31.51503085008683,
+      "meat_lbs_cum": 307.22785531871637,
+      "total_heads": 312.56065338127,
+      "breeders": 45.0,
+      "bind": "incubator_cap"
+    },
+    {
+      "week": 30,
+      "day": 210.0,
+      "r_prod_lb_per_week": 29.151845690168013,
+      "meat_lbs_week": 34.37160049260986,
+      "meat_lbs_cum": 341.5994558113262,
+      "total_heads": 315.48017421051736,
+      "breeders": 45.0,
+      "bind": "incubator_cap"
+    },
+    {
+      "week": 31,
+      "day": 217.0,
+      "r_prod_lb_per_week": 20.55894556701555,
+      "meat_lbs_week": 34.37160049260987,
+      "meat_lbs_cum": 375.97105630393605,
+      "total_heads": 318.3704998314723,
+      "breeders": 45.0,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 32,
+      "day": 224.0,
+      "r_prod_lb_per_week": 11.96604544386308,
+      "meat_lbs_week": 34.37160049260986,
+      "meat_lbs_cum": 410.3426567965459,
+      "total_heads": 321.23192219621757,
+      "breeders": 44.55,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 33,
+      "day": 231.0,
+      "r_prod_lb_per_week": 3.373145320710617,
+      "meat_lbs_week": 13.492581282842467,
+      "meat_lbs_cum": 423.8352380793884,
+      "total_heads": 319.2657568685278,
+      "breeders": 44.1045,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 34,
+      "day": 238.0,
+      "r_prod_lb_per_week": 0.0,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 423.8352380793884,
+      "total_heads": 316.0730992998425,
+      "breeders": 43.663455000000006,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 35,
+      "day": 245.0,
+      "r_prod_lb_per_week": 8.072343263424793,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 423.8352380793884,
+      "total_heads": 312.91236830684403,
+      "breeders": 43.22682045,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 36,
+      "day": 252.0,
+      "r_prod_lb_per_week": 16.66524338657726,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 423.8352380793884,
+      "total_heads": 309.78324462377566,
+      "breeders": 45.0,
+      "bind": "brooder_or_growout_cap"
+    },
+    {
+      "week": 37,
+      "day": 259.0,
+      "r_prod_lb_per_week": 25.25814350972972,
+      "meat_lbs_week": 0.0,
+      "meat_lbs_cum": 423.8352380793884,
+      "total_heads": 307.73679699466084,
+      "breeders": 45.0,
+      "bind": "incubator_cap"
+    },
+    {
+      "week": 38,
+      "day": 266.0,
+      "r_prod_lb_per_week": 33.85104363288219,
+      "meat_lbs_week": 32.28937305369917,
+      "meat_lbs_cum": 456.12461113308757,
+      "total_heads": 313.6289457336831,
+      "breeders": 45.00000000000001,
+      "bind": "incubator_cap"
+    },
+    {
+      "week": 39,
+      "day": 273.0,
+      "r_prod_lb_per_week": 28.962112491727893,
+      "meat_lbs_week": 34.37160049260986,
+      "meat_lbs_cum": 490.4962116256974,
+      "total_heads": 316.53778363940637,
+      "breeders": 45.00000000000001,
+      "bind": "incubator_cap"
+    },
+    {
+      "week": 40,
+      "day": 280.0,
+      "r_prod_lb_per_week": 20.369212368575432,
+      "meat_lbs_week": 34.37160049260986,
+      "meat_lbs_cum": 524.8678121183073,
+      "total_heads": 319.41753316607236,
+      "breeders": 45.0,
+      "bind": "brooder_or_growout_cap"
+    }
+  ]
 }
