@@ -43,6 +43,7 @@ This file (`biology/CASCADE.md`) is the source of record in this repository. Wor
 ## Planning models (not spend)
 
 - Stage 1 worms: `/workspace/worm-revenue-model/` (ops SoR).
+- Community capital pooling (planning): [`../economics/COMMUNITY_CAPITAL_PAYBACK.md`](../economics/COMMUNITY_CAPITAL_PAYBACK.md). Proportional principal recovery from surplus after nutrition, OpEx, and Module 11 reserves. Stage 1 worms remain the only active spend.
 - Stage 4 quail (planning): `research/quail/` — jumbo Coturnix + Grit kit `U`, production-rate vs consumption; no live quail spend until Stage-1 gate.
 - Cross-species floors and shock guards (planning): [`../research/synergy/SPEC.md`](../research/synergy/SPEC.md). Not spend authority.
 - Ops forward book (planning assist): [`../research/ops-dashboard/README.md`](../research/ops-dashboard/README.md). Tracks promises and P10 sell room. Does not open Stage 2–5 spend. It is not the CAD tile viewer.

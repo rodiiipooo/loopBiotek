@@ -371,6 +371,8 @@ community revenue - operating expenditure > 0
 
 A surplus in these accounts is also a livelihood: people operating the system, and goods sold only after the community's own needs are met. That is local work and a buffer when a household's income depends on a remote desk job that may thin out. The motivation is in [Why this exists](#why-this-exists). The hunger rule still comes first.
 
+Contributed setup capital is paid back from that surplus in proportion to what each person put in, until principal is returned. The planning rule, and the headcount × weight setup cost that sizes the pool, is [economics/COMMUNITY_CAPITAL_PAYBACK.md](economics/COMMUNITY_CAPITAL_PAYBACK.md). Stage 1 worms remain the only active spend ([biology/CASCADE.md](biology/CASCADE.md)).
+
 A community can therefore become progressively more independent without requiring complete technological isolation.
 
 ---
@@ -645,7 +647,7 @@ When many communities run that pattern, the next question is how the cells behav
 
 When many communities adopt the model, each site is a **node** in a network. The cell rules do not change: the nutrition stack, the safety floors, and the Module 11 failure gates still belong to that site. What changes is the set of problems a single community has to plan for because other nodes exist.
 
-The microeconomic vocabulary for these problems — network externalities, public goods, games, asymmetric information — is mapped, by chapter title only, in [docs/MICRO_FOR_COMMUNITIES.md](docs/MICRO_FOR_COMMUNITIES.md).
+The microeconomic vocabulary for these problems — network externalities, public goods, games, asymmetric information — is mapped, by chapter title only, in [docs/MICRO_FOR_COMMUNITIES.md](docs/MICRO_FOR_COMMUNITIES.md). How one cell pools setup capital and pays it back in proportion to each contribution is in [economics/COMMUNITY_CAPITAL_PAYBACK.md](economics/COMMUNITY_CAPITAL_PAYBACK.md).
 
 ### What each community plans for
 
@@ -834,7 +836,7 @@ Material loops above describe how nutrients move. **Capital deployment follows o
 5. Aquaponics
 6. Community quality of life, funded from surplus only
 
-**Stage 1 (worms) is the only active spend** until vermiculture revenue is at least $2,000 per month, or a firm prepaid forward runway covers Stage-1 costs. Agents must not open Stage 2+ spend without Rod clearing that gate.
+**Stage 1 (worms) is the only active spend** until vermiculture revenue is at least $2,000 per month, or a firm prepaid forward runway covers Stage-1 costs. Agents must not open Stage 2+ spend without Rod clearing that gate. Pooling that setup capital, and repaying it from surplus after the nutrition stack, is planning math in [economics/COMMUNITY_CAPITAL_PAYBACK.md](economics/COMMUNITY_CAPITAL_PAYBACK.md).
 
 Worm growth and forward-book models live outside this repository at `/workspace/worm-revenue-model/`. Site config records `active_stage: 1` in [`site/site.yaml`](site/site.yaml); land stage tags are in [`land/allocation.yaml`](land/allocation.yaml).
 
@@ -1111,6 +1113,8 @@ loopBiotek/
 │   └── resource-flows/
 │
 ├── economics/
+│   ├── COMMUNITY_CAPITAL_PAYBACK.md
+│   ├── community_capital.py
 │   ├── capex/
 │   ├── opex/
 │   ├── cashflow/

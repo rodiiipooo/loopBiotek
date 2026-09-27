@@ -12,6 +12,11 @@ Parametric costs and energy figures live in the reference workbook:
 
 Agents: read xlsx / PDF / shortlist; do not duplicate numbers into ad-hoc CSVs without linking back here.
 
+## Community capital payback
+
+- [`COMMUNITY_CAPITAL_PAYBACK.md`](./COMMUNITY_CAPITAL_PAYBACK.md) — proportional principal recovery (Rod’s rule) and setup CapEx from resident count × body weight. Planning assumptions are labeled. Run `python community_capital.py` in this directory.
+- **Stage 1 (worms) is the only active spend** until the cascade gate is cleared. The payback model does not open a later stage.
+
 ## Live cascade cash gates
 
 - Stage gates / singular track: [`../biology/CASCADE.md`](../biology/CASCADE.md)
