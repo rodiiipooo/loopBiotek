@@ -2,7 +2,14 @@
 
 Coupled transient simulation of a LoopBiotek Zone-1 cell: **room air + structural mass + glazed-roof water loop + earth conduction**, with explicit pipe geometry and thermal-expansion pressure.
 
-## How to run
+The planning submersion fraction is computed, not taken from the 70% illustration default. Homes keep a clear or glazed sunlight path and are not fully buried. Dry storage and refrigerated storage may go to 100% of height. `entrance_greenhouse_enclosure` puts a greenhouse or vestibule over the light surface or the entrance. Pad height, outer U and transmittance, a clear-tile insulation layer, and roof-loop flow are parameters; the printed help is for that knob set, not a single fixed delta. The same run prints community hot-water gallons, maintenance versus discretionary energy, and a shared-microgrid CapEx stub. Method and the worked example: [`SUBMERSION_OPTIMAL.md`](SUBMERSION_OPTIMAL.md).
+
+```bash
+python climate/thermal-model/submersion_opt.py
+# or: python climate/thermal-model/climate_envelope_sim.py --optimize
+```
+
+## How to run the legacy summer charts
 
 ```bash
 cd /workspace/loopBiotek
@@ -16,8 +23,10 @@ Regenerates four PNGs under `outputs/`:
 |------|----------|
 | `24h_temps_pressure.png` | Outdoor / room / water T vs time; twin-axis loop pressure (kPa) |
 | `heatmap_cross_section.png` | Vertical cross-section heat maps at 06:00 / 12:00 / 18:00 / 00:00 |
-| `submersion_sensitivity.png` | Peak room T & HVAC-proxy kWh vs submersion % |
+| `submersion_sensitivity.png` | Legacy free-float summer day: peak room T and HVAC-proxy kWh vs submersion % |
 | `site_layout_10acre.png` | Top-down 660×660 ft 4-zone layout |
+
+`--optimize` adds `submersion_optimal.png` and `submersion_optimal.json` (annual thermostat energy vs submersion, with f* marked, plus the community-energy block).
 
 ## Equations (lumped capacitance)
 
@@ -68,7 +77,7 @@ Diurnal outdoor air: cosine peaking near 15:00 between \(T_{\min}=26\,^\circ\mat
 
 ## Defaults (Zone-1 cell)
 
-- Room \(L=W=10\,\mathrm{m}\), \(H=3\,\mathrm{m}\), submersion 70%
+- Room \(L=W=10\,\mathrm{m}\), \(H=3\,\mathrm{m}\). The free-float summer plots still use submersion 70% so they stay comparable. The recommended fraction is \(f^\star\) from [`SUBMERSION_OPTIMAL.md`](SUBMERSION_OPTIMAL.md), not this 70%.
 - Glazed roof ≈ full plan area; exterior water film catches most solar (`g_water≈0.62`, `g_room≈0.08`)
 - 1/2″ PEX (ID ≈ 12.07 mm), 10 cm spacing, 10 parallel circuits, 12 gpm total
 - Deep soil \(T_{\mathrm{soil}}=18\,^\circ\mathrm{C}\)

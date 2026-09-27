@@ -1,0 +1,2303 @@
+{
+  "objective": "annual thermal kWh to hold the use-type temperature band",
+  "f_definition": "fraction of building height below grade",
+  "legacy_illustration_submersion": 0.7,
+  "assumptions": {
+    "K_DRY": 0.3,
+    "K_SAT": 1.5,
+    "SOIL_PATH_M": 0.8,
+    "GROUND_THROTTLE_GAMMA": 0.75,
+    "TUBE_THROTTLE_GAMMA": 0.4,
+    "K_SOIL_REF": 0.8,
+    "TAU_ROOF_WATER": 0.55,
+    "COP_HEAT": 2.5,
+    "COP_COOL": 3.0,
+    "note": "ASSUMPTION defaults. See SUBMERSION_OPTIMAL.md."
+  },
+  "cases": [
+    {
+      "name": "living",
+      "climate": "dfw_typical",
+      "f_star": 0.65,
+      "f_star_percent": 65.0,
+      "f_max": 0.6499999999999999,
+      "binding_caps": [
+        "egress"
+      ],
+      "limiter": "use-type cap",
+      "caps": {
+        "domain": 1.0,
+        "egress": 0.6499999999999999,
+        "view": 0.7,
+        "no_full_burial": 0.85,
+        "daylight": 0.9999999999999964
+      },
+      "E_star_kWh": 32333.702437235654,
+      "E_heat_kWh": 12233.312951629354,
+      "E_cool_kWh": 20100.3894856063,
+      "E_elec_kWh": 11593.455009187175,
+      "soil_k_W_per_mK": 0.8999999999999999,
+      "switches": {
+        "use_type": "living",
+        "clear_ceiling": true,
+        "water_panes": true,
+        "above_grade_enclosure": true,
+        "L_m": 10.0,
+        "W_m": 10.0,
+        "H_m": 3.0,
+        "glazed_roof_frac": 1.0,
+        "ceiling_tilt_deg": 0.0,
+        "ceiling_azimuth_from_south_deg": 0.0,
+        "wall_material": "insulated_concrete",
+        "roof_material": "insulated_roof",
+        "glazing_material": "double_polycarbonate",
+        "floor_material": "insulated_slab",
+        "structure": "concrete_berm",
+        "soil_moisture_retention": 0.5,
+        "wall_glazing_frac": 0.4,
+        "glazing_azimuth_weights": [
+          [
+            0.0,
+            0.7
+          ],
+          [
+            90.0,
+            0.15
+          ],
+          [
+            -90.0,
+            0.15
+          ]
+        ],
+        "T_heat_C": 20.0,
+        "T_cool_C": 26.0,
+        "q_internal_W_per_m2": 8.0,
+        "min_daylight_ratio": 0.12,
+        "egress_min_clear_height_m": 1.05,
+        "view_min_exposed_fraction": 0.3,
+        "entrance_greenhouse_enclosure": false,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
+      },
+      "note": "",
+      "curve": [
+        {
+          "f": 0.0,
+          "feasible": true,
+          "E_kWh": 103755.09267931659,
+          "E_heat_kWh": 9525.33863390851,
+          "E_cool_kWh": 94229.75404540807,
+          "E_elec_kWh": 35220.05346869943,
+          "daylight_ratio": 0.8620000000000002,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.05,
+          "feasible": true,
+          "E_kWh": 92440.70058105954,
+          "E_heat_kWh": 11789.051912724284,
+          "E_cool_kWh": 80651.64866833526,
+          "E_elec_kWh": 31599.503654534798,
+          "daylight_ratio": 0.8464000000000002,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.1,
+          "feasible": true,
+          "E_kWh": 84956.02075648998,
+          "E_heat_kWh": 13853.35245251206,
+          "E_cool_kWh": 71102.66830397792,
+          "E_elec_kWh": 29242.230415664126,
+          "daylight_ratio": 0.8308000000000001,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.15,
+          "feasible": true,
+          "E_kWh": 77632.30814005216,
+          "E_heat_kWh": 14807.665482469998,
+          "E_cool_kWh": 62824.64265758217,
+          "E_elec_kWh": 26864.613745515388,
+          "daylight_ratio": 0.8152000000000001,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.2,
+          "feasible": true,
+          "E_kWh": 71393.61512726641,
+          "E_heat_kWh": 15391.70503908224,
+          "E_cool_kWh": 56001.910088184166,
+          "E_elec_kWh": 24823.98537836095,
+          "daylight_ratio": 0.7996000000000001,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.25,
+          "feasible": true,
+          "E_kWh": 65588.68379400721,
+          "E_heat_kWh": 15584.571003106006,
+          "E_cool_kWh": 50004.11279090121,
+          "E_elec_kWh": 22901.86599820947,
+          "daylight_ratio": 0.784,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.3,
+          "feasible": true,
+          "E_kWh": 60135.66785277774,
+          "E_heat_kWh": 15485.535676500864,
+          "E_cool_kWh": 44650.13217627688,
+          "E_elec_kWh": 21077.591662692637,
+          "daylight_ratio": 0.7684000000000001,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.35,
+          "feasible": true,
+          "E_kWh": 55008.33683218193,
+          "E_heat_kWh": 15179.479200851445,
+          "E_cool_kWh": 39828.85763133049,
+          "E_elec_kWh": 19348.07755745074,
+          "daylight_ratio": 0.7528,
+          "closure_K": 7.105427357601002e-15
+        },
+        {
+          "f": 0.4,
+          "feasible": true,
+          "E_kWh": 50583.21540337696,
+          "E_heat_kWh": 14845.59733617401,
+          "E_cool_kWh": 35737.61806720295,
+          "E_elec_kWh": 17850.77829020392,
+          "daylight_ratio": 0.7372000000000001,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.45,
+          "feasible": true,
+          "E_kWh": 46444.40877849501,
+          "E_heat_kWh": 14412.413239211504,
+          "E_cool_kWh": 32031.995539283507,
+          "E_elec_kWh": 16442.29714211244,
+          "daylight_ratio": 0.7216000000000001,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.5,
+          "feasible": true,
+          "E_kWh": 42518.851469547764,
+          "E_heat_kWh": 13899.937493233765,
+          "E_cool_kWh": 28618.913976313997,
+          "E_elec_kWh": 15099.612989398172,
+          "daylight_ratio": 0.7060000000000001,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.55,
+          "feasible": true,
+          "E_kWh": 38812.14969263124,
+          "E_heat_kWh": 13337.811293168214,
+          "E_cool_kWh": 25474.338399463024,
+          "E_elec_kWh": 13826.570650421625,
+          "daylight_ratio": 0.6904,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.6,
+          "feasible": true,
+          "E_kWh": 35415.76372603461,
+          "E_heat_kWh": 12774.446684914436,
+          "E_cool_kWh": 22641.31704112017,
+          "E_elec_kWh": 12656.884354339165,
+          "daylight_ratio": 0.6748000000000001,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.65,
+          "feasible": true,
+          "E_kWh": 32333.702437235654,
+          "E_heat_kWh": 12233.312951629354,
+          "E_cool_kWh": 20100.3894856063,
+          "E_elec_kWh": 11593.455009187175,
+          "daylight_ratio": 0.6592000000000001,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.7,
+          "feasible": false,
+          "E_kWh": 29421.212887169317,
+          "E_heat_kWh": 11691.304265120889,
+          "E_cool_kWh": 17729.908622048428,
+          "E_elec_kWh": 10586.491246731166,
+          "daylight_ratio": 0.6436000000000002,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.75,
+          "feasible": false,
+          "E_kWh": 26672.00168690569,
+          "E_heat_kWh": 11159.253765349738,
+          "E_cool_kWh": 15512.74792155595,
+          "E_elec_kWh": 9634.617479991879,
+          "daylight_ratio": 0.6280000000000001,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.8,
+          "feasible": false,
+          "E_kWh": 24085.27645498209,
+          "E_heat_kWh": 10645.587722275424,
+          "E_cool_kWh": 13439.688732706665,
+          "E_elec_kWh": 8738.131333145724,
+          "daylight_ratio": 0.6124,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.85,
+          "feasible": false,
+          "E_kWh": 21661.3312214648,
+          "E_heat_kWh": 10156.86239387589,
+          "E_cool_kWh": 11504.46882758891,
+          "E_elec_kWh": 7897.567900079992,
+          "daylight_ratio": 0.5968000000000001,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.9,
+          "feasible": false,
+          "E_kWh": 19464.395614185632,
+          "E_heat_kWh": 9698.137871144621,
+          "E_cool_kWh": 9766.257743041011,
+          "E_elec_kWh": 7134.674396138185,
+          "daylight_ratio": 0.5812,
+          "closure_K": 0.0027988881345883954
+        },
+        {
+          "f": 0.95,
+          "feasible": false,
+          "E_kWh": 17491.420766221123,
+          "E_heat_kWh": 9273.370587990572,
+          "E_cool_kWh": 8218.050178230551,
+          "E_elec_kWh": 6448.698294606413,
+          "daylight_ratio": 0.5656000000000001,
+          "closure_K": 0.0026275015423102843
+        },
+        {
+          "f": 1.0,
+          "feasible": false,
+          "E_kWh": 15658.001989731443,
+          "E_heat_kWh": 8885.524400933731,
+          "E_cool_kWh": 6772.477588797712,
+          "E_elec_kWh": 5811.70228997273,
+          "daylight_ratio": 0.55,
+          "closure_K": 0.002456834705000688
+        }
+      ]
+    },
+    {
+      "name": "storage",
+      "climate": "dfw_typical",
+      "f_star": 1.0,
+      "f_star_percent": 100.0,
+      "f_max": 1.0,
+      "binding_caps": [
+        "domain"
+      ],
+      "limiter": "use-type cap",
+      "caps": {
+        "domain": 1.0,
+        "daylight": 1.0
+      },
+      "E_star_kWh": 15.629191088997713,
+      "E_heat_kWh": 0.0,
+      "E_cool_kWh": 15.629191088997713,
+      "E_elec_kWh": 5.209730362999237,
+      "soil_k_W_per_mK": 0.8999999999999999,
+      "switches": {
+        "use_type": "storage",
+        "clear_ceiling": false,
+        "water_panes": false,
+        "above_grade_enclosure": true,
+        "L_m": 10.0,
+        "W_m": 10.0,
+        "H_m": 3.0,
+        "glazed_roof_frac": 0.0,
+        "ceiling_tilt_deg": 0.0,
+        "ceiling_azimuth_from_south_deg": 0.0,
+        "wall_material": "insulated_concrete",
+        "roof_material": "insulated_roof",
+        "glazing_material": "double_polycarbonate",
+        "floor_material": "insulated_slab",
+        "structure": "concrete_berm",
+        "soil_moisture_retention": 0.5,
+        "wall_glazing_frac": 0.0,
+        "glazing_azimuth_weights": [
+          [
+            0.0,
+            0.7
+          ],
+          [
+            90.0,
+            0.15
+          ],
+          [
+            -90.0,
+            0.15
+          ]
+        ],
+        "T_heat_C": 10.0,
+        "T_cool_C": 28.0,
+        "q_internal_W_per_m2": 1.0,
+        "min_daylight_ratio": 0.0,
+        "egress_min_clear_height_m": 0.0,
+        "view_min_exposed_fraction": 0.0,
+        "entrance_greenhouse_enclosure": false,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
+      },
+      "note": "",
+      "curve": [
+        {
+          "f": 0.0,
+          "feasible": true,
+          "E_kWh": 1254.395964993349,
+          "E_heat_kWh": 377.0779363296479,
+          "E_cool_kWh": 877.3180286637012,
+          "E_elec_kWh": 443.2705174197596,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.030890060123455854
+        },
+        {
+          "f": 0.05,
+          "feasible": true,
+          "E_kWh": 1171.3454263861931,
+          "E_heat_kWh": 341.50647018662175,
+          "E_cool_kWh": 829.8389561995715,
+          "E_elec_kWh": 413.21557347450585,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.030136578735667996
+        },
+        {
+          "f": 0.1,
+          "feasible": true,
+          "E_kWh": 1054.506831812325,
+          "E_heat_kWh": 291.40344877708804,
+          "E_cool_kWh": 763.1033830352369,
+          "E_elec_kWh": 370.9291738559142,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.02939024490982156
+        },
+        {
+          "f": 0.15,
+          "feasible": true,
+          "E_kWh": 938.9374522112394,
+          "E_heat_kWh": 242.3275071271689,
+          "E_cool_kWh": 696.6099450840704,
+          "E_elec_kWh": 329.134317878891,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.02865123221313226
+        },
+        {
+          "f": 0.2,
+          "feasible": true,
+          "E_kWh": 834.5793159354016,
+          "E_heat_kWh": 194.49047548048836,
+          "E_cool_kWh": 640.0888404549132,
+          "E_elec_kWh": 291.15913701049976,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.027919709876970344
+        },
+        {
+          "f": 0.25,
+          "feasible": true,
+          "E_kWh": 754.6292581279021,
+          "E_heat_kWh": 158.15798198558866,
+          "E_cool_kWh": 596.4712761423134,
+          "E_elec_kWh": 262.0869515083399,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.027195842288325167
+        },
+        {
+          "f": 0.3,
+          "feasible": true,
+          "E_kWh": 688.2914450967316,
+          "E_heat_kWh": 135.5015561502009,
+          "E_cool_kWh": 552.7898889465307,
+          "E_elec_kWh": 238.46391877559063,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.02647978856307276
+        },
+        {
+          "f": 0.35,
+          "feasible": true,
+          "E_kWh": 622.440861281397,
+          "E_heat_kWh": 113.20668666392936,
+          "E_cool_kWh": 509.2341746174677,
+          "E_elec_kWh": 215.027399538061,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.02577170219051439
+        },
+        {
+          "f": 0.4,
+          "feasible": true,
+          "E_kWh": 557.2914679201411,
+          "E_heat_kWh": 91.33062949572039,
+          "E_cool_kWh": 465.96083842442073,
+          "E_elec_kWh": 191.85253127309505,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.02507173074339164
+        },
+        {
+          "f": 0.45,
+          "feasible": true,
+          "E_kWh": 493.01870943881886,
+          "E_heat_kWh": 69.9205948102871,
+          "E_cool_kWh": 423.0981146285318,
+          "E_elec_kWh": 169.0009428002921,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.024380015644425157
+        },
+        {
+          "f": 0.5,
+          "feasible": true,
+          "E_kWh": 429.76732988629016,
+          "E_heat_kWh": 49.01772686971872,
+          "E_cool_kWh": 380.7496030165714,
+          "E_elec_kWh": 146.52362508674463,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.02369669198496993
+        },
+        {
+          "f": 0.55,
+          "feasible": true,
+          "E_kWh": 367.6616420870891,
+          "E_heat_kWh": 28.663957540028445,
+          "E_cool_kWh": 338.99768454706066,
+          "E_elec_kWh": 124.46481119836493,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.023021888388839784
+        },
+        {
+          "f": 0.6,
+          "feasible": true,
+          "E_kWh": 306.829544643285,
+          "E_heat_kWh": 8.922638798601486,
+          "E_cool_kWh": 297.9069058446835,
+          "E_elec_kWh": 102.87135746766842,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.022355726917211882
+        },
+        {
+          "f": 0.65,
+          "feasible": true,
+          "E_kWh": 257.52709260878237,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 257.52709260878237,
+          "E_elec_kWh": 85.84236420292746,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.021698323008727982
+        },
+        {
+          "f": 0.7,
+          "feasible": true,
+          "E_kWh": 217.89648320535053,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 217.89648320535053,
+          "E_elec_kWh": 72.63216106845017,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.02104978545263947
+        },
+        {
+          "f": 0.75,
+          "feasible": true,
+          "E_kWh": 179.04456323595355,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 179.04456323595355,
+          "E_elec_kWh": 59.68152107865118,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.020410216389038283
+        },
+        {
+          "f": 0.8,
+          "feasible": true,
+          "E_kWh": 140.99587562263278,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 140.99587562263278,
+          "E_elec_kWh": 46.99862520754426,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.01977971133433698
+        },
+        {
+          "f": 0.85,
+          "feasible": true,
+          "E_kWh": 103.77522139464394,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 103.77522139464394,
+          "E_elec_kWh": 34.59174046488131,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.019158359228722333
+        },
+        {
+          "f": 0.9,
+          "feasible": true,
+          "E_kWh": 67.41846832198343,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 67.41846832198343,
+          "E_elec_kWh": 22.472822773994476,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.018546242502232246
+        },
+        {
+          "f": 0.95,
+          "feasible": true,
+          "E_kWh": 32.59104592481114,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 32.59104592481114,
+          "E_elec_kWh": 10.863681974937046,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.017943437157699194
+        },
+        {
+          "f": 1.0,
+          "feasible": true,
+          "E_kWh": 15.629191088997713,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 15.629191088997713,
+          "E_elec_kWh": 5.209730362999237,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.017350012868082132
+        }
+      ]
+    },
+    {
+      "name": "cold_storage",
+      "climate": "dfw_typical",
+      "f_star": 1.0,
+      "f_star_percent": 100.0,
+      "f_max": 1.0,
+      "binding_caps": [
+        "domain"
+      ],
+      "limiter": "use-type cap",
+      "caps": {
+        "domain": 1.0,
+        "daylight": 1.0
+      },
+      "E_star_kWh": 27035.005424780153,
+      "E_heat_kWh": 0.0,
+      "E_cool_kWh": 27035.005424780153,
+      "E_elec_kWh": 9011.668474926717,
+      "soil_k_W_per_mK": 0.8999999999999999,
+      "switches": {
+        "use_type": "cold_storage",
+        "clear_ceiling": false,
+        "water_panes": false,
+        "above_grade_enclosure": true,
+        "L_m": 10.0,
+        "W_m": 10.0,
+        "H_m": 3.0,
+        "glazed_roof_frac": 0.0,
+        "ceiling_tilt_deg": 0.0,
+        "ceiling_azimuth_from_south_deg": 0.0,
+        "wall_material": "insulated_concrete",
+        "roof_material": "insulated_roof",
+        "glazing_material": "double_polycarbonate",
+        "floor_material": "insulated_slab",
+        "structure": "concrete_berm",
+        "soil_moisture_retention": 0.5,
+        "wall_glazing_frac": 0.0,
+        "glazing_azimuth_weights": [
+          [
+            0.0,
+            0.7
+          ],
+          [
+            90.0,
+            0.15
+          ],
+          [
+            -90.0,
+            0.15
+          ]
+        ],
+        "T_heat_C": 1.0,
+        "T_cool_C": 4.0,
+        "q_internal_W_per_m2": 2.0,
+        "min_daylight_ratio": 0.0,
+        "egress_min_clear_height_m": 0.0,
+        "view_min_exposed_fraction": 0.0,
+        "entrance_greenhouse_enclosure": false,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
+      },
+      "note": "",
+      "curve": [
+        {
+          "f": 0.0,
+          "feasible": true,
+          "E_kWh": 31144.136499673034,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 31144.136499673034,
+          "E_elec_kWh": 10381.378833224344,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.05,
+          "feasible": true,
+          "E_kWh": 30970.399952580003,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 30970.399952580003,
+          "E_elec_kWh": 10323.46665086,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.1,
+          "feasible": true,
+          "E_kWh": 30792.5087185482,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 30792.5087185482,
+          "E_elec_kWh": 10264.1695728494,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.15,
+          "feasible": true,
+          "E_kWh": 30610.807842828028,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 30610.807842828028,
+          "E_elec_kWh": 10203.60261427601,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.2,
+          "feasible": true,
+          "E_kWh": 30425.413079148497,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 30425.413079148497,
+          "E_elec_kWh": 10141.804359716165,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.25,
+          "feasible": true,
+          "E_kWh": 30236.43527659335,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 30236.43527659335,
+          "E_elec_kWh": 10078.81175886445,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.3,
+          "feasible": true,
+          "E_kWh": 30043.98066550866,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 30043.98066550866,
+          "E_elec_kWh": 10014.66022183622,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.35,
+          "feasible": true,
+          "E_kWh": 29848.151122641862,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 29848.151122641862,
+          "E_elec_kWh": 9949.383707547287,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.4,
+          "feasible": true,
+          "E_kWh": 29649.04441708277,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 29649.04441708277,
+          "E_elec_kWh": 9883.014805694256,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.45,
+          "feasible": true,
+          "E_kWh": 29446.75443847089,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 29446.75443847089,
+          "E_elec_kWh": 9815.58481282363,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.5,
+          "feasible": true,
+          "E_kWh": 29241.371408834682,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 29241.371408834682,
+          "E_elec_kWh": 9747.123802944894,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.55,
+          "feasible": true,
+          "E_kWh": 29032.982079333273,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 29032.982079333273,
+          "E_elec_kWh": 9677.660693111091,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.6,
+          "feasible": true,
+          "E_kWh": 28821.669913081107,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 28821.669913081107,
+          "E_elec_kWh": 9607.223304360368,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.65,
+          "feasible": true,
+          "E_kWh": 28607.51525515176,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 28607.51525515176,
+          "E_elec_kWh": 9535.83841838392,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.7,
+          "feasible": true,
+          "E_kWh": 28390.595490777232,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 28390.595490777232,
+          "E_elec_kWh": 9463.531830259077,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.75,
+          "feasible": true,
+          "E_kWh": 28170.985192681586,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 28170.985192681586,
+          "E_elec_kWh": 9390.328397560528,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.8,
+          "feasible": true,
+          "E_kWh": 27948.75625841993,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 27948.75625841993,
+          "E_elec_kWh": 9316.252086139977,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.85,
+          "feasible": true,
+          "E_kWh": 27723.97803852434,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 27723.97803852434,
+          "E_elec_kWh": 9241.326012841446,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.9,
+          "feasible": true,
+          "E_kWh": 27496.717456196322,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 27496.717456196322,
+          "E_elec_kWh": 9165.572485398774,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.95,
+          "feasible": true,
+          "E_kWh": 27267.039119228244,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 27267.039119228244,
+          "E_elec_kWh": 9089.013039742747,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 1.0,
+          "feasible": true,
+          "E_kWh": 27035.005424780153,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 27035.005424780153,
+          "E_elec_kWh": 9011.668474926717,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        }
+      ]
+    },
+    {
+      "name": "greenhouse",
+      "climate": "dfw_typical",
+      "f_star": 0.85,
+      "f_star_percent": 85.0,
+      "f_max": 0.85,
+      "binding_caps": [
+        "egress"
+      ],
+      "limiter": "use-type cap",
+      "caps": {
+        "domain": 1.0,
+        "egress": 0.85,
+        "daylight": 0.9999999999999964
+      },
+      "E_star_kWh": 510.5088464829779,
+      "E_heat_kWh": 0.0,
+      "E_cool_kWh": 510.5088464829779,
+      "E_elec_kWh": 170.16961549432597,
+      "soil_k_W_per_mK": 0.8999999999999999,
+      "switches": {
+        "use_type": "greenhouse",
+        "clear_ceiling": true,
+        "water_panes": true,
+        "above_grade_enclosure": true,
+        "L_m": 10.0,
+        "W_m": 10.0,
+        "H_m": 3.0,
+        "glazed_roof_frac": 1.0,
+        "ceiling_tilt_deg": 0.0,
+        "ceiling_azimuth_from_south_deg": 0.0,
+        "wall_material": "insulated_concrete",
+        "roof_material": "insulated_roof",
+        "glazing_material": "double_polycarbonate",
+        "floor_material": "insulated_slab",
+        "structure": "concrete_berm",
+        "soil_moisture_retention": 0.5,
+        "wall_glazing_frac": 0.1,
+        "glazing_azimuth_weights": [
+          [
+            0.0,
+            0.7
+          ],
+          [
+            90.0,
+            0.15
+          ],
+          [
+            -90.0,
+            0.15
+          ]
+        ],
+        "T_heat_C": 12.0,
+        "T_cool_C": 30.0,
+        "q_internal_W_per_m2": 2.0,
+        "min_daylight_ratio": 0.4,
+        "egress_min_clear_height_m": 0.45,
+        "view_min_exposed_fraction": 0.0,
+        "entrance_greenhouse_enclosure": false,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
+      },
+      "note": "",
+      "curve": [
+        {
+          "f": 0.0,
+          "feasible": true,
+          "E_kWh": 55655.8579261059,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 55655.8579261059,
+          "E_elec_kWh": 18551.9526420353,
+          "daylight_ratio": 0.6280000000000001,
+          "closure_K": 0.0033765100272447057
+        },
+        {
+          "f": 0.05,
+          "feasible": true,
+          "E_kWh": 44978.615651093816,
+          "E_heat_kWh": 139.42161995802422,
+          "E_cool_kWh": 44839.19403113579,
+          "E_elec_kWh": 15002.166658361806,
+          "daylight_ratio": 0.6241000000000001,
+          "closure_K": 0.0058828761636213756
+        },
+        {
+          "f": 0.1,
+          "feasible": true,
+          "E_kWh": 38088.27612768579,
+          "E_heat_kWh": 417.92114516516415,
+          "E_cool_kWh": 37670.35498252063,
+          "E_elec_kWh": 12723.953452239608,
+          "daylight_ratio": 0.6202000000000001,
+          "closure_K": 0.005827583825045224
+        },
+        {
+          "f": 0.15,
+          "feasible": true,
+          "E_kWh": 31515.526780787084,
+          "E_heat_kWh": 406.6777142942304,
+          "E_cool_kWh": 31108.849066492854,
+          "E_elec_kWh": 10532.287441215309,
+          "daylight_ratio": 0.6163000000000001,
+          "closure_K": 0.005219405108316977
+        },
+        {
+          "f": 0.2,
+          "feasible": true,
+          "E_kWh": 26188.459907398395,
+          "E_heat_kWh": 315.7550363969963,
+          "E_cool_kWh": 25872.7048710014,
+          "E_elec_kWh": 8750.536971559264,
+          "daylight_ratio": 0.6124,
+          "closure_K": 0.0064505313410769816
+        },
+        {
+          "f": 0.25,
+          "feasible": true,
+          "E_kWh": 21867.916722247017,
+          "E_heat_kWh": 181.40992214464248,
+          "E_cool_kWh": 21686.506800102376,
+          "E_elec_kWh": 7301.399568891982,
+          "daylight_ratio": 0.6085,
+          "closure_K": 0.005640769928163536
+        },
+        {
+          "f": 0.3,
+          "feasible": true,
+          "E_kWh": 18048.379160421104,
+          "E_heat_kWh": 30.937596902287474,
+          "E_cool_kWh": 18017.441563518816,
+          "E_elec_kWh": 6018.188893267187,
+          "daylight_ratio": 0.6046,
+          "closure_K": 0.005006006464579826
+        },
+        {
+          "f": 0.35,
+          "feasible": true,
+          "E_kWh": 14833.910104511535,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 14833.910104511535,
+          "E_elec_kWh": 4944.636701503845,
+          "daylight_ratio": 0.6007000000000001,
+          "closure_K": 0.004503037817915612
+        },
+        {
+          "f": 0.4,
+          "feasible": true,
+          "E_kWh": 12224.540737726547,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 12224.540737726547,
+          "E_elec_kWh": 4074.846912575516,
+          "daylight_ratio": 0.5968000000000001,
+          "closure_K": 0.004638164268559564
+        },
+        {
+          "f": 0.45,
+          "feasible": true,
+          "E_kWh": 10151.515950867517,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 10151.515950867517,
+          "E_elec_kWh": 3383.838650289172,
+          "daylight_ratio": 0.5929000000000001,
+          "closure_K": 0.0042809840058630755
+        },
+        {
+          "f": 0.5,
+          "feasible": true,
+          "E_kWh": 8270.966265313338,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 8270.966265313338,
+          "E_elec_kWh": 2756.988755104446,
+          "daylight_ratio": 0.5890000000000001,
+          "closure_K": 0.003984368726239751
+        },
+        {
+          "f": 0.55,
+          "feasible": true,
+          "E_kWh": 6567.334740771878,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 6567.334740771878,
+          "E_elec_kWh": 2189.1115802572926,
+          "daylight_ratio": 0.5851000000000001,
+          "closure_K": 0.0037342043952506287
+        },
+        {
+          "f": 0.6,
+          "feasible": true,
+          "E_kWh": 5028.73087683569,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 5028.73087683569,
+          "E_elec_kWh": 1676.2436256118965,
+          "daylight_ratio": 0.5812,
+          "closure_K": 0.0035200439352323087
+        },
+        {
+          "f": 0.65,
+          "feasible": true,
+          "E_kWh": 3647.62695415336,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 3647.62695415336,
+          "E_elec_kWh": 1215.8756513844535,
+          "daylight_ratio": 0.5773,
+          "closure_K": 0.0033340595141240215
+        },
+        {
+          "f": 0.7,
+          "feasible": true,
+          "E_kWh": 2556.2043978529587,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 2556.2043978529587,
+          "E_elec_kWh": 852.0681326176529,
+          "daylight_ratio": 0.5734000000000001,
+          "closure_K": 0.0035888669143240293
+        },
+        {
+          "f": 0.75,
+          "feasible": true,
+          "E_kWh": 1668.0994025418324,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 1668.0994025418324,
+          "E_elec_kWh": 556.0331341806108,
+          "daylight_ratio": 0.5695000000000001,
+          "closure_K": 0.003432131788841275
+        },
+        {
+          "f": 0.8,
+          "feasible": true,
+          "E_kWh": 1040.527481815429,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 1040.527481815429,
+          "E_elec_kWh": 346.8424939384763,
+          "daylight_ratio": 0.5656000000000001,
+          "closure_K": 0.0032912534768279045
+        },
+        {
+          "f": 0.85,
+          "feasible": true,
+          "E_kWh": 510.5088464829779,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 510.5088464829779,
+          "E_elec_kWh": 170.16961549432597,
+          "daylight_ratio": 0.5617000000000001,
+          "closure_K": 0.0031631061510637437
+        },
+        {
+          "f": 0.9,
+          "feasible": false,
+          "E_kWh": 119.72602076729187,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 119.72602076729187,
+          "E_elec_kWh": 39.90867358909729,
+          "daylight_ratio": 0.5578000000000001,
+          "closure_K": 0.003045198340608124
+        },
+        {
+          "f": 0.95,
+          "feasible": false,
+          "E_kWh": 0.0,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 0.0,
+          "E_elec_kWh": 0.0,
+          "daylight_ratio": 0.5539000000000001,
+          "closure_K": 0.002935523341434987
+        },
+        {
+          "f": 1.0,
+          "feasible": false,
+          "E_kWh": 0.0,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 0.0,
+          "E_elec_kWh": 0.0,
+          "daylight_ratio": 0.55,
+          "closure_K": 0.0028324493295492914
+        }
+      ]
+    }
+  ],
+  "community_energy": {
+    "assumption_note": "ASSUMPTION unit costs and per-head gallons. Planning stub only. Not added to community_capital setup_capex (other_capex stays 0). Stage 1 worms remain the only active spend.",
+    "population": {
+      "H": 20.0,
+      "W_kg": 70.0,
+      "worms": 16500.0,
+      "quail": 20.0,
+      "m2_per_person": 12.0,
+      "sources": {
+        "H_W": "economics/community_capital.py run_example defaults",
+        "m2_per_person": "economics/community_capital.py FacilityParams via facility_m2_per_person",
+        "worms": "research/ops-dashboard/store.py DEFAULT_HERD worms n0 (Stage 1 stub)",
+        "quail": "research/ops-dashboard/store.py DEFAULT_HERD quail n0 (Stage 4 planning stub, not spend)"
+      }
+    },
+    "water": [
+      {
+        "name": "people_dhw_maintenance",
+        "role": "maintenance",
+        "gallons_per_day": 200.0,
+        "target_C": 49.0,
+        "inlet_C": 18.0,
+        "kwh_per_day": 27.182011467276368,
+        "peak_kw": 6.795502866819092
+      },
+      {
+        "name": "people_dhw_discretionary",
+        "role": "discretionary",
+        "gallons_per_day": 100.0,
+        "target_C": 49.0,
+        "inlet_C": 18.0,
+        "kwh_per_day": 13.591005733638184,
+        "peak_kw": 6.795502866819092
+      },
+      {
+        "name": "quail_process",
+        "role": "maintenance",
+        "gallons_per_day": 0.4,
+        "target_C": 40.0,
+        "inlet_C": 18.0,
+        "kwh_per_day": 0.03858091950194065,
+        "peak_kw": 0.009645229875485162
+      },
+      {
+        "name": "worm_heated_water",
+        "role": "maintenance",
+        "gallons_per_day": 0.0,
+        "target_C": 20.0,
+        "inlet_C": 18.0,
+        "kwh_per_day": 0.0,
+        "peak_kw": 0.0
+      }
+    ],
+    "water_gallons_per_day": {
+      "maintenance": 200.4,
+      "discretionary": 100.0
+    },
+    "water_kwh_per_year": {
+      "maintenance": 9935.516221174083,
+      "discretionary": 4960.717092777937
+    },
+    "hydronic_loop_gallons_inventory": 98.25263755533699,
+    "space": [
+      {
+        "name": "living",
+        "use_type": "living",
+        "f_star": 0.65,
+        "floor_m2": 240.0,
+        "role_note": "homes; sunlight-capped submersion",
+        "maintenance_kwh": 77600.88584936557,
+        "discretionary_kwh": 11640.132877404836,
+        "peak_kw": 40.74932361952986
+      },
+      {
+        "name": "storage",
+        "use_type": "storage",
+        "f_star": 1.0,
+        "floor_m2": 100.0,
+        "role_note": "one shared dry store; prefer full burial",
+        "maintenance_kwh": 15.629191088997713,
+        "discretionary_kwh": 0.0,
+        "peak_kw": 0.004460385584759622
+      },
+      {
+        "name": "cold_storage",
+        "use_type": "cold_storage",
+        "f_star": 1.0,
+        "floor_m2": 100.0,
+        "role_note": "one shared refrigerated store; prefer full burial",
+        "maintenance_kwh": 27035.005424780153,
+        "discretionary_kwh": 0.0,
+        "peak_kw": 4.629281750818519
+      },
+      {
+        "name": "greenhouse",
+        "use_type": "greenhouse",
+        "f_star": 0.85,
+        "floor_m2": 100.0,
+        "role_note": "one planning greenhouse; not in the shared microgrid",
+        "maintenance_kwh": 510.5088464829779,
+        "discretionary_kwh": 0.0,
+        "peak_kw": 0.17483179674074587
+      }
+    ],
+    "microgrid": {
+      "annual_maintenance_kwh": 36986.150837043235,
+      "annual_discretionary_kwh": 4960.717092777937,
+      "maintenance_peak_kw": 10.070144429858551,
+      "pv_kw": 26.602529128501505,
+      "battery_kwh": 120.84173315830262,
+      "capex_usd": 114843.0160845748,
+      "serves": [
+        "shared dry storage",
+        "shared cold storage",
+        "central hot-water plant"
+      ]
+    },
+    "living_floor_m2": 240.0
+  },
+  "buffer_comparison": [
+    {
+      "name": "living+pad",
+      "climate": "dfw_typical",
+      "f_star": 0.65,
+      "f_star_percent": 65.0,
+      "f_max": 0.6499999999999999,
+      "binding_caps": [
+        "egress"
+      ],
+      "limiter": "use-type cap",
+      "caps": {
+        "domain": 1.0,
+        "egress": 0.6499999999999999,
+        "view": 0.7,
+        "no_full_burial": 0.85,
+        "daylight": 0.9999999999999964
+      },
+      "E_star_kWh": 28518.732780329665,
+      "E_heat_kWh": 8699.256641307895,
+      "E_cool_kWh": 19819.476139021768,
+      "E_elec_kWh": 10086.194702863748,
+      "soil_k_W_per_mK": 0.8999999999999999,
+      "switches": {
+        "use_type": "living",
+        "clear_ceiling": true,
+        "water_panes": true,
+        "above_grade_enclosure": true,
+        "L_m": 10.0,
+        "W_m": 10.0,
+        "H_m": 3.0,
+        "glazed_roof_frac": 1.0,
+        "ceiling_tilt_deg": 0.0,
+        "ceiling_azimuth_from_south_deg": 0.0,
+        "wall_material": "insulated_concrete",
+        "roof_material": "insulated_roof",
+        "glazing_material": "double_polycarbonate",
+        "floor_material": "insulated_slab",
+        "structure": "concrete_berm",
+        "soil_moisture_retention": 0.5,
+        "wall_glazing_frac": 0.4,
+        "glazing_azimuth_weights": [
+          [
+            0.0,
+            0.7
+          ],
+          [
+            90.0,
+            0.15
+          ],
+          [
+            -90.0,
+            0.15
+          ]
+        ],
+        "T_heat_C": 20.0,
+        "T_cool_C": 26.0,
+        "q_internal_W_per_m2": 8.0,
+        "min_daylight_ratio": 0.12,
+        "egress_min_clear_height_m": 1.05,
+        "view_min_exposed_fraction": 0.3,
+        "entrance_greenhouse_enclosure": true,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
+      },
+      "note": "",
+      "curve": [
+        {
+          "f": 0.0,
+          "feasible": true,
+          "E_kWh": 88898.42686496157,
+          "E_heat_kWh": 6435.532683348848,
+          "E_cool_kWh": 82462.89418161272,
+          "E_elec_kWh": 30061.844467210445,
+          "daylight_ratio": 0.6970000000000001,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.05,
+          "feasible": true,
+          "E_kWh": 80309.16092164398,
+          "E_heat_kWh": 8662.356152530694,
+          "E_cool_kWh": 71646.8047691133,
+          "E_elec_kWh": 27347.210717383376,
+          "daylight_ratio": 0.6814,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.1,
+          "feasible": true,
+          "E_kWh": 74924.47017508175,
+          "E_heat_kWh": 10729.057602644487,
+          "E_cool_kWh": 64195.412572437264,
+          "E_elec_kWh": 25690.093898536885,
+          "daylight_ratio": 0.6658,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.15,
+          "feasible": true,
+          "E_kWh": 68790.3459204271,
+          "E_heat_kWh": 11474.761170326372,
+          "E_cool_kWh": 57315.58475010074,
+          "E_elec_kWh": 23695.099384830795,
+          "daylight_ratio": 0.6502000000000001,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.2,
+          "feasible": true,
+          "E_kWh": 63578.24880128812,
+          "E_heat_kWh": 11951.494067487569,
+          "E_cool_kWh": 51626.75473380055,
+          "E_elec_kWh": 21989.515871595213,
+          "daylight_ratio": 0.6346,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.25,
+          "feasible": true,
+          "E_kWh": 58620.0989430847,
+          "E_heat_kWh": 12078.395683608678,
+          "E_cool_kWh": 46541.70325947602,
+          "E_elec_kWh": 20345.259359935477,
+          "daylight_ratio": 0.6190000000000001,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.3,
+          "feasible": true,
+          "E_kWh": 53854.368301261886,
+          "E_heat_kWh": 11927.477967827399,
+          "E_cool_kWh": 41926.89033343449,
+          "E_elec_kWh": 18746.621298275786,
+          "daylight_ratio": 0.6034,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.35,
+          "feasible": true,
+          "E_kWh": 49297.94566514488,
+          "E_heat_kWh": 11582.44058701471,
+          "E_cool_kWh": 37715.50507813017,
+          "E_elec_kWh": 17204.811260849274,
+          "daylight_ratio": 0.5878,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.4,
+          "feasible": true,
+          "E_kWh": 45285.62994780636,
+          "E_heat_kWh": 11229.211375374074,
+          "E_cool_kWh": 34056.41857243228,
+          "E_elec_kWh": 15843.824074293723,
+          "daylight_ratio": 0.5722,
+          "closure_K": 3.552713678800501e-15
+        },
+        {
+          "f": 0.45,
+          "feasible": true,
+          "E_kWh": 41530.62721348393,
+          "E_heat_kWh": 10824.758732162189,
+          "E_cool_kWh": 30705.86848132174,
+          "E_elec_kWh": 14565.192986638787,
+          "daylight_ratio": 0.5566,
+          "closure_K": 0.00043500647573324613
+        },
+        {
+          "f": 0.5,
+          "feasible": true,
+          "E_kWh": 37984.935808034425,
+          "E_heat_kWh": 10339.218830317026,
+          "E_cool_kWh": 27645.716977717395,
+          "E_elec_kWh": 13350.926524699276,
+          "daylight_ratio": 0.541,
+          "closure_K": 0.003684156925896076
+        },
+        {
+          "f": 0.55,
+          "feasible": true,
+          "E_kWh": 34596.13645768815,
+          "E_heat_kWh": 9800.10073234986,
+          "E_cool_kWh": 24796.035725338294,
+          "E_elec_kWh": 12185.385534719375,
+          "daylight_ratio": 0.5254,
+          "closure_K": 0.0034169114276245693
+        },
+        {
+          "f": 0.6,
+          "feasible": true,
+          "E_kWh": 31388.576993484894,
+          "E_heat_kWh": 9232.95661259614,
+          "E_cool_kWh": 22155.620380888755,
+          "E_elec_kWh": 11078.38943866804,
+          "daylight_ratio": 0.5098,
+          "closure_K": 0.0031721388914043303
+        },
+        {
+          "f": 0.65,
+          "feasible": true,
+          "E_kWh": 28518.732780329665,
+          "E_heat_kWh": 8699.256641307895,
+          "E_cool_kWh": 19819.476139021768,
+          "E_elec_kWh": 10086.194702863748,
+          "daylight_ratio": 0.49420000000000003,
+          "closure_K": 0.0029436639709921053
+        },
+        {
+          "f": 0.7,
+          "feasible": false,
+          "E_kWh": 25779.283323351836,
+          "E_heat_kWh": 8159.203457228588,
+          "E_cool_kWh": 17620.079866123247,
+          "E_elec_kWh": 9137.041338265852,
+          "daylight_ratio": 0.47859999999999997,
+          "closure_K": 0.002726735387405199
+        },
+        {
+          "f": 0.75,
+          "feasible": false,
+          "E_kWh": 23174.05919765724,
+          "E_heat_kWh": 7623.606695822065,
+          "E_cool_kWh": 15550.452501835176,
+          "E_elec_kWh": 8232.926845607219,
+          "daylight_ratio": 0.46299999999999997,
+          "closure_K": 0.0025176525973442665
+        },
+        {
+          "f": 0.8,
+          "feasible": false,
+          "E_kWh": 20705.258233012548,
+          "E_heat_kWh": 7100.884581671234,
+          "E_cool_kWh": 13604.373651341315,
+          "E_elec_kWh": 7375.145049782264,
+          "daylight_ratio": 0.44739999999999996,
+          "closure_K": 0.00231350132287389
+        },
+        {
+          "f": 0.85,
+          "feasible": false,
+          "E_kWh": 18373.887042296643,
+          "E_heat_kWh": 6597.5118693620825,
+          "E_cool_kWh": 11776.375172934559,
+          "E_elec_kWh": 6564.463138723019,
+          "daylight_ratio": 0.4318,
+          "closure_K": 0.0021119643984413017
+        },
+        {
+          "f": 0.9,
+          "feasible": false,
+          "E_kWh": 16180.566826590286,
+          "E_heat_kWh": 6118.385079921357,
+          "E_cool_kWh": 10062.181746668928,
+          "E_elec_kWh": 5801.414614191519,
+          "daylight_ratio": 0.41619999999999996,
+          "closure_K": 0.0019111849771782374
+        },
+        {
+          "f": 0.95,
+          "feasible": false,
+          "E_kWh": 14187.738407330866,
+          "E_heat_kWh": 5667.099992687792,
+          "E_cool_kWh": 8520.638414643074,
+          "E_elec_kWh": 5107.052801956142,
+          "daylight_ratio": 0.4006,
+          "closure_K": 0.005110006154509961
+        },
+        {
+          "f": 1.0,
+          "feasible": false,
+          "E_kWh": 12400.94565482526,
+          "E_heat_kWh": 5295.536821175489,
+          "E_cool_kWh": 7105.408833649772,
+          "E_elec_kWh": 4486.684339686786,
+          "daylight_ratio": 0.385,
+          "closure_K": 0.004914853323306545
+        }
+      ]
+    },
+    {
+      "name": "storage+pad",
+      "climate": "dfw_typical",
+      "f_star": 1.0,
+      "f_star_percent": 100.0,
+      "f_max": 1.0,
+      "binding_caps": [
+        "domain"
+      ],
+      "limiter": "use-type cap",
+      "caps": {
+        "domain": 1.0,
+        "daylight": 1.0
+      },
+      "E_star_kWh": 143.1865593988154,
+      "E_heat_kWh": 0.0,
+      "E_cool_kWh": 143.1865593988154,
+      "E_elec_kWh": 47.72885313293847,
+      "soil_k_W_per_mK": 0.8999999999999999,
+      "switches": {
+        "use_type": "storage",
+        "clear_ceiling": false,
+        "water_panes": false,
+        "above_grade_enclosure": true,
+        "L_m": 10.0,
+        "W_m": 10.0,
+        "H_m": 3.0,
+        "glazed_roof_frac": 0.0,
+        "ceiling_tilt_deg": 0.0,
+        "ceiling_azimuth_from_south_deg": 0.0,
+        "wall_material": "insulated_concrete",
+        "roof_material": "insulated_roof",
+        "glazing_material": "double_polycarbonate",
+        "floor_material": "insulated_slab",
+        "structure": "concrete_berm",
+        "soil_moisture_retention": 0.5,
+        "wall_glazing_frac": 0.0,
+        "glazing_azimuth_weights": [
+          [
+            0.0,
+            0.7
+          ],
+          [
+            90.0,
+            0.15
+          ],
+          [
+            -90.0,
+            0.15
+          ]
+        ],
+        "T_heat_C": 10.0,
+        "T_cool_C": 28.0,
+        "q_internal_W_per_m2": 1.0,
+        "min_daylight_ratio": 0.0,
+        "egress_min_clear_height_m": 0.0,
+        "view_min_exposed_fraction": 0.0,
+        "entrance_greenhouse_enclosure": true,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
+      },
+      "note": "",
+      "curve": [
+        {
+          "f": 0.0,
+          "feasible": true,
+          "E_kWh": 1351.2288161112565,
+          "E_heat_kWh": 191.45842922332196,
+          "E_cool_kWh": 1159.7703868879346,
+          "E_elec_kWh": 463.17350065197365,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.02464152404452058
+        },
+        {
+          "f": 0.05,
+          "feasible": true,
+          "E_kWh": 1267.8595620891865,
+          "E_heat_kWh": 156.3257117293395,
+          "E_cool_kWh": 1111.533850359847,
+          "E_elec_kWh": 433.0415681450182,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.023888422308806057
+        },
+        {
+          "f": 0.1,
+          "feasible": true,
+          "E_kWh": 1165.1918860523247,
+          "E_heat_kWh": 121.90743252988867,
+          "E_cool_kWh": 1043.284453522436,
+          "E_elec_kWh": 396.5244575194341,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.023146717991741284
+        },
+        {
+          "f": 0.15,
+          "feasible": true,
+          "E_kWh": 1073.9556777635805,
+          "E_heat_kWh": 98.8621888735524,
+          "E_cool_kWh": 975.0934888900281,
+          "E_elec_kWh": 364.57603851276366,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.022416447820614138
+        },
+        {
+          "f": 0.2,
+          "feasible": true,
+          "E_kWh": 983.251622758788,
+          "E_heat_kWh": 75.9518025731954,
+          "E_cool_kWh": 907.2998201855926,
+          "E_elec_kWh": 332.8139944244757,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.02169764739548974
+        },
+        {
+          "f": 0.25,
+          "feasible": true,
+          "E_kWh": 893.476325834477,
+          "E_heat_kWh": 53.29401069611317,
+          "E_cool_kWh": 840.1823151383638,
+          "E_elec_kWh": 301.3783759912332,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.020990350611839403
+        },
+        {
+          "f": 0.3,
+          "feasible": true,
+          "E_kWh": 804.965340955523,
+          "E_heat_kWh": 30.996842314659414,
+          "E_cool_kWh": 773.9684986408636,
+          "E_elec_kWh": 270.3882364728183,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.02029458916832283
+        },
+        {
+          "f": 0.35,
+          "feasible": true,
+          "E_kWh": 718.0213902202644,
+          "E_heat_kWh": 9.178089162603476,
+          "E_cool_kWh": 708.8433010576609,
+          "E_elec_kWh": 239.95233601759503,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.019610392150806177
+        },
+        {
+          "f": 0.4,
+          "feasible": true,
+          "E_kWh": 644.9606325864862,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 644.9606325864862,
+          "E_elec_kWh": 214.98687752882873,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.01893778568355664
+        },
+        {
+          "f": 0.45,
+          "feasible": true,
+          "E_kWh": 578.1344139908338,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 578.1344139908338,
+          "E_elec_kWh": 192.71147133027793,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.018323888608323458
+        },
+        {
+          "f": 0.5,
+          "feasible": true,
+          "E_kWh": 535.1558964810415,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 535.1558964810415,
+          "E_elec_kWh": 178.38529882701383,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.01767278322323662
+        },
+        {
+          "f": 0.55,
+          "feasible": true,
+          "E_kWh": 492.7497138041522,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 492.7497138041522,
+          "E_elec_kWh": 164.24990460138406,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.017033370401914993
+        },
+        {
+          "f": 0.6,
+          "feasible": true,
+          "E_kWh": 450.9786170804067,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 450.9786170804067,
+          "E_elec_kWh": 150.3262056934689,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.01640566126941856
+        },
+        {
+          "f": 0.65,
+          "feasible": true,
+          "E_kWh": 409.8895427840777,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 409.8895427840777,
+          "E_elec_kWh": 136.62984759469256,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.01578966302939122
+        },
+        {
+          "f": 0.7,
+          "feasible": true,
+          "E_kWh": 369.5159422845064,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 369.5159422845064,
+          "E_elec_kWh": 123.17198076150214,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.015185378888576295
+        },
+        {
+          "f": 0.75,
+          "feasible": true,
+          "E_kWh": 329.8803356435891,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 329.8803356435891,
+          "E_elec_kWh": 109.96011188119637,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.014592808011165914
+        },
+        {
+          "f": 0.8,
+          "feasible": true,
+          "E_kWh": 290.9963195716674,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 290.9963195716674,
+          "E_elec_kWh": 96.99877319055581,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.014011945497943046
+        },
+        {
+          "f": 0.85,
+          "feasible": true,
+          "E_kWh": 252.87049464900142,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 252.87049464900142,
+          "E_elec_kWh": 84.29016488300047,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.013442782388075614
+        },
+        {
+          "f": 0.9,
+          "feasible": true,
+          "E_kWh": 215.5045257654263,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 215.5045257654263,
+          "E_elec_kWh": 71.83484192180877,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.012885305680484294
+        },
+        {
+          "f": 0.95,
+          "feasible": true,
+          "E_kWh": 178.89685166853872,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 178.89685166853872,
+          "E_elec_kWh": 59.632283889512905,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.012339498372034186
+        },
+        {
+          "f": 1.0,
+          "feasible": true,
+          "E_kWh": 143.1865593988154,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 143.1865593988154,
+          "E_elec_kWh": 47.72885313293847,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.011837948227599426
+        }
+      ]
+    },
+    {
+      "name": "cold_storage+pad",
+      "climate": "dfw_typical",
+      "f_star": 1.0,
+      "f_star_percent": 100.0,
+      "f_max": 1.0,
+      "binding_caps": [
+        "domain"
+      ],
+      "limiter": "use-type cap",
+      "caps": {
+        "domain": 1.0,
+        "daylight": 1.0
+      },
+      "E_star_kWh": 23509.62048410863,
+      "E_heat_kWh": 0.0,
+      "E_cool_kWh": 23509.62048410863,
+      "E_elec_kWh": 7836.540161369543,
+      "soil_k_W_per_mK": 0.8999999999999999,
+      "switches": {
+        "use_type": "cold_storage",
+        "clear_ceiling": false,
+        "water_panes": false,
+        "above_grade_enclosure": true,
+        "L_m": 10.0,
+        "W_m": 10.0,
+        "H_m": 3.0,
+        "glazed_roof_frac": 0.0,
+        "ceiling_tilt_deg": 0.0,
+        "ceiling_azimuth_from_south_deg": 0.0,
+        "wall_material": "insulated_concrete",
+        "roof_material": "insulated_roof",
+        "glazing_material": "double_polycarbonate",
+        "floor_material": "insulated_slab",
+        "structure": "concrete_berm",
+        "soil_moisture_retention": 0.5,
+        "wall_glazing_frac": 0.0,
+        "glazing_azimuth_weights": [
+          [
+            0.0,
+            0.7
+          ],
+          [
+            90.0,
+            0.15
+          ],
+          [
+            -90.0,
+            0.15
+          ]
+        ],
+        "T_heat_C": 1.0,
+        "T_cool_C": 4.0,
+        "q_internal_W_per_m2": 2.0,
+        "min_daylight_ratio": 0.0,
+        "egress_min_clear_height_m": 0.0,
+        "view_min_exposed_fraction": 0.0,
+        "entrance_greenhouse_enclosure": true,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
+      },
+      "note": "",
+      "curve": [
+        {
+          "f": 0.0,
+          "feasible": true,
+          "E_kWh": 27592.567187989374,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 27592.567187989374,
+          "E_elec_kWh": 9197.522395996459,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.05,
+          "feasible": true,
+          "E_kWh": 27418.830640896398,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 27418.830640896398,
+          "E_elec_kWh": 9139.610213632133,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.1,
+          "feasible": true,
+          "E_kWh": 27240.93940686457,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 27240.93940686457,
+          "E_elec_kWh": 9080.313135621524,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.15,
+          "feasible": true,
+          "E_kWh": 27059.238531144383,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 27059.238531144383,
+          "E_elec_kWh": 9019.746177048128,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.2,
+          "feasible": true,
+          "E_kWh": 26873.843767464845,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 26873.843767464845,
+          "E_elec_kWh": 8957.947922488282,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.25,
+          "feasible": true,
+          "E_kWh": 26684.865964909703,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 26684.865964909703,
+          "E_elec_kWh": 8894.955321636568,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.3,
+          "feasible": true,
+          "E_kWh": 26492.41135382508,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 26492.41135382508,
+          "E_elec_kWh": 8830.803784608359,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.35,
+          "feasible": true,
+          "E_kWh": 26296.58181095826,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 26296.58181095826,
+          "E_elec_kWh": 8765.52727031942,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.4,
+          "feasible": true,
+          "E_kWh": 26097.475105399157,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 26097.475105399157,
+          "E_elec_kWh": 8699.158368466386,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.45,
+          "feasible": true,
+          "E_kWh": 25895.185126787277,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 25895.185126787277,
+          "E_elec_kWh": 8631.72837559576,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.5,
+          "feasible": true,
+          "E_kWh": 25689.802097151052,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 25689.802097151052,
+          "E_elec_kWh": 8563.267365717018,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.55,
+          "feasible": true,
+          "E_kWh": 25481.412767649617,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 25481.412767649617,
+          "E_elec_kWh": 8493.804255883206,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.6,
+          "feasible": true,
+          "E_kWh": 25270.100601397433,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 25270.100601397433,
+          "E_elec_kWh": 8423.366867132478,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.65,
+          "feasible": true,
+          "E_kWh": 25055.945943468156,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 25055.945943468156,
+          "E_elec_kWh": 8351.981981156052,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.7,
+          "feasible": true,
+          "E_kWh": 24839.0261790936,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 24839.0261790936,
+          "E_elec_kWh": 8279.675393031199,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.75,
+          "feasible": true,
+          "E_kWh": 24619.415880997953,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 24619.415880997953,
+          "E_elec_kWh": 8206.47196033265,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.8,
+          "feasible": true,
+          "E_kWh": 24397.18694673631,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 24397.18694673631,
+          "E_elec_kWh": 8132.395648912104,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.85,
+          "feasible": true,
+          "E_kWh": 24172.408726840717,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 24172.408726840717,
+          "E_elec_kWh": 8057.4695756135725,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.9,
+          "feasible": true,
+          "E_kWh": 23945.148144512685,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 23945.148144512685,
+          "E_elec_kWh": 7981.716048170895,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 0.95,
+          "feasible": true,
+          "E_kWh": 23715.469807544625,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 23715.469807544625,
+          "E_elec_kWh": 7905.156602514875,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        },
+        {
+          "f": 1.0,
+          "feasible": true,
+          "E_kWh": 23509.62048410863,
+          "E_heat_kWh": 0.0,
+          "E_cool_kWh": 23509.62048410863,
+          "E_elec_kWh": 7836.540161369543,
+          "daylight_ratio": 0.0,
+          "closure_K": 0.0
+        }
+      ]
+    }
+  ],
+  "buffer_assumptions": {
+    "height_m": 2.4,
+    "vestibule_plan_m2": 6.0,
+    "entrance_m2": 2.0,
+    "U_W_per_m2K": 2.8,
+    "ACH": 1.5,
+    "tau": 0.7,
+    "absorptance": 0.25,
+    "room_air_from_pad": 0.75,
+    "tile_insulation_R_m2K_per_W": 0.5,
+    "tile_insulation_tau_factor": 0.85,
+    "roof_flow_ref_gpm": 12.0,
+    "note": "ASSUMPTION nominal point. Knob sweeps are air_pad_knobs."
+  },
+  "air_pad_knobs": [
+    {
+      "group": "height_m",
+      "label": "1.2",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 29516.367105760328,
+      "help_kWh": 2817.335331475326,
+      "f_star_pad": null
+    },
+    {
+      "group": "height_m",
+      "label": "2.4",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 28518.732780329665,
+      "help_kWh": 3814.969656905989,
+      "f_star_pad": null
+    },
+    {
+      "group": "height_m",
+      "label": "3.6",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 27921.308048775503,
+      "help_kWh": 4412.39438846015,
+      "f_star_pad": null
+    },
+    {
+      "group": "height_m",
+      "label": "4.8",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 27504.529620158897,
+      "help_kWh": 4829.1728170767565,
+      "f_star_pad": 0.65
+    },
+    {
+      "group": "outer_glazing",
+      "label": "U 2.8 / tau 0.70 (nominal)",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 28518.732780329665,
+      "help_kWh": 3814.969656905989,
+      "f_star_pad": null
+    },
+    {
+      "group": "outer_glazing",
+      "label": "U 5.5 / tau 0.80 (single poly)",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 29730.96125814523,
+      "help_kWh": 2602.7411790904225,
+      "f_star_pad": null
+    },
+    {
+      "group": "outer_glazing",
+      "label": "U 1.6 / tau 0.60 (double low-e)",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 27199.109952323142,
+      "help_kWh": 5134.592484912511,
+      "f_star_pad": null
+    },
+    {
+      "group": "tile_insulation",
+      "label": "off",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 28518.732780329665,
+      "help_kWh": 3814.969656905989,
+      "f_star_pad": null
+    },
+    {
+      "group": "tile_insulation",
+      "label": "on",
+      "f": 0.65,
+      "E_bare_kWh": 26771.30821381096,
+      "E_pad_kWh": 23366.984605305763,
+      "help_kWh": 3404.3236085051976,
+      "f_star_pad": 0.65
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "tiles only, 0 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 113582.71293970796,
+      "E_pad_kWh": 96606.41636470982,
+      "help_kWh": 16976.296574998138,
+      "f_star_pad": 0.65
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "tiles only, 3 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 45746.16081220126,
+      "E_pad_kWh": 40335.255942640695,
+      "help_kWh": 5410.904869560567,
+      "f_star_pad": null
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "tiles only, 12 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 28518.732780329665,
+      "help_kWh": 3814.969656905989,
+      "f_star_pad": null
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "tiles only, 24 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 31602.045355315015,
+      "E_pad_kWh": 26327.93080977044,
+      "help_kWh": 5274.114545544573,
+      "f_star_pad": null
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "insulated, 0 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 119450.44070609193,
+      "E_pad_kWh": 94916.41449289427,
+      "help_kWh": 24534.026213197663,
+      "f_star_pad": null
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "insulated, 3 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 42450.68801661862,
+      "E_pad_kWh": 35087.88659614722,
+      "help_kWh": 7362.801420471398,
+      "f_star_pad": null
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "insulated, 12 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 26771.30821381096,
+      "E_pad_kWh": 23366.984605305763,
+      "help_kWh": 3404.3236085051976,
+      "f_star_pad": null
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "insulated, 24 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 25020.335321023915,
+      "E_pad_kWh": 22497.0449311524,
+      "help_kWh": 2523.290389871516,
+      "f_star_pad": null
+    },
+    {
+      "group": "cold_storage_height_m",
+      "label": "2.4",
+      "f": 1.0,
+      "E_bare_kWh": 27035.005424780153,
+      "E_pad_kWh": 23509.62048410863,
+      "help_kWh": 3525.3849406715235,
+      "f_star_pad": null
+    },
+    {
+      "group": "cold_storage_height_m",
+      "label": "4.8",
+      "f": 1.0,
+      "E_bare_kWh": 27035.005424780153,
+      "E_pad_kWh": 24727.631956925296,
+      "help_kWh": 2307.373467854857,
+      "f_star_pad": null
+    },
+    {
+      "group": "cold_storage_outer_u",
+      "label": "U 1.6 / tau 0.60",
+      "f": 1.0,
+      "E_bare_kWh": 27035.005424780153,
+      "E_pad_kWh": 22552.34400278234,
+      "help_kWh": 4482.661421997811,
+      "f_star_pad": null
+    }
+  ]
+}

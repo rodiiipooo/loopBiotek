@@ -254,10 +254,10 @@ The food modules assume a building people can actually live in. A first thermal 
 
 **Key variables (plain English):**
 
-- Submersion — how much of the cell sits in the earth. The design minimum is at least 50%; the simulation baseline is 70%. More submersion lowers peak room temperature and the HVAC-proxy energy on the sensitivity chart, because more heat can be rejected into the soil.
+- Submersion — how much of the cell sits in the earth. The site design minimum is at least 50%. The legacy summer illustration still uses 70% so older charts stay comparable. The planning recommendation is the optimized fraction from [`climate/thermal-model/SUBMERSION_OPTIMAL.md`](climate/thermal-model/SUBMERSION_OPTIMAL.md): living, storage, and greenhouse do not share one default.
 - Outdoor temperature — the weather the shell has to face. The default run is a North Texas summer day swinging from about 26 °C to about 40 °C.
 - Room temperature `T_r` — what the habitat feels like. The HVAC-proxy counts energy only while the room is above a 28 °C setpoint. It is a stand-in for cooling demand, not a full air-conditioner model.
-- Soil temperature — the default deep soil is 18 °C, the sink the roof-water loop dumps heat into. If the loop cannot reach that sink (low submersion), the room runs hotter.
+- Soil temperature — the legacy summer plots use a fixed 18 °C deep-soil sink. The submersion optimizer uses a depth-dependent annual wave (DFW planning default, annual mean 18.5 °C) so burial depth changes the sink, not only the buried area.
 
 **What a reader should watch:** A design that saves food-system energy on paper and then spends it back on cooling has not helped the community. Submersion, room temperature, and the HVAC-proxy are how this repository currently checks that trade. The 41 kWh/day and ~5 kWh/day earth-shelter figures above remain the food-system load grounding; they are not a measurement from the thermal plots.
 

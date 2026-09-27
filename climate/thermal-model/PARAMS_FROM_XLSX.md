@@ -44,3 +44,7 @@ The workbook is a **quail-kit CAPEX / cash-flow** model (not thermal). Useful fi
 - Off-grid energy package: 5 kW PV + 20 kWh battery (report §7)
 
 **Thermal model implication:** `Q_internal_W ≈ 800 W` cell-scale continuous proxy is consistent with a share of the ~19 kWh/day incubator/brooder load plus lights/animals (~0.8 kW × 24 h ≈ 19 kWh if that load were continuous; in practice duty-cycled — kept as a conservative daytime-biased internal gain).
+
+## Submersion optimizer (not in the workbook)
+
+`loop_params.xlsx` has no envelope U-values, soil properties, or climate series. Those inputs live in `submersion_opt.py` and are tabulated as ASSUMPTIONs in `SUBMERSION_OPTIMAL.md`. The workbook's shelter-retrofit line and the Loop report's ~12% earth-shelter note are context only; they do not set \(f^\star\).
