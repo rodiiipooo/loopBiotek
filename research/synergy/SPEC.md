@@ -59,6 +59,30 @@ Nutrient spine: waste → worms/isopods; insects and greens → quail and fish; 
 
 `circular_buffers.py` smoke covers these four. `fail_closed` means export halted and breeders were not taken under the floor.
 
+### Safe-sell control law
+
+Helpers in `circular_buffers.py` (`safe_sell_limit`, `birds_now_for_demand`, `margin_backsolve`). Planning only. Defaults: \(\alpha = 0.9\), weekly mortality \(m = 0.01\), safety fraction \(s = 1.15\). \(s\) is an **ASSUMPTION**. \(m\) matches the quail planning default.
+
+\[
+H_{\max} = \max(0,\ N_{\mathrm{now}} - N_{\mathrm{floor}})
+\]
+
+\[
+D_{\mathrm{firm}} \le \alpha \cdot H_{\max}
+\]
+
+\[
+N_{\mathrm{pipeline}} \ge \frac{D_{\mathrm{firm}}}{(1-m)^{w}} \cdot \frac{s}{\alpha}
+\]
+
+Fail closed means cut offtake first. Do not sell the breed floor to fill an order.
+
+`firm_max` on this helper is \(\alpha\) times surplus above the floor. The older `firm_surplus` helper is different: it is surplus of the countable stock \(\alpha N\) above the floor, and `cap_offtake_change` still uses that view.
+
+When a forward breeder need \(N_{\mathrm{req}}\) is passed, `safe_sell_limit` also applies `cull_cap_deterministic`: survivors of the headcount you keep, compounded at \((1-m)\) per week for the lead, must cover \(N_{\mathrm{req}} \times s\). That call uses \(\epsilon = 0\) so \(s\) is not stacked on the report’s \(\epsilon = 0.01\). The Monte Carlo governor is still TBD. This proxy fails closed.
+
+`birds_now_for_demand` inverts the pipeline line. Default lead is 10 weeks. `margin_backsolve` divides a target dollar margin by the margin per unit. The $3k page that calls it is [`../../economics/MARGIN_3K_BACKSOLVE.md`](../../economics/MARGIN_3K_BACKSOLVE.md).
+
 ## 4. Unified prepaid (all sellable goods)
 
 Same identity as `research/quail` (`fair_prepaid_forward_per_lb`), for every species good \(s\):

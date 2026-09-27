@@ -1,6 +1,7 @@
 {
   "stage_gate": "Stage 1 worms only. Synergy math is planning. No Stage 2-5 spend.",
   "ok": true,
+  "helpers_ok": true,
   "fair_prepaid_T0.5": {
     "E_P0": 12.463333333333333,
     "E_P_T": 12.630467690381767,
@@ -97,6 +98,53 @@
     "margin_headcount": 90.9090909090909,
     "clipped_to_floor": true,
     "note": "deterministic proxy for P(shortfall)<=epsilon; not a Monte Carlo"
+  },
+  "safe_sell_open": {
+    "surplus": 200.0,
+    "firm_max": 180.0,
+    "cull_cap_keep": null,
+    "allowed_firm": 180.0,
+    "n_now": 1000.0,
+    "floor": 800.0,
+    "alpha": 0.9,
+    "safety_frac": 1.15,
+    "m_weekly": 0.01,
+    "lead_weeks": 0.0,
+    "n_req_forward": null,
+    "clipped_to_floor": null,
+    "note": "Deterministic fail-closed proxy. Firm offtake is alpha times surplus above the floor, then the cull cap when a forward breeder need is set. Full Monte Carlo governor (epsilon=0.01) is TBD. Cut offtake first; do not sell the breed floor."
+  },
+  "safe_sell_forward_need": {
+    "surplus": 200.0,
+    "firm_max": 180.0,
+    "cull_cap_keep": 46.310156034878105,
+    "allowed_firm": 46.310156034878105,
+    "n_now": 1000.0,
+    "floor": 800.0,
+    "alpha": 0.9,
+    "safety_frac": 1.15,
+    "m_weekly": 0.01,
+    "lead_weeks": 10.0,
+    "n_req_forward": 750.0,
+    "clipped_to_floor": false,
+    "note": "Deterministic fail-closed proxy. Firm offtake is alpha times surplus above the floor, then the cull cap when a forward breeder need is set. Full Monte Carlo governor (epsilon=0.01) is TBD. Cut offtake first; do not sell the breed floor."
+  },
+  "birds_now_for_demand": {
+    "n_pipeline_min": 141.28738429112917,
+    "d_firm": 100.0,
+    "m_weekly": 0.01,
+    "lead_weeks": 10.0,
+    "safety_frac": 1.15,
+    "alpha": 0.9,
+    "pipeline_multiple": 1.4128738429112917,
+    "formula": "N_pipeline >= D_firm / (1-m)^w * s/alpha"
+  },
+  "margin_backsolve_3k_per_lb": {
+    "units": 383.6317135549872,
+    "target_margin_usd": 3000.0,
+    "margin_per_unit": 7.82,
+    "unit_name": "lb",
+    "formula": "H = target_margin_usd / margin_per_unit"
   },
   "breed_floor_example": {
     "floor": 12.0,
