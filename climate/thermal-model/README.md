@@ -2,7 +2,7 @@
 
 Coupled transient simulation of a LoopBiotek Zone-1 cell: **room air + structural mass + glazed-roof water loop + earth conduction**, with explicit pipe geometry and thermal-expansion pressure.
 
-The planning submersion fraction is computed, not taken from the 70% illustration default. Method, ASSUMPTION table, and the living / storage / greenhouse example: [`SUBMERSION_OPTIMAL.md`](SUBMERSION_OPTIMAL.md).
+The planning submersion fraction is computed, not taken from the 70% illustration default. Homes keep a clear or glazed sunlight path and are not fully buried. Dry storage and refrigerated storage may go to 100% of height. The same run prints community hot-water gallons, maintenance versus discretionary energy, and a shared-microgrid CapEx stub. Method and the worked example: [`SUBMERSION_OPTIMAL.md`](SUBMERSION_OPTIMAL.md).
 
 ```bash
 python climate/thermal-model/submersion_opt.py
@@ -26,7 +26,7 @@ Regenerates four PNGs under `outputs/`:
 | `submersion_sensitivity.png` | Legacy free-float summer day: peak room T and HVAC-proxy kWh vs submersion % |
 | `site_layout_10acre.png` | Top-down 660×660 ft 4-zone layout |
 
-`--optimize` adds `submersion_optimal.png` and `submersion_optimal.json` (annual thermostat energy vs submersion, with f* marked).
+`--optimize` adds `submersion_optimal.png` and `submersion_optimal.json` (annual thermostat energy vs submersion, with f* marked, plus the community-energy block).
 
 ## Equations (lumped capacitance)
 

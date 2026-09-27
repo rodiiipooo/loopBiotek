@@ -103,6 +103,14 @@ Light on a tilted surface uses a daily clear-sky beam factor blended with an iso
 
 Daylight ratio is transmittance-weighted aperture over floor area. The roof uses water-film \(\tau = 0.55\) when `water_panes` is on, otherwise the glazing `tau_vis`. The check is made at day-of-year 80 (near equinox), not as a full daylight-autonomy model.
 
+## Hard use rules
+
+Homes must keep a sunlight path: a clear ceiling or glazed wall/roof surfaces. A living case with neither is infeasible. Homes also carry a hard cap \(f \le 0.85\) (`no_full_burial`) so they are never fully buried. Egress and view usually bind tighter than that cap.
+
+Dry storage and refrigerated storage have no daylight requirement and may use \(f = 1\). The sweep still picks the energy minimum; on the default envelope that minimum is full burial.
+
+Cold storage is a cooler band, about 1–4 °C (ASSUMPTION), not a freezer. Soil near 18 °C is warmer than that band, so burial does not make refrigeration free. It still beats leaving the walls in summer air, so \(f^\star\) lands at 100%.
+
 ## Use-type caps
 
 Feasible \(f\) must satisfy every cap:
@@ -110,18 +118,20 @@ Feasible \(f\) must satisfy every cap:
 \[
 f \le 1 - \frac{h_\mathrm{egress}}{H},\qquad
 f \le 1 - \phi_\mathrm{view},\qquad
+f \le f_\mathrm{policy},\qquad
 \mathrm{daylight}(f) \ge \mathrm{daylight}_\min
 \]
 
-| Use | Band (°C) | Gains | Daylight min | Egress clear height | View exposed fraction | Wall glazing fraction |
-|-----|-----------|-------|--------------|---------------------|-----------------------|------------------------|
-| living | 20–26 | 8 W/m² | 0.12 | 1.05 m | 0.30 | 0.40 |
-| storage | 10–28 | 1 W/m² | 0 | 0 (floor hatch allowed) | 0 | 0 |
-| greenhouse | 12–30 | 2 W/m² | 0.40 | 0.45 m | 0 | 0.10 |
+| Use | Band (°C) | Gains | Daylight min | Egress clear height | View exposed fraction | Policy max \(f\) |
+|-----|-----------|-------|--------------|---------------------|-----------------------|-----------------:|
+| living | 20–26 | 8 W/m² | 0.12 | 1.05 m | 0.30 | 0.85 |
+| storage | 10–28 | 1 W/m² | 0 | 0 (floor hatch allowed) | 0 | 1 |
+| cold_storage | 1–4 | 2 W/m² | 0 | 0 | 0 | 1 |
+| greenhouse | 12–30 | 2 W/m² | 0.40 | 0.45 m | 0 | 1 |
 
-These are ASSUMPTION planning limits, not a building-code check. The living egress height is a stand-in so a window and door head can sit above grade. The greenhouse height is a walk-in door, looser than living. Storage may be fully buried.
+These are ASSUMPTION planning limits, not a building-code check. The living egress height is a stand-in so a window and door head can sit above grade. The greenhouse height is a walk-in door, looser than living. The default living example uses a clear water-pane roof, so daylight is met from above and egress is what stops burial.
 
-A 5–35 °C storage band was tried and rejected as the example: with this envelope the free-float year already stays inside it, so \(E(f)\) is zero everywhere and burial does not change the objective. 10–28 °C is still much wider than the living band and is wide enough for DFW to show a real load.
+A 5–35 °C dry-storage band was tried and rejected as the example: with this envelope the free-float year already stays inside it, so \(E(f)\) is zero everywhere and burial does not change the objective. 10–28 °C is still much wider than the living band and is wide enough for DFW to show a real load.
 
 On the default materials, \(E(f)\) falls as \(f\) rises through the whole feasible interval (see the plot). \(f^\star\) therefore sits on the tightest cap. The sweep is still an argmin: if a material, setpoint, or climate makes high \(f\) cost more than it saves, the reported limiter is `energy minimum inside the cap` instead of `use-type cap`.
 
@@ -130,9 +140,9 @@ On the default materials, \(E(f)\) falls as \(f\) rises through the whole feasib
 | Input | Default | Role |
 |-------|---------|------|
 | Cell | \(L=W=10\,\mathrm{m}\), \(H=3\,\mathrm{m}\) | Zone-1 illustration size |
-| Living ceiling | opaque, water panes off, above-grade enclosed | Daylight has to come from walls |
+| Living ceiling | clear, water panes on, above-grade enclosed | Sunlight from the roof; egress stops full burial |
 | Greenhouse ceiling | clear, water panes on, tilt 0° (horizontal) | Roof loop is the legacy water-ceiling path |
-| Storage ceiling | opaque, water panes off, enclosed | No glazing |
+| Storage / cold storage ceiling | opaque, water panes off, enclosed | No glazing; full burial allowed |
 | Glazing | `double_polycarbonate` U=2.8, SHGC=0.55, \(\tau_\mathrm{vis}=0.65\) | Walls and dry roofs |
 | Wall / floor / opaque roof | insulated concrete 0.45 / insulated slab 0.50 / insulated roof 0.30 W/(m²·K) | Also `sip_r20`, `earthbag`, `uninsulated_concrete`, `uninsulated_slab`, `vegetated_roof`, `uninsulated_metal`, `double_low_e`, `single_poly` |
 | Structure | `concrete_berm` (slab 0.20 m, wall-mass fraction 0.35) | Also `timber_frame`, `earthbag_mass` |
@@ -150,26 +160,34 @@ DFW typical-month days, \(f\) step 0.05, 10×10×3 m cell. Re-run the command af
 
 | Case | \(f^\star\) | What binds | Annual thermal kWh |
 |------|------------:|------------|-------------------:|
-| living | 61.5% | daylight (egress would allow 65%, view 70%) | 9,054 (heat 1,282, cool 7,771) |
+| living (clear roof) | 65% | egress (daylight is already met; full burial is also forbidden) | 32,334 (heat 12,233, cool 20,100) |
 | storage | 100% | no cap inside (0, 1) | 16 (all cooling) |
+| cold_storage | 100% | no cap inside (0, 1) | 27,035 (all cooling) |
 | greenhouse | 85% | egress door height | 511 (all cooling) |
 
-The three recommendations differ. Energy at the ends of each curve:
+Living stays in the sun. Storage and cold storage go to the bottom of the cut. The clear living roof is why that cell's energy is high: wall burial still helps (about 104,000 kWh/year at \(f=0\) versus 32,000 at 65%), and \(f=1\) would be lower still but is not allowed.
 
-| \(f\) | Living kWh | Storage kWh | Greenhouse kWh |
-|------:|-----------:|------------:|---------------:|
-| 0% | 19,300 | 1,250 | 55,700 |
-| 25% | 14,700 | 760 | 21,900 |
-| 50% | 10,800 | 430 | 8,270 |
-| \(f^\star\) | 9,054 at 61.5% | 16 at 100% | 511 at 85% |
-| 100% | 4,360 (infeasible for living) | 16 | 0 (infeasible: egress) |
+| \(f\) | Living kWh | Storage kWh | Cold storage kWh |
+|------:|-----------:|------------:|-----------------:|
+| 0% | 103,800 | 1,250 | 31,100 |
+| 50% | 42,500 | 430 | 29,200 |
+| \(f^\star\) | 32,334 at 65% | 16 at 100% | 27,035 at 100% |
+| 100% | 15,700 (infeasible: egress and no-full-burial) | 16 | 27,035 |
 
-One switch at a time, same cell, shows the other drivers are live:
+A home with an opaque roof and no wall glazing is rejected (`sunlight` cap). Greenhouse at 85% with water panes off is about 64,000 kWh versus 511 kWh with the roof loop. Dry storage at \(f=0.50\): soil moisture retention 0 → about 510 kWh; retention 1 → about 410 kWh.
 
-- Living with a clear water-pane roof: daylight is satisfied from above, so \(f^\star\) moves from 61.5% to the **65% egress cap**, and annual energy rises to about **32,000 kWh**. Wall burial cannot offset that roof solar inside the egress cap.
-- Living at \(f=0.40\) with the stick-up left unenclosed: about **62,000 kWh** versus **12,300 kWh** when that stick-up is an insulated wall.
-- Greenhouse at 85% with water panes off: about **64,000 kWh** versus **511 kWh** with the roof loop hooked up.
-- Storage at \(f=0.50\): soil moisture retention 0 → about **510 kWh**; retention 1 → about **410 kWh**.
+## Community loads and shared microgrid
+
+The same command prints gallons heated, powered heat, the maintenance/discretionary split, and a microgrid CapEx stub. Detail is in [`community_energy.py`](community_energy.py). Headcounts are not a second population model:
+
+- \(H = 20\), \(W = 70\,\mathrm{kg}\), and 12 m²/person come from `economics/community_capital.py` (`run_example` defaults and `facility_m2_per_person`).
+- 16,500 worms and 20 quail come from `research/ops-dashboard/store.py` `DEFAULT_HERD`. Worms are the Stage 1 stub. Quail is the Stage 4 planning stub in that dict, not a purchase.
+
+Consumed hot water (ASSUMPTION): 10 gal/person/day maintenance and 5 gal/person/day discretionary, heated from 18 °C to 49 °C. Quail add 0.02 gal/bird/day to 40 °C. Worms add none. Energy is \(\rho V c_p \Delta T\). With those defaults the print is about **200 gal/day maintenance** (9,900 kWh/year, peak about 6.8 kW) and **100 gal/day discretionary** (5,000 kWh/year). The living roof loop is about 98 gal of pipe inventory for 240 m², not a daily reheat.
+
+Space conditioning uses each case's \(f^\star\), scaled to floor area. Living floor is \(H \times 12\,\mathrm{m^2}\). Dry storage and cold storage are one 100 m² shared cell each. Living also carries a 15% discretionary adder (ASSUMPTION) on top of the thermostat. On this run that is about 77,600 kWh/year maintenance for the homes, 16 kWh for the dry store, and 27,000 kWh for the cooler.
+
+The microgrid stub serves shared dry storage, shared cold storage, and the central hot-water plant. It does not size the homes. ASSUMPTION unit costs: $2,500/kW PV, $400/kWh battery, DFW capacity factor 0.18, 12 h of battery on the maintenance peak. This run: about **27 kW PV**, **121 kWh battery**, **$115,000**. That figure is not added to `community_capital` `setup_capex` (`other_capex` stays 0). Stage 1 worms remain the only active spend.
 
 ## Plug in DFW or another site
 

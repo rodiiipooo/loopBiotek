@@ -48,15 +48,30 @@ class SoilAndLightTest(unittest.TestCase):
 
 class ConstraintTest(unittest.TestCase):
     def test_caps_differ_by_use(self):
-        living, storage, greenhouse = opt.example_cases()
+        by_name = {case.name: case for case in opt.example_cases()}
+        living = by_name["living"]
+        storage = by_name["storage"]
+        cold = by_name["cold_storage"]
         f_living = opt.f_max_from_caps(opt.constraint_caps(living, opt.DFW_TYPICAL))
         f_storage = opt.f_max_from_caps(opt.constraint_caps(storage, opt.DFW_TYPICAL))
-        f_greenhouse = opt.f_max_from_caps(opt.constraint_caps(greenhouse, opt.DFW_TYPICAL))
-        self.assertLess(f_living, f_greenhouse)
-        self.assertLess(f_greenhouse, f_storage)
-        self.assertAlmostEqual(f_storage, 1.0)
+        f_cold = opt.f_max_from_caps(opt.constraint_caps(cold, opt.DFW_TYPICAL))
+        self.assertTrue(living.clear_ceiling)
+        self.assertTrue(opt.has_sunlight_path(living))
+        self.assertLess(f_living, 0.90)
         self.assertGreater(f_living, 0.5)
-        self.assertLess(f_living, 0.70)
+        self.assertAlmostEqual(f_storage, 1.0)
+        self.assertAlmostEqual(f_cold, 1.0)
+
+    def test_home_without_glazing_is_infeasible(self):
+        dark = opt.SubmersionCase(
+            "dark-home",
+            "living",
+            clear_ceiling=False,
+            wall_glazing_frac=0.0,
+        )
+        caps = opt.constraint_caps(dark, opt.DFW_TYPICAL)
+        self.assertLess(caps["sunlight"], 0.0)
+        self.assertLess(opt.f_max_from_caps(caps), 0.0)
 
     def test_opaque_greenhouse_cannot_meet_daylight(self):
         case = opt.SubmersionCase("dark-greenhouse", "greenhouse", clear_ceiling=False)
@@ -79,7 +94,7 @@ class ConstraintTest(unittest.TestCase):
 
 class SwitchTest(unittest.TestCase):
     def test_water_panes_enable_ground_reject(self):
-        greenhouse = opt.example_cases()[2]
+        greenhouse = next(case for case in opt.example_cases() if case.name == "greenhouse")
         month = opt.DFW_MONTHS[6]
         _, _, wet, _ = opt.build_envelope(greenhouse, 0.85, month, opt.DFW_TYPICAL, 48.0, 60.0)
         dry_case = opt.SubmersionCase(
@@ -93,12 +108,12 @@ class SwitchTest(unittest.TestCase):
         self.assertEqual(dry.UA_reject, 0.0)
 
     def test_open_stickup_costs_more_than_an_enclosed_wall(self):
-        living = opt.example_cases()[0]
+        storage = next(case for case in opt.example_cases() if case.name == "storage")
         months = (opt.DFW_MONTHS[0], opt.DFW_MONTHS[6])
-        enclosed = opt.annual_energy(living, 0.4, opt.DFW_TYPICAL, hours=48.0, months=months)
+        enclosed = opt.annual_energy(storage, 0.4, opt.DFW_TYPICAL, hours=48.0, months=months)
         opened = opt.SubmersionCase(
             "open",
-            "living",
+            "storage",
             above_grade_enclosure=False,
         )
         open_energy = opt.annual_energy(opened, 0.4, opt.DFW_TYPICAL, hours=48.0, months=months)
@@ -106,22 +121,77 @@ class SwitchTest(unittest.TestCase):
 
 
 class SweepTest(unittest.TestCase):
-    def test_living_storage_and_greenhouse_recommend_different_f(self):
+    def test_living_keeps_sun_and_stores_go_to_full_burial(self):
         results = opt.run_examples(f_step=0.25, hours=48.0)
         by_name = {result.case.name: result for result in results}
-        living, storage, greenhouse = by_name["living"], by_name["storage"], by_name["greenhouse"]
+        living = by_name["living"]
+        storage = by_name["storage"]
+        cold = by_name["cold_storage"]
         self.assertIsNotNone(living.f_star)
         self.assertIsNotNone(storage.f_star)
-        self.assertIsNotNone(greenhouse.f_star)
-        self.assertLess(living.f_star, greenhouse.f_star)
-        self.assertLess(greenhouse.f_star, storage.f_star)
-        self.assertNotAlmostEqual(living.f_star, 0.70, places=2)
-        for result in results:
+        self.assertIsNotNone(cold.f_star)
+        self.assertLess(living.f_star, 0.90)
+        self.assertGreaterEqual(storage.f_star, 0.95)
+        self.assertGreaterEqual(cold.f_star, 0.95)
+        self.assertLess(living.f_star, storage.f_star)
+        self.assertTrue(opt.has_sunlight_path(living.case))
+        for result in (living, storage, cold):
             at_zero = next(point for point in result.curve if point.f == 0.0)
             at_star = next(point for point in result.curve if abs(point.f - result.f_star) < 1e-6)
             self.assertLessEqual(at_star.E_kWh, at_zero.E_kWh + 1e-6)
             self.assertLessEqual(result.f_star, result.f_max + 1e-6)
             self.assertLess(max(point.closure_K for point in result.curve), 0.5)
+
+
+class CommunityEnergyTest(unittest.TestCase):
+    def test_headcounts_match_existing_stubs(self):
+        import community_energy as energy
+
+        pop = energy.default_population()
+        self.assertEqual(pop.H, 20.0)
+        self.assertEqual(pop.W_kg, 70.0)
+        self.assertEqual(pop.worms, 16500.0)
+        self.assertEqual(pop.quail, 20.0)
+        self.assertAlmostEqual(pop.m2_per_person, 12.0)
+
+    def test_gallons_split_and_scale_with_people(self):
+        import community_energy as energy
+
+        pop = energy.default_population()
+        streams = energy.water_streams(pop)
+        maint = sum(row.gallons_per_day for row in streams if row.role == "maintenance")
+        disc = sum(row.gallons_per_day for row in streams if row.role == "discretionary")
+        self.assertAlmostEqual(maint, 20.0 * 10.0 + 20.0 * 0.02, places=3)
+        self.assertAlmostEqual(disc, 20.0 * 5.0, places=3)
+        hotter = energy._stream("hot", "maintenance", 10.0, 60.0, 18.0, 4.0)
+        cooler = energy._stream("cool", "maintenance", 10.0, 40.0, 18.0, 4.0)
+        self.assertGreater(hotter.kwh_per_day, cooler.kwh_per_day)
+        doubled = energy.Population(
+            H=40.0, W_kg=70.0, worms=0.0, quail=0.0, m2_per_person=12.0, sources={}
+        )
+        base_people = sum(row.gallons_per_day for row in streams if row.name.startswith("people"))
+        more = sum(
+            row.gallons_per_day
+            for row in energy.water_streams(doubled)
+            if row.name.startswith("people")
+        )
+        self.assertAlmostEqual(more, 2.0 * base_people)
+
+    def test_microgrid_capex_is_positive_and_labeled(self):
+        import community_energy as energy
+
+        pop = energy.default_population()
+        streams = energy.water_streams(pop)
+        spaces = [
+            energy.SpaceLoad("storage", "storage", 1.0, 100.0, "", 1000.0, 0.0, 0.5),
+            energy.SpaceLoad("cold_storage", "cold_storage", 1.0, 100.0, "", 8000.0, 0.0, 1.5),
+        ]
+        grid = energy.size_microgrid(streams, spaces)
+        self.assertGreater(grid.capex_usd, 0.0)
+        self.assertGreater(grid.pv_kw, 0.0)
+        self.assertGreater(grid.battery_kwh, 0.0)
+        self.assertGreater(grid.annual_maintenance_kwh, grid.annual_discretionary_kwh)
+        self.assertIn("cold storage", " ".join(grid.serves))
 
 
 if __name__ == "__main__":

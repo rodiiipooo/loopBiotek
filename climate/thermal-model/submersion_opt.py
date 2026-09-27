@@ -2,10 +2,11 @@
 """Optimal earth-shelter submersion fraction.
 
 Sweeps the fraction f of building height below grade and picks f* that
-minimizes annual temperature-maintenance energy, subject to use-type
-caps (daylight, egress, view). Defaults are labeled ASSUMPTION in
-SUBMERSION_OPTIMAL.md. This is planning thermal research; it does not
-open Stage 2+ cascade spend.
+minimizes annual temperature-maintenance energy. Homes must keep a
+sunlight path and are not fully buried. Storage and cold storage may
+use f = 1. The same command prints community hot-water loads and a
+shared-microgrid CapEx stub (ASSUMPTION). It does not open Stage 2+
+cascade spend.
 
 Usage (from the repo root, with the project venv):
 
@@ -101,7 +102,12 @@ STRUCTURES: Dict[str, Dict[str, float]] = {
 
 @dataclass(frozen=True)
 class UseTypeSpec:
-    """Setpoint band, gains, and caps that differ by how the cell is used."""
+    """Setpoint band, gains, and caps that differ by how the cell is used.
+
+    ``requires_sunlight`` means a clear ceiling or glazed wall/roof surfaces.
+    ``max_f_policy`` is a hard cap on the fraction of height below grade.
+    Homes stay strictly below 1. Storage may use 1.
+    """
 
     key: str
     T_heat_C: float
@@ -111,6 +117,8 @@ class UseTypeSpec:
     egress_min_clear_height_m: float
     view_min_exposed_fraction: float
     wall_glazing_frac: float
+    requires_sunlight: bool = False
+    max_f_policy: float = 1.0
 
 
 USE_TYPES: Dict[str, UseTypeSpec] = {
@@ -123,6 +131,9 @@ USE_TYPES: Dict[str, UseTypeSpec] = {
         egress_min_clear_height_m=1.05,
         view_min_exposed_fraction=0.30,
         wall_glazing_frac=0.40,
+        requires_sunlight=True,
+        # Never fully bury a home. Egress/view/daylight usually bind tighter.
+        max_f_policy=0.85,
     ),
     "storage": UseTypeSpec(
         key="storage",
@@ -136,6 +147,22 @@ USE_TYPES: Dict[str, UseTypeSpec] = {
         egress_min_clear_height_m=0.0,
         view_min_exposed_fraction=0.0,
         wall_glazing_frac=0.0,
+        requires_sunlight=False,
+        max_f_policy=1.0,
+    ),
+    "cold_storage": UseTypeSpec(
+        key="cold_storage",
+        # Refrigerated band, colder than dry storage. ASSUMPTION: a cooler
+        # (about 1–4 °C), not a freezer. Fully buried is allowed.
+        T_heat_C=1.0,
+        T_cool_C=4.0,
+        q_internal_W_per_m2=2.0,
+        min_daylight_ratio=0.0,
+        egress_min_clear_height_m=0.0,
+        view_min_exposed_fraction=0.0,
+        wall_glazing_frac=0.0,
+        requires_sunlight=False,
+        max_f_policy=1.0,
     ),
     "greenhouse": UseTypeSpec(
         key="greenhouse",
@@ -260,19 +287,34 @@ class Optimum:
     note: str = ""
 
 
+def has_sunlight_path(case: SubmersionCase) -> bool:
+    """Clear ceiling or glazed surfaces. Open sky with no glazing does not count."""
+    roof = case.clear_ceiling and case.glazed_roof_frac > 0.0
+    walls = case.above_grade_enclosure and glazing_fraction(case) > 0.0
+    return roof or walls
+
+
 def example_cases() -> List[SubmersionCase]:
-    """Living (opaque), storage, and greenhouse (clear roof + water panes)."""
+    """Sunlit living, fully buryable dry storage, cold storage, and a greenhouse."""
     return [
         SubmersionCase(
             name="living",
             use_type="living",
+            clear_ceiling=True,
+            water_panes=True,
+            above_grade_enclosure=True,
+            glazed_roof_frac=1.0,
+        ),
+        SubmersionCase(
+            name="storage",
+            use_type="storage",
             clear_ceiling=False,
             water_panes=False,
             above_grade_enclosure=True,
         ),
         SubmersionCase(
-            name="storage",
-            use_type="storage",
+            name="cold_storage",
+            use_type="cold_storage",
             clear_ceiling=False,
             water_panes=False,
             above_grade_enclosure=True,
@@ -458,7 +500,11 @@ def constraint_caps(case: SubmersionCase, climate: SiteClimate) -> Dict[str, flo
         caps["egress"] = max(0.0, 1.0 - spec.egress_min_clear_height_m / case.H_m)
     if spec.view_min_exposed_fraction > 0.0:
         caps["view"] = max(0.0, 1.0 - spec.view_min_exposed_fraction)
+    if spec.max_f_policy < 1.0 - 1e-9:
+        caps["no_full_burial"] = min(1.0, max(0.0, spec.max_f_policy))
     caps["daylight"] = max_f_for_daylight(case, climate)
+    if spec.requires_sunlight and not has_sunlight_path(case):
+        caps["sunlight"] = -1.0
     return caps
 
 
@@ -975,6 +1021,7 @@ def plot_optimal_curves(results: Sequence[Optimum], path: str) -> None:
     colors = {
         "living": "#c53030",
         "storage": "#2b6cb0",
+        "cold_storage": "#6b46c1",
         "greenhouse": "#2f855a",
     }
     for result in results:
@@ -1017,7 +1064,11 @@ def run_examples(
     return [sweep_case(case, climate=climate, f_step=f_step, hours=hours) for case in chosen]
 
 
-def write_outputs(results: Sequence[Optimum], stem: str = "submersion_optimal") -> Tuple[str, str]:
+def write_outputs(
+    results: Sequence[Optimum],
+    stem: str = "submersion_optimal",
+    community: Optional[Dict] = None,
+) -> Tuple[str, str]:
     os.makedirs(OUT_DIR, exist_ok=True)
     json_path = os.path.join(OUT_DIR, stem + ".json")
     png_path = os.path.join(OUT_DIR, stem + ".png")
@@ -1038,6 +1089,7 @@ def write_outputs(results: Sequence[Optimum], stem: str = "submersion_optimal") 
             "note": "ASSUMPTION defaults. See SUBMERSION_OPTIMAL.md.",
         },
         "cases": [optimum_to_json(result) for result in results],
+        "community_energy": community,
     }
     with open(json_path, "w") as handle:
         json.dump(payload, handle, indent=2)
@@ -1079,6 +1131,7 @@ def main_optimize(argv: Optional[Sequence[str]] = None) -> List[Optimum]:
     names = {result.case.name: result for result in results}
     living = names.get("living")
     storage = names.get("storage")
+    cold = names.get("cold_storage")
     if (
         living
         and storage
@@ -1087,8 +1140,20 @@ def main_optimize(argv: Optional[Sequence[str]] = None) -> List[Optimum]:
         and abs(living.f_star - storage.f_star) < 1e-6
     ):
         print("WARNING: living and storage f* are the same under these defaults.")
+    if (
+        living
+        and living.f_star is not None
+        and cold
+        and cold.f_star is not None
+        and living.f_star >= 0.95
+    ):
+        print("WARNING: living f* is at full burial; sunlight policy should keep it below that.")
+    import community_energy
+
+    community = community_energy.community_report(results)
+    print(community_energy.format_community_report(community))
     if not args.no_plot:
-        json_path, png_path = write_outputs(results)
+        json_path, png_path = write_outputs(results, community=community)
         print(f"wrote {json_path}")
         print(f"wrote {png_path}")
     return results
