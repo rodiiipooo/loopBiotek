@@ -120,6 +120,34 @@ class SwitchTest(unittest.TestCase):
         self.assertGreater(open_energy[0], enclosed[0] * 2.0)
 
 
+class AirPadTest(unittest.TestCase):
+    def test_pad_changes_energy_and_keeps_daylight(self):
+        living = next(case for case in opt.example_cases() if case.name == "living")
+        padded = opt.replace(living, name="living+pad", entrance_greenhouse_enclosure=True)
+        months = (opt.DFW_MONTHS[0], opt.DFW_MONTHS[6])
+        bare = opt.annual_energy(living, 0.65, opt.DFW_TYPICAL, hours=48.0, months=months)
+        with_pad = opt.annual_energy(padded, 0.65, opt.DFW_TYPICAL, hours=48.0, months=months)
+        self.assertGreater(abs(bare[0] - with_pad[0]), 1.0)
+        self.assertLess(with_pad[3], 0.5)
+        day_bare = opt.daylight_ratio(living, 0.65, opt.DFW_TYPICAL)
+        day_pad = opt.daylight_ratio(padded, 0.65, opt.DFW_TYPICAL)
+        self.assertLess(day_pad, day_bare)
+        self.assertGreater(day_pad, 0.12)
+
+    def test_conductance_is_conserved_and_storage_hatch_is_small(self):
+        storage = next(case for case in opt.example_cases() if case.name == "storage")
+        padded = opt.replace(storage, entrance_greenhouse_enclosure=True)
+        month = opt.DFW_MONTHS[0]
+        _, _, extras, _ = opt.build_envelope(padded, 1.0, month, opt.DFW_TYPICAL, 48.0, 60.0)
+        self.assertTrue(extras.buffer_enabled)
+        self.assertAlmostEqual(extras.buffer_plan_m2, opt.BUFFER_VESTIBULE_PLAN_M2)
+        self.assertAlmostEqual(extras.buffer_volume_m3, opt.BUFFER_VESTIBULE_PLAN_M2 * opt.BUFFER_HEIGHT_M)
+        roof_ua = extras.UA_roof_outdoor + extras.UA_roof_buffer
+        self.assertGreater(extras.UA_roof_buffer, 0.0)
+        self.assertLess(extras.UA_roof_buffer, roof_ua)
+        self.assertAlmostEqual(extras.UA_wall_outdoor + extras.UA_wall_buffer, extras.UA_exposed)
+
+
 class SweepTest(unittest.TestCase):
     def test_living_keeps_sun_and_stores_go_to_full_burial(self):
         results = opt.run_examples(f_step=0.25, hours=48.0)

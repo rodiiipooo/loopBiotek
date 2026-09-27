@@ -95,6 +95,7 @@ with \(k_\mathrm{ref} = 0.80\,\mathrm{W/(m\cdot K)}\) and \(\gamma_\mathrm{tube}
 | `ceiling_tilt_deg`, `ceiling_azimuth_from_south_deg` | Scales roof irradiance. Azimuth is degrees from south, west positive |
 | `glazing_azimuth_weights` | How exposed glazing (or an open stick-up) faces. Default 70% south, 15% east, 15% west |
 | `above_grade_enclosure` | True: exposed wall uses the wall material plus the glazing fraction. False: the stick-up is an opening, \(U=12\,\mathrm{W/(m^2\cdot K)}\), extra infiltration \(4(1-f)\) ACH |
+| `entrance_greenhouse_enclosure` | Air pad over the light roof or the entrance. Off by default. See below |
 | material keys | `wall_material`, `roof_material`, `glazing_material`, `floor_material` |
 | `structure` | Slab thickness and berm mass fraction (mass scales up slightly with \(f\)) |
 | `soil_moisture_retention` | \(\phi\) in the \(k\) and \(\rho c\) blends |
@@ -175,6 +176,35 @@ Living stays in the sun. Storage and cold storage go to the bottom of the cut. T
 | 100% | 15,700 (infeasible: egress and no-full-burial) | 16 | 27,035 |
 
 A home with an opaque roof and no wall glazing is rejected (`sunlight` cap). Greenhouse at 85% with water panes off is about 64,000 kWh versus 511 kWh with the roof loop. Dry storage at \(f=0.50\): soil moisture retention 0 → about 510 kWh; retention 1 → about 410 kWh.
+
+## Entrance greenhouse (air pad)
+
+Switch: `entrance_greenhouse_enclosure`. Default is off, so the table above is the bare envelope.
+
+When the facility still has a light-entering roof, an above-grade greenhouse covers that roof (plan area = floor area, at least a 6 m² vestibule). When the roof is opaque, only a vestibule covers the entrance: 6 m² of plan and a 2 m² door or hatch. At full burial the hatch is a patch of roof; if some wall is still above grade, that 2 m² comes out of the exposed wall first.
+
+The pad is one air node. ASSUMPTION defaults:
+
+| Input | Value |
+|-------|------:|
+| Height | 2.4 m |
+| Outer glazing U | 2.8 W/(m²·K) (double polycarbonate) |
+| Outdoor air changes of the pad | 1.5 /h |
+| Outer solar / visible transmittance | 0.70 |
+| Share of horizontal irradiance absorbed in the pad | 0.25 |
+| Room infiltration drawn from the pad | 75% (the rest still leaks outdoors) |
+
+Outdoor skin conductance is \(U\) times plan plus the four walls, plus the pad's own infiltration. The facility surfaces inside the pad, and 75% of the room's air changes, exchange with pad air \(T_b\) instead of outdoors. Those conductances still add up to the bare envelope; only the far-side temperature changes. A covered light roof also multiplies roof solar and the roof's daylight ratio by 0.70. The pad's capacitance is the air in \(A_\mathrm{plan} \times 2.4\,\mathrm{m}\), stepped implicitly each minute so a small vestibule stays stable.
+
+On the same DFW year, \(f^\star\) does not move. Living is still stopped at the 65% egress cap, and both stores still minimize at 100%. The energy at that \(f^\star\) does move:
+
+| Case | \(f^\star\) bare | \(f^\star\) with pad | Thermal kWh bare | Thermal kWh with pad |
+|------|----------------:|---------------------:|-----------------:|---------------------:|
+| living (clear roof) | 65% | 65% | 32,334 | 28,519 |
+| storage | 100% | 100% | 16 | 143 |
+| cold storage | 100% | 100% | 27,035 | 23,510 |
+
+The living roof sits under the greenhouse, so less solar enters and the roof conducts to pad air. That is about 3,800 kWh/year less at the same 65%. The cold store's hatch and most of its air leakage see pad air, which sits between the 1–4 °C room and the weather, so cooling falls by about 3,500 kWh/year and \(f^\star\) stays fully buried. The dry store was already near zero load; the vestibule's solar gain creates about 143 kWh/year of cooling that the bare buried box did not have. Full burial is still its minimum.
 
 ## Community loads and shared microgrid
 

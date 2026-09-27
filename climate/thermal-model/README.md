@@ -2,7 +2,7 @@
 
 Coupled transient simulation of a LoopBiotek Zone-1 cell: **room air + structural mass + glazed-roof water loop + earth conduction**, with explicit pipe geometry and thermal-expansion pressure.
 
-The planning submersion fraction is computed, not taken from the 70% illustration default. Homes keep a clear or glazed sunlight path and are not fully buried. Dry storage and refrigerated storage may go to 100% of height. The same run prints community hot-water gallons, maintenance versus discretionary energy, and a shared-microgrid CapEx stub. Method and the worked example: [`SUBMERSION_OPTIMAL.md`](SUBMERSION_OPTIMAL.md).
+The planning submersion fraction is computed, not taken from the 70% illustration default. Homes keep a clear or glazed sunlight path and are not fully buried. Dry storage and refrigerated storage may go to 100% of height. `entrance_greenhouse_enclosure` puts a greenhouse or vestibule over the light surface or the entrance and compares that air pad with the bare envelope. The same run prints community hot-water gallons, maintenance versus discretionary energy, and a shared-microgrid CapEx stub. Method and the worked example: [`SUBMERSION_OPTIMAL.md`](SUBMERSION_OPTIMAL.md).
 
 ```bash
 python climate/thermal-model/submersion_opt.py

@@ -4,8 +4,9 @@
 Sweeps the fraction f of building height below grade and picks f* that
 minimizes annual temperature-maintenance energy. Homes must keep a
 sunlight path and are not fully buried. Storage and cold storage may
-use f = 1. The same command prints community hot-water loads and a
-shared-microgrid CapEx stub (ASSUMPTION). It does not open Stage 2+
+use f = 1. entrance_greenhouse_enclosure adds an air pad over a light
+roof or an entrance. The same command prints community hot-water loads
+and a shared-microgrid CapEx stub (ASSUMPTION). It does not open Stage 2+
 cascade spend.
 
 Usage (from the repo root, with the project venv):
@@ -20,7 +21,7 @@ import csv
 import json
 import math
 import os
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from functools import lru_cache
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -59,6 +60,16 @@ OPEN_U = 12.0           # W/(m²·K)
 OPEN_ACH = 4.0          # extra air changes per hour at f = 0, scaled by (1-f)
 OPEN_SHGC = 0.85
 TAU_OPEN = 1.0
+# Above-grade greenhouse or vestibule over a light surface or an entrance.
+# ASSUMPTION planning values, not a measured sunspace.
+BUFFER_HEIGHT_M = 2.4
+BUFFER_VESTIBULE_PLAN_M2 = 6.0
+BUFFER_ENTRANCE_M2 = 2.0
+BUFFER_U = 2.8
+BUFFER_ACH = 1.5
+BUFFER_TAU = 0.70
+BUFFER_ABSORPTANCE = 0.25
+BUFFER_ROOM_AIR_FROM_PAD = 0.75
 # Visible transmittance of a water-film roof vs the dry glazing tau_vis.
 TAU_ROOF_WATER = 0.55
 # Share of monthly horizontal irradiance treated as isotropic diffuse.
@@ -255,6 +266,8 @@ class SubmersionCase:
         (90.0, 0.15),
         (-90.0, 0.15),
     )
+    # Greenhouse or vestibule over the light surface and/or the entrance.
+    entrance_greenhouse_enclosure: bool = False
 
 
 @dataclass
@@ -459,6 +472,8 @@ def daylight_ratio(case: SubmersionCase, f: float, climate: SiteClimate) -> floa
     aperture = 0.0
     if case.clear_ceiling and case.glazed_roof_frac > 0.0:
         tau = TAU_ROOF_WATER if case.water_panes else glaze["tau_vis"]
+        if case.entrance_greenhouse_enclosure:
+            tau *= BUFFER_TAU
         sky = effective_tilt_factor(
             case.ceiling_tilt_deg,
             case.ceiling_azimuth_from_south_deg,
@@ -575,6 +590,62 @@ def _pipe_for_roof(case: SubmersionCase, glazed_area: float) -> env.PipeGeometry
     )
 
 
+@dataclass(frozen=True)
+class BufferSpec:
+    """Air pad between outdoors and the facility. Disabled specs are all zeros."""
+
+    enabled: bool
+    covers_light: bool
+    plan_m2: float
+    volume_m3: float
+    roof_area_in_buffer_m2: float
+    wall_area_in_buffer_m2: float
+    UA_outdoor: float
+    C_J_per_K: float
+
+
+def buffer_spec(
+    case: SubmersionCase,
+    floor_area: float,
+    exposed_area: float,
+    glazed_area: float,
+    opaque_area: float,
+) -> BufferSpec:
+    """Greenhouse over a light roof, or a vestibule over the entrance hatch.
+
+    A clear ceiling is the light-entering surface, so the pad covers that
+    roof. An opaque roof only puts the door or hatch inside the pad.
+    """
+    empty = BufferSpec(False, False, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    if not case.entrance_greenhouse_enclosure:
+        return empty
+    covers_light = bool(case.clear_ceiling and case.glazed_roof_frac > 0.0 and glazed_area > 0.0)
+    wall_in = min(BUFFER_ENTRANCE_M2, max(0.0, exposed_area))
+    if covers_light:
+        plan = max(floor_area * min(1.0, case.glazed_roof_frac), BUFFER_VESTIBULE_PLAN_M2)
+        roof_in = floor_area
+    else:
+        plan = BUFFER_VESTIBULE_PLAN_M2
+        hatch = max(0.0, BUFFER_ENTRANCE_M2 - wall_in)
+        roof_in = min(hatch, opaque_area + glazed_area)
+    volume = plan * BUFFER_HEIGHT_M
+    side = 4.0 * math.sqrt(max(plan, 1e-6)) * BUFFER_HEIGHT_M
+    skin = plan + side
+    ua_skin = BUFFER_U * skin
+    ua_inf = env.RHO_AIR * env.CP_AIR * volume * BUFFER_ACH / 3600.0
+    capacitance = env.RHO_AIR * env.CP_AIR * volume
+    return BufferSpec(
+        enabled=True,
+        covers_light=covers_light,
+        plan_m2=plan,
+        volume_m3=volume,
+        roof_area_in_buffer_m2=roof_in,
+        wall_area_in_buffer_m2=wall_in,
+        UA_outdoor=ua_skin + ua_inf,
+        C_J_per_K=capacitance,
+    )
+
+
 def build_envelope(
     case: SubmersionCase,
     f: float,
@@ -685,6 +756,27 @@ def build_envelope(
     else:
         roof_scale = 1.0
 
+    buf = buffer_spec(case, floor_area, exposed_area, glazed_area, opaque_area)
+    ua_roof = glaze["U"] * glazed_area + roof["U"] * opaque_area
+    if buf.enabled and floor_area > 0.0:
+        roof_frac = min(1.0, buf.roof_area_in_buffer_m2 / floor_area)
+        wall_frac = 0.0 if exposed_area <= 1e-8 else min(1.0, buf.wall_area_in_buffer_m2 / exposed_area)
+        ua_roof_buffer = ua_roof * roof_frac
+        ua_roof_outdoor = ua_roof - ua_roof_buffer
+        ua_wall_buffer = ua_exposed * wall_frac
+        ua_wall_outdoor = ua_exposed - ua_wall_buffer
+        pad_frac = BUFFER_ROOM_AIR_FROM_PAD
+        if buf.covers_light:
+            roof_scale *= BUFFER_TAU
+        q_buffer = buf.plan_m2 * BUFFER_ABSORPTANCE * horizontal
+    else:
+        ua_roof_buffer = 0.0
+        ua_roof_outdoor = ua_roof
+        ua_wall_buffer = 0.0
+        ua_wall_outdoor = ua_exposed
+        pad_frac = 0.0
+        q_buffer = np.zeros_like(horizontal)
+
     extras = env.SimExtras(
         T_soil_floor_C=t_floor,
         T_soil_wall_C=t_wall,
@@ -700,6 +792,18 @@ def build_envelope(
         Q_solar_room_extra_W=extra,
         T_heat_C=spec.T_heat_C,
         T_cool_C=spec.T_cool_C,
+        buffer_enabled=buf.enabled,
+        C_buffer=buf.C_J_per_K,
+        UA_buffer_outdoor=buf.UA_outdoor,
+        UA_roof_outdoor=ua_roof_outdoor,
+        UA_roof_buffer=ua_roof_buffer,
+        UA_wall_outdoor=ua_wall_outdoor,
+        UA_wall_buffer=ua_wall_buffer,
+        buffer_infiltration_from_pad=pad_frac,
+        Q_solar_buffer_W=q_buffer if buf.enabled else None,
+        T0_buffer_C=0.5 * (spec.T_heat_C + spec.T_cool_C),
+        buffer_plan_m2=buf.plan_m2,
+        buffer_volume_m3=buf.volume_m3,
     )
     return room, pipe, extras, clim
 
@@ -709,11 +813,12 @@ def steady_node_temperatures(
     pipe: env.PipeGeometry,
     extras: env.SimExtras,
     clim: env.ClimateParams,
-) -> Tuple[float, float]:
-    """Daily-mean room and water temperatures with the thermostat off.
+) -> Tuple[float, float, float]:
+    """Daily-mean room, water, and buffer temperatures with the thermostat off.
 
     The structural mass is slow compared with a day, so the transient is
     started here (then clamped to the band) instead of drifting for weeks.
+    The buffer return is the outdoor mean when the air pad is off.
     """
     areas = env.areas(room)
     ua_rw = room.UA_roof_to_water if room.UA_roof_to_water is not None else env.ua_roof_to_water(pipe)
@@ -740,21 +845,48 @@ def steady_node_temperatures(
     q_roof_r = room.g_solar_to_room * extras.roof_solar_scale * g_mean * areas["glazed_roof"]
     q_roof_w = room.g_solar_to_water * extras.roof_solar_scale * g_mean * areas["glazed_roof"]
     q_wall = 0.0 if extras.Q_solar_room_extra_W is None else float(np.mean(extras.Q_solar_room_extra_W))
-    a_rr = ua_rw + ua_out + ua_floor + ua_wall
-    rhs_r = q_roof_r + q_wall + room.Q_internal_W + ua_out * t_out + ua_floor * t_floor + ua_wall * t_wall
+    ua_inf_buf = 0.0
+    ua_rb = 0.0
+    if extras.buffer_enabled:
+        pad = min(1.0, max(0.0, extras.buffer_infiltration_from_pad))
+        ua_inf_buf = pad * ua_inf
+        ua_rb = extras.UA_roof_buffer + extras.UA_wall_buffer + ua_inf_buf
+    ua_direct = max(0.0, ua_out - ua_rb)
+    a_rr = ua_rw + ua_direct + ua_rb + ua_floor + ua_wall
+    rhs_r = q_roof_r + q_wall + room.Q_internal_W + ua_direct * t_out + ua_floor * t_floor + ua_wall * t_wall
     a_ww = ua_rw + ua_rej
     rhs_w = q_roof_w + ua_rej * t_rej
-    if a_ww <= 1e-8:
+    q_buf = 0.0 if extras.Q_solar_buffer_W is None else float(np.mean(extras.Q_solar_buffer_W))
+    ua_bo = extras.UA_buffer_outdoor if extras.buffer_enabled else 0.0
+    if a_ww <= 1e-8 and ua_rb <= 1e-8:
         t_r = t_out if a_rr <= 1e-8 else rhs_r / a_rr
-        return t_r, t_rej
-    # Room:  a_rr * Tr - ua_rw * Tw = rhs_r
-    # Water: -ua_rw * Tr + a_ww * Tw = rhs_w
-    det = a_rr * a_ww - ua_rw * ua_rw
-    if abs(det) <= 1e-8:
-        return t_out, t_rej
-    t_r = (rhs_r * a_ww + ua_rw * rhs_w) / det
-    t_w = (a_rr * rhs_w + ua_rw * rhs_r) / det
-    return t_r, t_w
+        return t_r, t_rej, t_out
+    # Water: Tw = (rhs_w + ua_rw * Tr) / a_ww
+    # Buffer: Tb = (q_buf + ua_bo * t_out + ua_rb * Tr) / (ua_rb + ua_bo)
+    water_den = a_ww if a_ww > 1e-8 else 1.0
+    buf_den = ua_rb + ua_bo
+    if buf_den <= 1e-8:
+        buf_den = 1.0
+        ua_rb_eff = 0.0
+        rhs_b = t_out
+    else:
+        ua_rb_eff = ua_rb
+        rhs_b = q_buf + ua_bo * t_out
+    # (a_rr - ua_rw^2/a_ww - ua_rb^2/buf_den) Tr = rhs_r + ua_rw*rhs_w/a_ww + ua_rb*rhs_b/buf_den
+    coef = a_rr
+    rhs = rhs_r
+    if a_ww > 1e-8:
+        coef -= (ua_rw * ua_rw) / water_den
+        rhs += ua_rw * rhs_w / water_den
+    if ua_rb_eff > 1e-8:
+        coef -= (ua_rb_eff * ua_rb_eff) / buf_den
+        rhs += ua_rb_eff * rhs_b / buf_den
+    if abs(coef) <= 1e-8:
+        return t_out, t_rej, t_out
+    t_r = rhs / coef
+    t_w = t_rej if a_ww <= 1e-8 else (rhs_w + ua_rw * t_r) / water_den
+    t_b = t_out if ua_rb_eff <= 1e-8 else (rhs_b + ua_rb_eff * t_r) / buf_den
+    return t_r, t_w, t_b
 
 
 def day_energy(
@@ -767,11 +899,12 @@ def day_energy(
 ) -> Tuple[float, float, float]:
     """Settled-day heating kWh, cooling kWh, and |ΔT| closure across that day."""
     room, pipe, extras, clim = build_envelope(case, f, month, climate, hours, dt_s)
-    t_r, t_w = steady_node_temperatures(room, pipe, extras, clim)
+    t_r, t_w, t_b = steady_node_temperatures(room, pipe, extras, clim)
     if extras.T_heat_C is not None and extras.T_cool_C is not None:
         t_r = min(extras.T_cool_C, max(extras.T_heat_C, t_r))
     room.T0_room_C = t_r
     room.T0_water_C = t_w
+    extras.T0_buffer_C = t_b
     sim = env.simulate(room, pipe, clim, hours=hours, dt_s=dt_s, extras=extras)
     closure = abs(float(sim["T_room"][0]) - float(sim["T_room"][-1]))
     return float(sim["E_heat_kWh"][0]), float(sim["E_cool_kWh"][0]), closure
@@ -938,6 +1071,7 @@ def switches_dict(case: SubmersionCase) -> Dict[str, object]:
         "min_daylight_ratio": spec.min_daylight_ratio,
         "egress_min_clear_height_m": spec.egress_min_clear_height_m,
         "view_min_exposed_fraction": spec.view_min_exposed_fraction,
+        "entrance_greenhouse_enclosure": case.entrance_greenhouse_enclosure,
     }
 
 
@@ -948,14 +1082,14 @@ def format_report(results: Sequence[Optimum]) -> str:
         "f is the fraction of building height below grade. Defaults are ASSUMPTIONs.",
         "The legacy summer illustration (RoomParams.submersion = 0.70) is not this f*.",
         "",
-        f"{'case':<14}{'f*':>8}{'f_max':>8}{'E_kWh':>12}{'heat':>10}{'cool':>10}  limiter",
+        f"{'case':<18}{'f*':>8}{'f_max':>8}{'E_kWh':>12}{'heat':>10}{'cool':>10}  limiter",
     ]
     for result in results:
         if result.f_star is None or result.E_star_kWh is None:
-            lines.append(f"{result.case.name:<14}{'—':>8}{result.f_max * 100:7.1f}%  infeasible")
+            lines.append(f"{result.case.name:<18}{'—':>8}{result.f_max * 100:7.1f}%  infeasible")
             continue
         lines.append(
-            f"{result.case.name:<14}{result.f_star * 100:7.1f}%"
+            f"{result.case.name:<18}{result.f_star * 100:7.1f}%"
             f"{result.f_max * 100:7.1f}%"
             f"{result.E_star_kWh:12.0f}"
             f"{result.E_heat_kWh:10.0f}"
@@ -967,7 +1101,8 @@ def format_report(results: Sequence[Optimum]) -> str:
         sw = switches_dict(result.case)
         lines.append(
             "  switches: use_type={use_type} clear_ceiling={clear_ceiling} "
-            "water_panes={water_panes} above_grade_enclosure={above_grade_enclosure}".format(**sw)
+            "water_panes={water_panes} above_grade_enclosure={above_grade_enclosure} "
+            "entrance_greenhouse_enclosure={entrance_greenhouse_enclosure}".format(**sw)
         )
         lines.append(
             "  envelope: {L_m:.0f}×{W_m:.0f}×{H_m:.1f} m  wall={wall_material} "
@@ -1030,16 +1165,19 @@ def plot_optimal_curves(results: Sequence[Optimum], path: str) -> None:
         color = colors.get(result.case.use_type, "#4a5568")
         xs = [point.f * 100.0 for point in result.curve]
         ys = [point.E_kWh for point in result.curve]
+        padded = bool(result.case.entrance_greenhouse_enclosure)
         ax.plot(
             xs,
             ys,
-            "-o",
+            "--" if padded else "-o",
             color=color,
-            lw=2,
-            ms=4.5,
+            lw=1.6 if padded else 2.0,
+            ms=3.5 if padded else 4.5,
+            alpha=0.95 if padded else 1.0,
             label=f"{result.case.name}   f* = {result.f_star * 100:.0f}%",
         )
-        ax.axvline(result.f_star * 100.0, color=color, ls="--", lw=1.0, alpha=0.85)
+        if not padded:
+            ax.axvline(result.f_star * 100.0, color=color, ls="--", lw=1.0, alpha=0.85)
     ax.set_xlabel("Submersion (% of building height below grade)")
     ax.set_ylabel("Annual temperature-maintenance energy (thermal kWh)")
     ax.set_xlim(0, 100)
@@ -1047,11 +1185,64 @@ def plot_optimal_curves(results: Sequence[Optimum], path: str) -> None:
     ax.legend(loc="best", fontsize=9)
     ax.set_title(
         "Optimal submersion — annual thermostat energy vs height fraction\n"
-        "DFW typical-month days · ASSUMPTION defaults · dashed line is f*"
+        "DFW typical-month days · solid is the bare envelope · dashed curve is the air pad"
     )
     fig.tight_layout()
     fig.savefig(path, dpi=140)
     plt.close(fig)
+
+
+def buffer_comparison_cases() -> List[SubmersionCase]:
+    """Same cells as the examples, with the entrance greenhouse switched on.
+
+    The greenhouse use type is already a glazed roof, so it is not wrapped again.
+    """
+    wanted = ("living", "storage", "cold_storage")
+    base = {case.name: case for case in example_cases()}
+    return [
+        replace(base[name], name=f"{name}+pad", entrance_greenhouse_enclosure=True)
+        for name in wanted
+    ]
+
+
+def _energy_near(result: Optimum, f: float) -> Optional[float]:
+    if not result.curve:
+        return None
+    point = min(result.curve, key=lambda row: abs(row.f - f))
+    return point.E_kWh
+
+
+def format_buffer_comparison(base: Sequence[Optimum], padded: Sequence[Optimum]) -> str:
+    """Energy and f* with the air pad against the same cell without it."""
+    by_name = {result.case.name: result for result in base}
+    lines = [
+        "",
+        "Entrance greenhouse air pad — with vs without",
+        "ASSUMPTION: buffer height {:.1f} m, outer glazing U {:.1f} W/(m²·K), "
+        "buffer ACH {:.1f}, outer transmittance {:.2f}.".format(
+            BUFFER_HEIGHT_M, BUFFER_U, BUFFER_ACH, BUFFER_TAU
+        ),
+        "A clear roof is covered by a greenhouse of that plan. An opaque roof only "
+        "pads a {:.0f} m² vestibule and a {:.0f} m² door or hatch.".format(
+            BUFFER_VESTIBULE_PLAN_M2, BUFFER_ENTRANCE_M2
+        ),
+        f"Room infiltration drawn from the pad: {BUFFER_ROOM_AIR_FROM_PAD:.0%}. "
+        f"Buffer keeps {BUFFER_ABSORPTANCE:.0%} of the horizontal irradiance on its plan.",
+        f"{'case':<18}{'f* bare':>10}{'f* pad':>10}{'E bare':>12}{'E pad':>12}{'E pad at bare f*':>18}",
+    ]
+    for result in padded:
+        parent_name = result.case.name[: -len("+pad")] if result.case.name.endswith("+pad") else ""
+        parent = by_name.get(parent_name)
+        if parent is None or parent.f_star is None or result.f_star is None:
+            lines.append(f"{result.case.name:<18}  infeasible")
+            continue
+        same_f = _energy_near(result, parent.f_star)
+        same_txt = "—" if same_f is None else f"{same_f:12.0f}"
+        lines.append(
+            f"{parent_name:<18}{parent.f_star * 100:9.1f}%{result.f_star * 100:9.1f}%"
+            f"{parent.E_star_kWh:12.0f}{result.E_star_kWh:12.0f}{same_txt:>18}"
+        )
+    return "\n".join(lines)
 
 
 def run_examples(
@@ -1068,6 +1259,7 @@ def write_outputs(
     results: Sequence[Optimum],
     stem: str = "submersion_optimal",
     community: Optional[Dict] = None,
+    buffer_comparison: Optional[Sequence[Optimum]] = None,
 ) -> Tuple[str, str]:
     os.makedirs(OUT_DIR, exist_ok=True)
     json_path = os.path.join(OUT_DIR, stem + ".json")
@@ -1090,11 +1282,28 @@ def write_outputs(
         },
         "cases": [optimum_to_json(result) for result in results],
         "community_energy": community,
+        "buffer_comparison": None
+        if buffer_comparison is None
+        else [optimum_to_json(result) for result in buffer_comparison],
+        "buffer_assumptions": {
+            "height_m": BUFFER_HEIGHT_M,
+            "vestibule_plan_m2": BUFFER_VESTIBULE_PLAN_M2,
+            "entrance_m2": BUFFER_ENTRANCE_M2,
+            "U_W_per_m2K": BUFFER_U,
+            "ACH": BUFFER_ACH,
+            "tau": BUFFER_TAU,
+            "absorptance": BUFFER_ABSORPTANCE,
+            "room_air_from_pad": BUFFER_ROOM_AIR_FROM_PAD,
+            "note": "ASSUMPTION. See SUBMERSION_OPTIMAL.md.",
+        },
     }
     with open(json_path, "w") as handle:
         json.dump(payload, handle, indent=2)
         handle.write("\n")
-    plot_optimal_curves(results, png_path)
+    plotted = list(results)
+    if buffer_comparison:
+        plotted.extend(buffer_comparison)
+    plot_optimal_curves(plotted, png_path)
     return json_path, png_path
 
 
@@ -1127,7 +1336,14 @@ def main_optimize(argv: Optional[Sequence[str]] = None) -> List[Optimum]:
         )
 
     results = run_examples(climate=climate, f_step=args.f_step, hours=args.hours)
+    padded = run_examples(
+        climate=climate,
+        f_step=args.f_step,
+        hours=args.hours,
+        cases=buffer_comparison_cases(),
+    )
     print(format_report(results))
+    print(format_buffer_comparison(results, padded))
     names = {result.case.name: result for result in results}
     living = names.get("living")
     storage = names.get("storage")
@@ -1153,7 +1369,9 @@ def main_optimize(argv: Optional[Sequence[str]] = None) -> List[Optimum]:
     community = community_energy.community_report(results)
     print(community_energy.format_community_report(community))
     if not args.no_plot:
-        json_path, png_path = write_outputs(results, community=community)
+        json_path, png_path = write_outputs(
+            results, community=community, buffer_comparison=padded
+        )
         print(f"wrote {json_path}")
         print(f"wrote {png_path}")
     return results

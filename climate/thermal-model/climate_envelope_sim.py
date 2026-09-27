@@ -196,6 +196,20 @@ class SimExtras:
     Q_solar_room_extra_W: Optional[np.ndarray] = None
     T_heat_C: Optional[float] = None
     T_cool_C: Optional[float] = None
+    # Entrance greenhouse / vestibule. All default off so the legacy balance
+    # and an unbuffered optimizer step never read them.
+    buffer_enabled: bool = False
+    C_buffer: float = 0.0
+    UA_buffer_outdoor: float = 0.0
+    UA_roof_outdoor: float = 0.0
+    UA_roof_buffer: float = 0.0
+    UA_wall_outdoor: float = 0.0
+    UA_wall_buffer: float = 0.0
+    buffer_infiltration_from_pad: float = 0.0
+    Q_solar_buffer_W: Optional[np.ndarray] = None
+    T0_buffer_C: float = 20.0
+    buffer_plan_m2: float = 0.0
+    buffer_volume_m3: float = 0.0
 
 
 def ua_roof_to_water(pipe: PipeGeometry) -> float:
@@ -276,6 +290,11 @@ def simulate(
             raise ValueError(
                 f"Q_solar_room_extra_W length {len(extras.Q_solar_room_extra_W)} != time steps {n}"
             )
+    if extras is not None and extras.buffer_enabled and extras.Q_solar_buffer_W is not None:
+        if len(extras.Q_solar_buffer_W) != n:
+            raise ValueError(
+                f"Q_solar_buffer_W length {len(extras.Q_solar_buffer_W)} != time steps {n}"
+            )
     if extras is not None and extras.T_heat_C is not None and extras.T_cool_C is not None:
         if extras.T_heat_C > extras.T_cool_C:
             raise ValueError("thermostat heating setpoint is above cooling setpoint")
@@ -291,6 +310,9 @@ def simulate(
 
     T_r[0] = room.T0_room_C
     T_w[0] = room.T0_water_C
+    T_b = np.zeros(n)
+    if extras is not None and extras.buffer_enabled:
+        T_b[0] = extras.T0_buffer_C
     T_ref = room.T0_water_C
 
     V_pipe = pipe.pipe_volume_m3
@@ -358,6 +380,26 @@ def simulate(
             else:
                 Q_wall_amb = extras.UA_exposed * (Tr - To)
             Q_inf = UA_inf * (Tr - To)
+            if extras.buffer_enabled:
+                # Padded surfaces and the entrance air path see buffer air.
+                # Conductances still sum to the unbuffered envelope.
+                Tb = T_b[i]
+                Q_roof_amb = (
+                    extras.UA_roof_outdoor * (Tr - To) + extras.UA_roof_buffer * (Tr - Tb)
+                )
+                Q_wall_amb = (
+                    extras.UA_wall_outdoor * (Tr - To) + extras.UA_wall_buffer * (Tr - Tb)
+                )
+                pad = min(1.0, max(0.0, extras.buffer_infiltration_from_pad))
+                Q_inf = UA_inf * ((1.0 - pad) * (Tr - To) + pad * (Tr - Tb))
+                ua_rb = extras.UA_roof_buffer + extras.UA_wall_buffer + pad * UA_inf
+                ua_bo = extras.UA_buffer_outdoor
+                qs = 0.0 if extras.Q_solar_buffer_W is None else float(extras.Q_solar_buffer_W[i])
+                c_b = extras.C_buffer if extras.C_buffer > 1.0 else 1.0
+                # Implicit in the buffer unknown so a small air volume stays stable.
+                T_b[i + 1] = (c_b / dt_s * Tb + qs + ua_bo * To + ua_rb * Tr) / (
+                    c_b / dt_s + ua_bo + ua_rb
+                )
             Q_reject = UA_reject * (Tw - Ts_rej)
 
             dTr = (Q_solar_room + Q_int - Q_rw - Q_roof_amb - Q_earth - Q_wall_amb - Q_inf) / C_room
