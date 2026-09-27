@@ -25,7 +25,7 @@ loopBiotek/
   buildings/             # IFC SoR; create/edit scripts; models/
   algae/                 # cell.yaml (Zone 2 nutrients)
   climate/thermal-model/ # envelope sim + outputs (pre-existing)
-  economics/             # points at reference/loop_params.xlsx
+  economics/             # loop_params.xlsx pointer; COMMUNITY_CAPITAL_PAYBACK.md (planning, Stage 1 spend unchanged)
   architecture/          # layers + commercial funnel
   reference/             # PDF, notebooks, xlsx (pre-existing)
   .venv/                 # project Python env

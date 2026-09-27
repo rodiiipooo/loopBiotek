@@ -20,7 +20,7 @@ Three Loop operations are the filter for every idea below.
 
 **Ch. 2 — Budget Constraint.** Every week has a budget: feed, seed, hours, water, kilowatt-hours, and cash. Choosing one use means refusing another. That refused use is the opportunity cost. The habit is a ledger that shows the refusal, not only the purchase.
 
-**Ch. 10 — Intertemporal Choice.** Money and goods now are not the same as money and goods later. Present value is how a capital purchase (CAPEX) is compared with the cash it is supposed to return in later weeks. A kit, a tank, or a roof that pays back only by skipping the nutrition stack or the α gates does not clear this chapter's test for the project.
+**Ch. 10 — Intertemporal Choice.** Money and goods now are not the same as money and goods later. Present value is how a capital purchase (CAPEX) is compared with the cash it is supposed to return in later weeks. A kit, a tank, or a roof that pays back only by skipping the nutrition stack or the α gates does not clear this chapter's test for the project. Proportional recovery of pooled setup capital — each dollar of contribution draws the same fraction of distributable surplus until principal is back, then a separate post-payback split — is specified in [../economics/COMMUNITY_CAPITAL_PAYBACK.md](../economics/COMMUNITY_CAPITAL_PAYBACK.md).
 
 **Ch. 12 — Uncertainty, and Ch. 13 — Risky Assets.** Outcomes are distributions: hatch, survival, yields, weather, prices. Risk aversion means a community prefers a smaller chance of a bad week over a glamorous average. Insurance and diversification are ways to pay, in advance, to keep one failure from ending the cell. This is the textbook neighbor of Module 11: expansion waits until those bad-week probabilities sit under α.
 
