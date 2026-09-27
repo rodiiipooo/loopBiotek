@@ -18,6 +18,8 @@ R_PRIME = 0.07  # SOURCED Fed H.15 bank prime, 2026-09-24
 FAIRNESS = 0.9
 EPSILON = 0.01  # Loop report alpha_Q example
 ALPHA = 0.9  # reliability stand-in for the worm P10 firm book
+SAFETY_FRAC = 1.15  # ASSUMPTION gross-up on a forward breeder need
+M_WEEKLY = 0.01  # planning weekly mortality; same default as research/quail
 BUFFER_WEEKS = 2.0  # ASSUMPTION planning default, not a measured coverage
 
 # Planning ceilings. Quail/BSFL round the Loop Module 2 break-evens
@@ -215,6 +217,142 @@ def cap_offtake_change(
     }
 
 
+def _check_unit_interval(name: str, value: float, *, upper_open: bool = False) -> float:
+    v = float(value)
+    if upper_open:
+        if not 0.0 <= v < 1.0:
+            raise ValueError(f"{name} must be in [0, 1)")
+    elif not 0.0 < v <= 1.0:
+        raise ValueError(f"{name} must be in (0, 1]")
+    return v
+
+
+def safe_sell_limit(
+    n_now: float,
+    floor: float,
+    alpha: float = ALPHA,
+    safety_frac: float = SAFETY_FRAC,
+    m_weekly: float = M_WEEKLY,
+    lead_weeks: float = 0.0,
+    n_req_forward: float | None = None,
+) -> dict:
+    """Fail-closed firm offtake. Deterministic. The Monte Carlo governor is TBD.
+
+    H_max = max(0, N_now - floor)
+    D_firm <= alpha * H_max
+
+    When n_req_forward is set, the harvest is also clipped with the same
+    shape as cull_cap_deterministic: survivors of what you keep must cover
+    the forward breeder need times safety_frac. The per-week factor is
+    survival (1 - m), not growth. Epsilon is left at 0 in that call because
+    safety_frac is the margin; the report's epsilon = 0.01 draw is not run.
+    """
+    alpha_v = _check_unit_interval("alpha", alpha)
+    if float(safety_frac) <= 0.0:
+        raise ValueError("safety_frac must be > 0")
+    m_v = _check_unit_interval("m_weekly", m_weekly, upper_open=True)
+    if float(lead_weeks) < 0.0:
+        raise ValueError("lead_weeks must be >= 0")
+    if n_req_forward is not None and float(n_req_forward) < 0.0:
+        raise ValueError("n_req_forward must be >= 0")
+
+    h_max = surplus(n_now, floor)
+    firm_max = alpha_v * h_max
+    cull_cap_keep = None
+    clipped_to_floor = None
+    if n_req_forward is not None:
+        # safety_frac scales the need; epsilon=0 so it is not applied twice.
+        # (1-m) compounds as the deterministic "growth" factor (survival).
+        proxy = cull_cap_deterministic(
+            float(n_now),
+            float(n_req_forward) * float(safety_frac),
+            tau_weeks=float(lead_weeks),
+            growth_per_week=1.0 - m_v,
+            epsilon=0.0,
+            n_floor=float(floor),
+        )
+        cull_cap_keep = proxy["H"]
+        clipped_to_floor = proxy["clipped_to_floor"]
+    allowed = firm_max if cull_cap_keep is None else min(firm_max, cull_cap_keep)
+    return {
+        "surplus": h_max,
+        "firm_max": firm_max,
+        "cull_cap_keep": cull_cap_keep,
+        "allowed_firm": allowed,
+        "n_now": float(n_now),
+        "floor": float(floor),
+        "alpha": alpha_v,
+        "safety_frac": float(safety_frac),
+        "m_weekly": m_v,
+        "lead_weeks": float(lead_weeks),
+        "n_req_forward": None if n_req_forward is None else float(n_req_forward),
+        "clipped_to_floor": clipped_to_floor,
+        "note": (
+            "Deterministic fail-closed proxy. Firm offtake is alpha times surplus "
+            "above the floor, then the cull cap when a forward breeder need is set. "
+            "Full Monte Carlo governor (epsilon=0.01) is TBD. Cut offtake first; "
+            "do not sell the breed floor."
+        ),
+    }
+
+
+def birds_now_for_demand(
+    d_firm: float,
+    m_weekly: float = M_WEEKLY,
+    lead_weeks: float = 10.0,
+    safety_frac: float = SAFETY_FRAC,
+    alpha: float = ALPHA,
+) -> dict:
+    """On-hand pipeline before a firm delivery.
+
+    N_pipeline >= D_firm / (1-m)^w * s/alpha
+
+    w is lead_weeks. s is safety_frac. alpha is the firm-book fraction.
+    """
+    if float(d_firm) < 0.0:
+        raise ValueError("d_firm must be >= 0")
+    alpha_v = _check_unit_interval("alpha", alpha)
+    if float(safety_frac) <= 0.0:
+        raise ValueError("safety_frac must be > 0")
+    m_v = _check_unit_interval("m_weekly", m_weekly, upper_open=True)
+    if float(lead_weeks) < 0.0:
+        raise ValueError("lead_weeks must be >= 0")
+    survival = (1.0 - m_v) ** float(lead_weeks)
+    if survival <= 0.0:
+        raise ValueError("survival over the lead must be > 0")
+    n_min = float(d_firm) / survival * (float(safety_frac) / alpha_v)
+    return {
+        "n_pipeline_min": n_min,
+        "d_firm": float(d_firm),
+        "m_weekly": m_v,
+        "lead_weeks": float(lead_weeks),
+        "safety_frac": float(safety_frac),
+        "alpha": alpha_v,
+        "pipeline_multiple": (n_min / float(d_firm)) if float(d_firm) > 0.0 else None,
+        "formula": "N_pipeline >= D_firm / (1-m)^w * s/alpha",
+    }
+
+
+def margin_backsolve(
+    target_margin_usd: float,
+    margin_per_unit: float,
+    unit_name: str = "unit",
+) -> dict:
+    """H = target_margin_usd / margin_per_unit. Planning division only."""
+    per = float(margin_per_unit)
+    if per <= 0.0:
+        raise ValueError("margin_per_unit must be > 0")
+    if not str(unit_name).strip():
+        raise ValueError("unit_name must be non-empty")
+    return {
+        "units": float(target_margin_usd) / per,
+        "target_margin_usd": float(target_margin_usd),
+        "margin_per_unit": per,
+        "unit_name": str(unit_name),
+        "formula": "H = target_margin_usd / margin_per_unit",
+    }
+
+
 def _shock_record(name: str, n_before: float, n_after: float, floor: float, export_halted: bool, detail: dict) -> dict:
     raided = n_after + 1e-9 < floor
     return {
@@ -321,9 +459,26 @@ def smoke(path: Path | None = None) -> dict:
     flat = fair_prepaid(p0, 0.5, r_inf=0.0)
     cull = cull_cap_deterministic(100.0, 90.0, tau_weeks=8, growth_per_week=1.0, epsilon=EPSILON, n_floor=95.0)
     shocks = shock_scenarios()
+    sell_open = safe_sell_limit(1000.0, 800.0)
+    sell_forward = safe_sell_limit(1000.0, 800.0, lead_weeks=10.0, n_req_forward=750.0)
+    pipeline = birds_now_for_demand(100.0)
+    backsolve_lb = margin_backsolve(3000.0, 7.82, unit_name="lb")
+    helpers_ok = (
+        abs(sell_open["surplus"] - 200.0) < 1e-9
+        and abs(sell_open["firm_max"] - 180.0) < 1e-9
+        and sell_open["cull_cap_keep"] is None
+        and abs(sell_open["allowed_firm"] - 180.0) < 1e-9
+        and sell_forward["cull_cap_keep"] is not None
+        and sell_forward["allowed_firm"] <= sell_forward["firm_max"] + 1e-9
+        and sell_forward["allowed_firm"] <= sell_forward["cull_cap_keep"] + 1e-9
+        and sell_forward["allowed_firm"] + 1e-9 < sell_forward["firm_max"]
+        and pipeline["n_pipeline_min"] > pipeline["d_firm"]
+        and abs(backsolve_lb["units"] - (3000.0 / 7.82)) < 1e-9
+    )
     payload = {
         "stage_gate": "Stage 1 worms only. Synergy math is planning. No Stage 2-5 spend.",
-        "ok": all(row["fail_closed"] for row in shocks.values()),
+        "ok": all(row["fail_closed"] for row in shocks.values()) and helpers_ok,
+        "helpers_ok": helpers_ok,
         "fair_prepaid_T0.5": priced,
         "fair_prepaid_T0.5_r_inf_0": {"F_prelim": flat["F_prelim"]},
         "waste_ceilings": {name: waste_ceiling(name) for name in WASTE_CEILINGS},
@@ -334,6 +489,10 @@ def smoke(path: Path | None = None) -> dict:
             "crickets_placeholder": waste_fraction_ok("crickets", 0.2),
         },
         "cull_cap_proxy": cull,
+        "safe_sell_open": sell_open,
+        "safe_sell_forward_need": sell_forward,
+        "birds_now_for_demand": pipeline,
+        "margin_backsolve_3k_per_lb": backsolve_lb,
         "breed_floor_example": {
             "floor": breed_floor(10, 12, 9),
             "surplus_above_floor": surplus(15, breed_floor(10, 12, 9)),
