@@ -133,3 +133,8 @@ Week-9 dressed weight is now **0.5232 lb male** and **0.5774 lb female**.
 | `delivery_split_vs_soon.png` | 15 lb locked in month 3 plus 15 lb that can wait needs about 128 starters. All 30 lb in month 3 needs about 156. |
 | `quail_n0_for_2000.png` and `quail_feed_vs_herd.png` | The $2,000 case above, and the feed that heavy herd eats. |
 | `worm_p10_sell_room.png` | At 16,500 worms, P10 room is about 13 lb in month 3 and about 113 lb in month 12. |
+| `cascade_sale_vs_hold.png` | Sell 16 quail at month 4. P10 worm pounds, quail headcount, and the plant-cushion stub, with the sale and without it. |
+
+## Cascade sale
+
+`POST /api/cascade-impact` runs `research/synergy/cascade_impact.py`. Present males, females, and worm headcount, plus a sale of quail birds or worm pounds at month \(t\), return the remaining herd, the Ne check, P10 room left, the feed those animals stop eating, and the worm pounds that stay in the bin. The screen card "Cascade sale" shows that report. Fish and plants are Stage 5 stubs. A buffer that would take breeders refuses the sale. See [`../synergy/SPEC.md`](../synergy/SPEC.md).

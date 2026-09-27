@@ -21,5 +21,6 @@ python3 decision_plots.py
 | `quail_n0_for_2000.png` | About 780 starters and 25 kits hold $2,000 a month from month 2. About 268 starters and 4 kits cover $1,000 at month 2. The old 2,872 figure used a flat 0.585 lb bird. |
 | `quail_feed_vs_herd.png` | Worm and plant feed follow the heavy herd. A short ration fails closed. |
 | `worm_p10_sell_room.png` | Worm P10 room grows with the starting herd and with a later month. |
+| `cascade_sale_vs_hold.png` | Selling 16 birds at month 4 leaves extra worms that keep reproducing until quail growth eats both bins back to the floor. The plant panel is an opening-sized stub. |
 
 The ops screen shows this gallery under **Decision charts**.

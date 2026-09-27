@@ -18,10 +18,12 @@ ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "plots"
 OPS = ROOT / "ops-dashboard"
 GENETICS = ROOT / "genetics"
-for folder in (OPS, GENETICS):
+SYNERGY = ROOT / "synergy"
+for folder in (OPS, GENETICS, SYNERGY):
     if str(folder) not in sys.path:
         sys.path.insert(0, str(folder))
 
+import cascade_impact  # noqa: E402
 import delivery  # noqa: E402
 import engine  # noqa: E402
 import quail_income  # noqa: E402
@@ -183,6 +185,51 @@ def worm_sell_room() -> dict:
     return {"n0": herds, "lb_at_month_12": by_herd, "months": months, "lb_at_16500": by_month}
 
 
+def cascade_sale_plot() -> dict:
+    """Hold versus sale for the sample quail offtake. Writes the gallery PNG."""
+    report = cascade_impact.impact(cascade_impact.SAMPLE)
+    months = [row["month"] for row in report["surplus"]["months"]]
+    hold_lb = [row["p10"] / engine.WORM_HEADCOUNT_PER_LB for row in report["series"]["hold"]["worms"]]
+    sale_lb = [row["p10"] / engine.WORM_HEADCOUNT_PER_LB for row in report["series"]["sale"]["worms"]]
+    hold_birds = [row["p10"] for row in report["series"]["hold"]["quail"]]
+    sale_birds = [row["p10"] for row in report["series"]["sale"]["quail"]]
+    hold_plant = [row["cushion_kg"] for row in report["plants"]["hold"]["months"]]
+    sale_plant = [row["cushion_kg"] for row in report["plants"]["with_sale"]["months"]]
+    fig, axes = plt.subplots(1, 3, figsize=(11.2, 4.4))
+    axes[0].plot(months, hold_lb, color="#1d4e89", lw=2.2, label="Hold")
+    axes[0].plot(months, sale_lb, color="#1d4e89", lw=2.2, ls="--", label="Sell 16 birds")
+    axes[0].axvline(cascade_impact.SAMPLE["month"], color="#5c564c", lw=1, ls=":")
+    axes[0].set_title("P10 worm stock")
+    axes[0].set_ylabel("Pounds")
+    axes[0].legend(frameon=False, fontsize=8)
+    axes[1].plot(months, hold_birds, color="#9a3412", lw=2.2, label="Hold")
+    axes[1].plot(months, sale_birds, color="#9a3412", lw=2.2, ls="--", label="Sell 16 birds")
+    axes[1].axvline(cascade_impact.SAMPLE["month"], color="#5c564c", lw=1, ls=":")
+    axes[1].set_title("P10 quail herd")
+    axes[1].set_ylabel("Birds")
+    axes[1].legend(frameon=False, fontsize=8)
+    axes[2].plot(months, hold_plant, color="#1f6b45", lw=2.2, label="Hold")
+    axes[2].plot(months, sale_plant, color="#1f6b45", lw=2.2, ls="--", label="Sell 16 birds")
+    axes[2].axhline(0, color="#8d1d1d", lw=1)
+    axes[2].axvline(cascade_impact.SAMPLE["month"], color="#5c564c", lw=1, ls=":")
+    axes[2].set_title("Plant cushion (stub)")
+    axes[2].set_ylabel("Kilograms")
+    axes[2].legend(frameon=False, fontsize=8)
+    for axis in axes:
+        axis.set_xlabel("Month")
+    fig.suptitle("Sell 16 quail at month 4: stocks with and without the sale", fontsize=13)
+    _finish(
+        fig,
+        OUT / "cascade_sale_vs_hold.png",
+        "ASSUMPTION quail and worm growth. Ne floor is the formula. Plant yield is an opening-sized stub. P10. Not a purchase.",
+    )
+    return {
+        "excess_lb_at_sale": report["surplus"]["excess_lb_at_sale"],
+        "excess_lb_peak": report["surplus"]["excess_lb_peak"],
+        "excess_peak_month": report["surplus"]["excess_peak_month"],
+    }
+
+
 def copy_income_plots() -> dict:
     result = quail_income.smoke()
     src = OPS / "results"
@@ -222,6 +269,9 @@ def main() -> dict:
     worms = worm_sell_room()
     assert worms["lb_at_month_12"][0] < worms["lb_at_month_12"][-1]
     assert worms["lb_at_16500"][0] < worms["lb_at_16500"][-1]
+    cascade = cascade_sale_plot()
+    assert cascade["excess_lb_at_sale"] > 0
+    assert cascade["excess_lb_peak"] > cascade["excess_lb_at_sale"]
     teachings = {
         "birds_per_lb_vs_month.png": "A 40 lb order needs about 172 starters at month 2 and about 84 once offspring dress. The flat 0.585 lb/bird scalar is retired.",
         "delivery_split_vs_soon.png": "All 30 lb in month 3 needs about 156 starters. 15 lb then and 15 lb later needs about 128.",
@@ -230,6 +280,7 @@ def main() -> dict:
         "quail_n0_for_2000.png": "About 780 starters and 25 kits hold $2,000 a month from month 2. About 268 starters and 4 kits cover $1,000 at month 2. Flat 0.585 lb/bird is retired.",
         "quail_feed_vs_herd.png": "Worm and plant feed rise with the heavy herd; a short ration fails closed.",
         "worm_p10_sell_room.png": "Worm P10 room grows with the starting herd and with a later month.",
+        "cascade_sale_vs_hold.png": "Selling birds leaves worms in the bin, and those worms keep reproducing until the flock eats back to the floor.",
     }
     for name in teachings:
         file = OUT / name
@@ -241,6 +292,8 @@ def main() -> dict:
         "split": {"all_soon_n0": split["all_soon_n0"], "split_n0": split["split_n0"]},
         "income_n0": income["n0"],
         "worm_lb_at_16500_month_12": worms["lb_at_month_12"][worms["n0"].index(16500)],
+        "cascade_excess_lb_at_sale": cascade["excess_lb_at_sale"],
+        "cascade_excess_lb_peak": cascade["excess_lb_peak"],
     }
     (OUT / "decision_plots_smoke.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return payload

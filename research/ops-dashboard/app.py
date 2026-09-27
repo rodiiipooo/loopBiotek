@@ -15,6 +15,8 @@ import engine
 import store
 
 PACKAGE = Path(__file__).resolve().parent
+# engine adds research/synergy to the path. The cascade planner lives there.
+import cascade_impact  # noqa: E402
 
 BLOCK_MESSAGE = (
     "Stop. This promise would take worms or birds out of the breeding herd. "
@@ -246,6 +248,33 @@ def make_handler(book: store.Book):
                     if body.get("species") not in (None, "", "quail", "fish"):
                         raise ApiError(400, "Delivery structure is for quail or fish.")
                     self._send(200, delivery.plan_request(body))
+                    return
+                if method == "POST" and path == "/api/cascade-impact":
+                    body = self._body()
+                    if not body:
+                        self._send(200, cascade_impact.impact(None))
+                        return
+                    species = str(body.get("species", "quail")).strip().lower()
+                    if species not in ("quail", "worms"):
+                        raise ApiError(400, "Cascade sale is for quail or worms.")
+                    horizon = int(
+                        _num(body.get("horizon_months", cascade_impact.HORIZON), "Horizon", minimum=1, maximum=24)
+                    )
+                    month = int(_num(body.get("month", 4), "Month", minimum=1, maximum=horizon))
+                    scenario = {
+                        "species": species,
+                        "quail_males": _num(body.get("quail_males", 24), "Males", minimum=0),
+                        "quail_females": _num(body.get("quail_females", 72), "Females", minimum=0),
+                        "worm_headcount": _num(body.get("worm_headcount", 250000), "Worm herd", minimum=1),
+                        "worm_floor": _num(
+                            body.get("worm_floor", cascade_impact.WORM_FLOOR_HEADCOUNT), "Worm floor", minimum=0
+                        ),
+                        "n": _num(body.get("n", 16), "Sale", minimum=0),
+                        "month": month,
+                        "horizon_months": horizon,
+                        "fish_n": _num(body.get("fish_n", 0), "Fish herd", minimum=0),
+                    }
+                    self._send(200, cascade_impact.impact(scenario))
                     return
                 if method == "POST" and path == "/api/reverse":
                     body = self._body()
