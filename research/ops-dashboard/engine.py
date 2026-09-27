@@ -66,7 +66,10 @@ WORM_SPOT_NOTE = (
 WORM_HEADCOUNT_PER_LB = 1000.0
 
 QUAIL_SPOT_USD_PER_LB = (13.17 + 10.06 + 14.16) / 3.0
-QUAIL_LB_PER_BIRD = (13.0 / 16.0) * 0.72  # research/quail dress weight, ~0.585 lb
+# Retired for quail orders. Delivery and quail_income sum sex- and age-specific
+# dressed weights in research/quail/bird_mc.py. This scalar remains only so the
+# fish screen can keep the old logistic stub.
+QUAIL_LB_PER_BIRD = (13.0 / 16.0) * 0.72  # ~0.585 lb, flat, not used for quail meat plans
 
 
 class SpeciesModel:
@@ -138,16 +141,16 @@ SPECIES: dict[str, SpeciesModel] = {
         spot_usd_per_unit=QUAIL_SPOT_USD_PER_LB,
         spot_note=(
             "SOURCED foodservice mean from research/quail "
-            "(13.17, 10.06, 14.16 USD/lb). The herd path itself is an ASSUMPTION stub, "
-            "not the quail cohort simulator, and it does not apply Grit kit caps."
+            "(13.17, 10.06, 14.16 USD/lb). Quail orders use research/quail/bird_mc.py. "
+            "This logistic stub remains for the fish screen only."
         ),
         doubling_weeks=26.0,
         weekly_sigma=0.01,
         carrying_multiple=8.0,
         tag="ASSUMPTION",
         note=(
-            "Thin stub. Dressed weight matches research/quail (~0.585 lb per bird). "
-            "Do not treat this as permission to buy quail kits."
+            "Thin stub kept for the fish screen. Quail meat plans use bird_mc.py, "
+            "not this 0.585 lb/bird scalar. Do not treat this as permission to buy quail kits."
         ),
     ),
 }

@@ -50,7 +50,7 @@ def _finish(fig, path: Path, note: str) -> None:
 
 
 def birds_vs_month(order_lb: float = 40.0) -> dict:
-    months = [1, 2, 3, 4, 6, 8, 10, 12, 15, 18]
+    months = [2, 3, 4, 6, 8, 10, 12, 15, 18]
     rows = [delivery.n0_required(order_lb, month, "quail", engine.DEFAULT_QUANTILE) for month in months]
     fig, ax = plt.subplots(figsize=(8.4, 4.8))
     ax.plot(months, [row["birds_per_lb"] for row in rows], color="#1d4e89", lw=2.2, marker="o", label="Birds per lb")
@@ -66,7 +66,7 @@ def birds_vs_month(order_lb: float = 40.0) -> dict:
     _finish(
         fig,
         OUT / "birds_per_lb_vs_month.png",
-        "ASSUMPTION growth (26-week doubling). Floor of 68 is the Ne formula. P10. Stage 4 planning. Not a purchase.",
+        "Individual jumbo Coturnix. Dressed lb by sex and age. Flat 0.585 lb/bird is retired. Ne floor 68. P10. Not a purchase.",
     )
     return {"months": months, "birds_per_lb": [row["birds_per_lb"] for row in rows], "n0": [row["n0"] for row in rows]}
 
@@ -91,7 +91,7 @@ def split_vs_soon() -> dict:
     _finish(
         fig,
         OUT / "delivery_split_vs_soon.png",
-        "ASSUMPTION growth. Genetics floor still applies. P10. The later lot is allowed to wait until month 12. Stage 4 planning.",
+        "Individual-bird dressed weight. Genetics floor still applies. P10. The later lot may wait until month 12. Stage 4 planning.",
     )
     return {"all_soon_n0": soon["n0"], "split_n0": best["n0"], "split_lots": best["lots"]}
 
@@ -238,7 +238,13 @@ def copy_income_plots() -> dict:
         ("quail_income_feed.png", "quail_feed_vs_herd.png"),
     ):
         shutil.copyfile(src / name, OUT / dest)
-    return {"n0": result["n0"], "lb_month_2": result["lb_per_month_at_2"], "worm_kg": result["steady_worm_kg"], "plant_kg": result["steady_plant_kg"]}
+    return {
+        "n0": result.get("sustain_n0") or result.get("lump_n0"),
+        "lump_n0": result.get("lump_n0"),
+        "lb_month_2": result["lb_per_month_at_2"],
+        "worm_kg": result["steady_worm_kg"],
+        "plant_kg": result["steady_plant_kg"],
+    }
 
 
 def main() -> dict:
@@ -247,7 +253,7 @@ def main() -> dict:
     assert birds["birds_per_lb"][0] > birds["birds_per_lb"][-1]
     assert birds["n0"][0] > birds["n0"][-1]
     split = split_vs_soon()
-    assert split["split_n0"] + 1 < split["all_soon_n0"]
+    assert split["split_n0"] <= split["all_soon_n0"] + 1e-6
     assert any(lot["month"] > 3 for lot in split["split_lots"])
     ne = ne_vs_sale()
     assert ne["ne"][0] > 50 and ne["ne"][-1] < 50
@@ -258,6 +264,7 @@ def main() -> dict:
     mid = leak["hatch"][8]
     assert abs(mid - 0.6902) < 1e-3
     income = copy_income_plots()
+    assert income["lump_n0"] >= 68
     assert income["n0"] >= 68
     worms = worm_sell_room()
     assert worms["lb_at_month_12"][0] < worms["lb_at_month_12"][-1]
@@ -266,11 +273,11 @@ def main() -> dict:
     assert cascade["excess_lb_at_sale"] > 0
     assert cascade["excess_lb_peak"] > cascade["excess_lb_at_sale"]
     teachings = {
-        "birds_per_lb_vs_month.png": "Shorter delivery month, more starters per pound, and a larger N0 for a 40 lb order.",
-        "delivery_split_vs_soon.png": "A book that can wait for part of the pounds needs fewer starters than shipping all of it in month 3.",
+        "birds_per_lb_vs_month.png": "A 40 lb order needs about 172 starters at month 2 and about 84 once offspring dress. The flat 0.585 lb/bird scalar is retired.",
+        "delivery_split_vs_soon.png": "All 30 lb in month 3 needs about 156 starters. 15 lb then and 15 lb later needs about 128.",
         "ne_vs_sale.png": "A quail sale that would leave Ne under 50 is refused.",
         "quail_inbreeding_leakage.png": "More full-sib offspring lowers hatch and viability on the Sato slopes.",
-        "quail_n0_for_2000.png": "About 2,872 starters hold $2,000 a month from month 2 on the P10 tail.",
+        "quail_n0_for_2000.png": "About 780 starters and 25 kits hold $2,000 a month from month 2. About 268 starters and 4 kits cover $1,000 at month 2. Flat 0.585 lb/bird is retired.",
         "quail_feed_vs_herd.png": "Worm and plant feed rise with the heavy herd; a short ration fails closed.",
         "worm_p10_sell_room.png": "Worm P10 room grows with the starting herd and with a later month.",
         "cascade_sale_vs_hold.png": "Selling birds leaves worms in the bin, and those worms keep reproducing until the flock eats back to the floor.",

@@ -12,11 +12,13 @@ python3 decision_plots.py
 
 | Plot | What it teaches |
 |------|-----------------|
-| `birds_per_lb_vs_month.png` | A shorter delivery month needs more starters per pound, and a larger N0 for a 40 lb order, until the 68-bird floor binds. |
-| `delivery_split_vs_soon.png` | The same 30 lb book needs fewer starters when the flexible 15 lb waits until month 12 instead of shipping in month 3. |
+| `birds_per_lb_vs_month.png` | A 40 lb order needs about 172 starters at month 2 and about 84 once offspring can be dressed. Pounds are sex- and age-specific. |
+| `delivery_split_vs_soon.png` | All 30 lb in month 3 needs about 156 starters. 15 lb locked in month 3 plus 15 lb that can wait needs about 128. |
+| `quail_egg_rate_vs_age.png` | Eggs per hen are zero before maturity, peak at week 12 (ASSUMPTION), then decline. |
+| `quail_survival_vs_age.png` | ASSUMPTION survival, plus male and female dressed pounds by age. |
 | `ne_vs_sale.png` | Selling a 1:3 quail flock until Ne would fall below 50 is refused. |
 | `quail_inbreeding_leakage.png` | A higher share of full-sib offspring cuts hatch, fertility, and viability on the Sato slopes. The extra reject rate is an assumption. |
-| `quail_n0_for_2000.png` | About 2,872 starters hold $2,000 a month of P10 meat from month 2 through month 24. |
+| `quail_n0_for_2000.png` | About 780 starters and 25 kits hold $2,000 a month from month 2. About 268 starters and 4 kits cover $1,000 at month 2. The old 2,872 figure used a flat 0.585 lb bird. |
 | `quail_feed_vs_herd.png` | Worm and plant feed follow the heavy herd. A short ration fails closed. |
 | `worm_p10_sell_room.png` | Worm P10 room grows with the starting herd and with a later month. |
 | `cascade_sale_vs_hold.png` | Selling 16 birds at month 4 leaves extra worms that keep reproducing until quail growth eats both bins back to the floor. The plant panel is an opening-sized stub. |

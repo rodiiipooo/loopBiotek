@@ -1,0 +1,55 @@
+{
+  "ok": true,
+  "stage": "Stage 4 planning. Stage 1 worms remain the only spend. Kit dollars are not a purchase.",
+  "flat_lb_per_bird_retired": 0.585,
+  "peak_egg_week": 12,
+  "birds_per_kit_sum": 270,
+  "brooder_per_kit": 150,
+  "growout_per_kit": 75,
+  "breeder_per_kit": 45,
+  "kit_list_usd": 3729.96,
+  "dressed_lb_week_9": {
+    "male": 0.5232,
+    "female": 0.5774
+  },
+  "lb_for_1000_at_month_2": 89.76192735931106,
+  "f_prelim_month_2": 11.140580749754472,
+  "lump_1000": {
+    "n0": 268,
+    "U": 4,
+    "clear_rate": 0.9791666666666666,
+    "clears_p10": true,
+    "quantile": 0.1,
+    "housing_fail_rate": 0.0,
+    "egg_overflow_p50": 0,
+    "unset_p50": 779,
+    "unstored_p50": 0.0,
+    "leftover_p10": 1.1547778845238859,
+    "kit_list_usd": 14919.84,
+    "capex_note": "Planning total only. Stage 1 worms remain the only spend. Do not buy kits.",
+    "feasible": true,
+    "fail_closed": false
+  },
+  "sustain_2000": {
+    "n0": 780,
+    "U": 25,
+    "clear_rate": 0.9583333333333334,
+    "clears_p10": true,
+    "quantile": 0.1,
+    "housing_fail_rate": 0.0,
+    "egg_overflow_p50": 0,
+    "unset_p50": 91650,
+    "unstored_p50": 13012.145535877598,
+    "leftover_p10": 213.40922482056672,
+    "kit_list_usd": 93249.0,
+    "capex_note": "Planning total only. Stage 1 worms remain the only spend. Do not buy kits.",
+    "feasible": true,
+    "fail_closed": false
+  },
+  "earliest_2000": null,
+  "plots": [
+    "/workspace/research/quail/results/quail_egg_rate_vs_age.png",
+    "/workspace/research/quail/results/quail_survival_vs_age.png"
+  ],
+  "lump_binding": "grow-out at 86% of U\u00d7cap"
+}

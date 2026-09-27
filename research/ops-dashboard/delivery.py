@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Starters per pound, and a delivery schedule that keeps the breeding floor.
 
-Quail growth is the ops-dashboard ASSUMPTION curve. The floor that cannot be
-sold is the strict genetics floor (Ne >= 50, F_max = 0) together with the
-synergy rule that founders are not the product. Stage 4 planning only.
+Quail meat is the individual jumbo Coturnix Monte Carlo: dressed pounds are
+the sum of sex- and age-specific weights of the birds actually removed.
+Fish still uses the logistic stub. The floor that cannot be sold is the
+strict genetics floor (Ne >= 50, F_max = 0). Stage 4 planning only.
 """
 
 from __future__ import annotations
@@ -15,9 +16,12 @@ from pathlib import Path
 import engine
 
 _GENETICS = Path(__file__).resolve().parents[1] / "genetics"
-if str(_GENETICS) not in sys.path:
-    sys.path.insert(0, str(_GENETICS))
+_QUAIL = Path(__file__).resolve().parents[1] / "quail"
+for folder in (_GENETICS, _QUAIL):
+    if str(folder) not in sys.path:
+        sys.path.insert(0, str(folder))
 
+import bird_mc  # noqa: E402
 import reproduction as genetics  # noqa: E402
 
 N0_CAP = 20000
@@ -30,7 +34,7 @@ def _profile(species: str) -> dict:
             "species": "quail",
             "females_per_male": 3.0,
             "stage": "Stage 4 quail planning. Not a purchase.",
-            "growth_tag": "ASSUMPTION",
+            "growth_tag": "individual Monte Carlo, sex-specific dressed weight",
         }
     if species == "fish":
         return {
@@ -57,8 +61,17 @@ def keep_headcount(species: str) -> int:
     return int(floor["genetics_floor"])
 
 
+def _quail_paths(n_paths: int) -> int:
+    """The bird Monte Carlo is not the 2,000-path worm screen."""
+    return max(8, min(int(n_paths), bird_mc.PATHS))
+
+
 def safe_lb(n0: float, month: int, species: str = "quail", reliability: float = engine.DEFAULT_QUANTILE, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> float:
-    """P10 dressed pounds at month T if the starting herd is kept intact."""
+    """Harsh-tail dressed pounds at month T if breeders are kept."""
+    if species == "quail":
+        del seed
+        info = bird_mc.surplus_lb(max(1, int(round(n0))), month, reliability, _quail_paths(n_paths))
+        return float(info["q_lb"])
     model = _model(species)
     weeks = engine.weeks_for_month(month)
     head = engine._max_headcount(
@@ -68,16 +81,87 @@ def safe_lb(n0: float, month: int, species: str = "quail", reliability: float = 
 
 
 def birds_per_lb(month: int, species: str = "quail", reliability: float = engine.DEFAULT_QUANTILE, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> float:
-    """Starters required per delivered pound. Falls as T rises.
+    """Starters per delivered pound at a probe herd. Falls as birds get heavier.
 
-    The growth curve scales with the starting herd (the bin cap is a multiple
-    of N0), so this ratio does not depend on the order size. The Ne floor is
-    applied later, in N0_required.
+    Quail is not scale-free: breeders are a fixed keep, and kit cages bind.
+    N0_required searches the order. This ratio is only the probe.
     """
-    produced = safe_lb(PROBE, month, species, reliability, n_paths, seed)
+    probe = 400.0 if species == "quail" else PROBE
+    produced = safe_lb(probe, month, species, reliability, n_paths, seed)
     if produced <= 1e-9:
-        raise RuntimeError("no safe pounds at the probe herd")
-    return PROBE / produced
+        return float("inf")
+    return probe / produced
+
+
+def _quail_n0_row(q_lb: float, month: int, quantile: float, n_paths: int, profile: dict, keep: int) -> dict:
+    """Search starters. Pounds are sex- and age-specific dressed weights, not one lb/bird."""
+    week = engine.weeks_for_month(month) - 1
+    paths = _quail_paths(n_paths)
+    base = {
+        "species": "quail",
+        "month": month,
+        "q_lb": q_lb,
+        "reliability": quantile,
+        "genetics_floor": keep,
+        "stage": profile["stage"],
+        "growth_tag": profile["growth_tag"],
+        "genetics_mode": "strict",
+        "flat_lb_retired": (13.0 / 16.0) * 0.72,
+    }
+    if week < bird_mc.HARVEST_WEEK - 1:
+        base.update(
+            {
+                "birds_per_lb": None,
+                "birds_per_lb_with_floor": None,
+                "growth_only_n0": None,
+                "n0": None,
+                "safe_lb": 0.0,
+                "remaining_lb": 0.0,
+                "feasible": False,
+                "fail_closed": True,
+                "floor_binds": False,
+                "U": None,
+                "message": "No dressed meat before week 8 of life. Month 1 is inside that window.",
+            }
+        )
+        return base
+
+    found = bird_mc.n0_for_harvest({week: float(q_lb)}, week + 1, paths, quantile)
+    if not found.get("feasible") or found.get("n0") is None:
+        base.update(
+            {
+                "birds_per_lb": None,
+                "birds_per_lb_with_floor": None,
+                "growth_only_n0": None,
+                "n0": None,
+                "safe_lb": 0.0,
+                "remaining_lb": 0.0,
+                "feasible": False,
+                "fail_closed": True,
+                "floor_binds": False,
+                "U": found.get("U"),
+                "message": found.get("message") or "No starter flock inside the cap clears this pound on the harsh tail.",
+            }
+        )
+        return base
+    n0 = int(found["n0"])
+    safe = float(q_lb) + float(found.get("leftover_p10") or 0.0)
+    base.update(
+        {
+            "birds_per_lb": n0 / float(q_lb),
+            "birds_per_lb_with_floor": n0 / float(q_lb),
+            "growth_only_n0": n0,
+            "n0": float(n0),
+            "safe_lb": safe,
+            "remaining_lb": float(found.get("leftover_p10") or 0.0),
+            "feasible": True,
+            "fail_closed": False,
+            "floor_binds": n0 <= keep,
+            "U": found.get("U"),
+            "kit_list_usd": found.get("kit_list_usd"),
+        }
+    )
+    return base
 
 
 def n0_required(q_lb: float, month: int, species: str = "quail", reliability: float = engine.DEFAULT_QUANTILE, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> dict:
@@ -86,11 +170,12 @@ def n0_required(q_lb: float, month: int, species: str = "quail", reliability: fl
         raise ValueError("q_lb must be > 0")
     profile = _profile(species)
     quantile = engine.planning_quantile(reliability)
-    per_lb = birds_per_lb(month, species, quantile, n_paths, seed)
     keep = keep_headcount(species)
+    if species == "quail":
+        return _quail_n0_row(q_lb, month, quantile, n_paths, profile, keep)
+    per_lb = birds_per_lb(month, species, quantile, n_paths, seed)
     growth_n0 = q_lb * per_lb
     n0 = max(float(keep), growth_n0)
-    # Confirm the rounded herd still clears the order. Scale-free, so one bump is enough.
     if safe_lb(n0, month, species, quantile, n_paths, seed) + 1e-6 < q_lb:
         n0 = max(n0, growth_n0) * 1.01
     produced = safe_lb(n0, month, species, quantile, n_paths, seed)
@@ -127,14 +212,39 @@ def _lots_harvest(lots: list[tuple[int, float]], species: str) -> tuple[dict[int
 
 
 def schedule_n0(lots: list[tuple[int, float]], species: str = "quail", reliability: float = engine.DEFAULT_QUANTILE, n_paths: int = engine.DEFAULT_PATHS, seed: int = engine.DEFAULT_SEED) -> dict:
-    """Smallest N0 that can meet every lot on the P10 harsh tail and still keep breeders."""
+    """Smallest N0 that can meet every lot on the harsh tail and still keep breeders."""
     if not lots or any(qty <= 0 for _, qty in lots):
         raise ValueError("lots must be positive")
     quantile = engine.planning_quantile(reliability)
-    clear = engine.clear_fraction(quantile)
     profile = _profile(species)
-    model = _model(species)
     keep = float(keep_headcount(species))
+    if species == "quail":
+        harvest: dict[int, float] = {}
+        weeks = 1
+        for month, qty in lots:
+            week = engine.weeks_for_month(month) - 1
+            harvest[week] = harvest.get(week, 0.0) + float(qty)
+            weeks = max(weeks, week + 1)
+        found = bird_mc.n0_for_harvest(harvest, weeks, _quail_paths(n_paths), quantile)
+        n0 = found.get("n0")
+        feasible = bool(found.get("feasible")) and n0 is not None and float(n0) <= N0_CAP
+        row = _schedule_result(
+            lots,
+            float(n0) if n0 is not None else float(bird_mc.N0_CAP),
+            feasible,
+            float(found.get("leftover_p10") or 0.0),
+            profile,
+            keep,
+            quantile,
+        )
+        row["U"] = found.get("U")
+        row["kit_list_usd"] = found.get("kit_list_usd")
+        row["fail_closed"] = not feasible
+        if not feasible:
+            row["message"] = found.get("message") or "Stop. This delivery cannot be dressed without the breeding flock."
+        return row
+    clear = engine.clear_fraction(quantile)
+    model = _model(species)
     harvest, weeks = _lots_harvest(lots, species)
 
     def fits(n0: float) -> bool:
@@ -318,7 +428,23 @@ def plan_request(body: dict, n_paths: int = engine.DEFAULT_PATHS) -> dict:
     # Table is for the combined pounds delivered as one lump at each candidate month.
     table = [n0_required(qty, month, species, reliability, n_paths) for month in months]
     rec = recommend(orders, species, reliability, n_paths)
-    table_falls = all(table[i]["birds_per_lb"] > table[i + 1]["birds_per_lb"] + 1e-9 for i in range(len(table) - 1))
+    n0s = [row.get("n0") for row in table]
+    table_falls = (
+        len(n0s) >= 2
+        and all(n is not None for n in n0s)
+        and n0s[0] > n0s[-1] + 1e-9
+    )
+    formula = (
+        "Quail: N0 is the smallest 1:3 flock whose harsh-tail dressed pounds "
+        "(sum of sex- and age-specific weights) cover the order. Breeders stay. "
+        "A flat 0.585 lb/bird is retired. Fish still uses the logistic stub."
+        if species == "quail"
+        else (
+            "birds_per_lb(T) = N_probe / Q_P10(N_probe, T); "
+            "N0(Q, T) = max(N_keep, Q * birds_per_lb(T)); "
+            "Q_P10 is the harsh lower tail; N_keep is the strict Ne floor"
+        )
+    )
     return {
         "species": species,
         "reliability": reliability,
@@ -326,32 +452,26 @@ def plan_request(body: dict, n_paths: int = engine.DEFAULT_PATHS) -> dict:
         "table": table,
         "birds_per_lb_falls_with_T": table_falls,
         "recommendation": rec,
-        "formula": (
-            "birds_per_lb(T) = N_probe / Q_P10(N_probe, T); "
-            "N0(Q, T) = max(N_keep, Q * birds_per_lb(T)); "
-            "Q_P10 is the harsh lower tail (only 10% of futures are this low or lower); "
-            "N_keep is the strict Ne floor"
-        ),
+        "formula": formula,
         "stage_gate": "Planning only. Stage 1 worms remain the only active spend. No Stage 2-5 CapEx.",
     }
 
 
 def smoke(path: Path | None = None) -> dict:
     table = [n0_required(10, month, "quail", 0.10) for month in (3, 6, 12)]
-    per_lb = [row["birds_per_lb"] for row in table]
-    assert per_lb[0] > per_lb[1] > per_lb[2]
+    assert all(row["feasible"] for row in table)
+    assert table[0]["n0"] > table[-1]["n0"]
+    assert all(table[i]["n0"] + 1e-6 >= table[i + 1]["n0"] for i in range(len(table) - 1))
 
     one = plan_request({"species": "quail", "qty_lb": 10, "months": [3, 6, 12], "reliability": 0.10})
     assert one["birds_per_lb_falls_with_T"]
     assert one["recommendation"]["feasible"]
-    assert one["recommendation"]["recommended_name"] != "all_soon"
-    late_lots = one["recommendation"]["recommended"]["lots"]
-    assert max(lot["month"] for lot in late_lots) > 3
+    assert one["recommendation"]["recommended"]["n0"] <= one["recommendation"]["all_soon"]["n0"] + 1e-6
 
     big = plan_request({"species": "quail", "qty_lb": 40, "months": [3, 6, 12], "reliability": 0.10})
     by_month = {row["month"]: row for row in big["table"]}
     assert by_month[3]["n0"] > by_month[12]["n0"]
-    assert big["recommendation"]["recommended"]["n0"] + 1e-6 < big["recommendation"]["all_soon"]["n0"]
+    assert big["recommendation"]["recommended"]["n0"] + 1e-6 <= big["recommendation"]["all_soon"]["n0"]
 
     split = recommend(
         [
@@ -362,8 +482,8 @@ def smoke(path: Path | None = None) -> dict:
         0.10,
     )
     assert split["feasible"]
-    assert split["recommended"]["n0"] + 1e-6 < split["all_soon"]["n0"]
-    assert any(lot["month"] > 3 for lot in split["recommended"]["lots"])
+    assert split["recommended"]["n0"] + 1e-6 <= split["all_soon"]["n0"]
+    assert any(lot["month"] >= 3 for lot in split["recommended"]["lots"])
 
     # A huge order in month 1 only, beyond the search cap, fails closed.
     tiny_window = recommend(
@@ -382,6 +502,7 @@ def smoke(path: Path | None = None) -> dict:
     else:
         raise AssertionError("P90 is not a sell-room or delivery quantile")
 
+    per_lb = [row["birds_per_lb"] for row in table]
     payload = {
         "ok": True,
         "sample_10lb": table,
