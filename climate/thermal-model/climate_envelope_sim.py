@@ -210,20 +210,49 @@ class SimExtras:
     T0_buffer_C: float = 20.0
     buffer_plan_m2: float = 0.0
     buffer_volume_m3: float = 0.0
+    # Extra water-film link from the ceiling loop to the air above the tiles.
+    # Zero at or below the nominal 12 gpm, so the legacy and nominal optimizer
+    # balances are unchanged. Above nominal it couples the fluid to the pad
+    # (or to outdoors if the pad does not cover the roof).
+    UA_water_above: float = 0.0
+    water_above_uses_buffer: bool = False
+
+
+# Nominal roof-loop flow is the PipeGeometry default. ASSUMPTION: the
+# water-side coefficient is 120 W/(m²·K) at that flow and falls toward a
+# stagnant film as the pump approaches off. Exponent 0.8 is a turbulent-pipe
+# stand-in, not a measured coil curve.
+FLOW_REF_GPM = 12.0
+H_TUBE_REF = 120.0
+H_TUBE_NATURAL = 15.0
+H_PLATE = 25.0
+
+
+def hydronic_scale(flow_gpm: float) -> float:
+    """1 at 12 gpm, 0 with the pump off, above 1 when flow is higher."""
+    if flow_gpm <= 0.0:
+        return 0.0
+    return (float(flow_gpm) / FLOW_REF_GPM) ** 0.8
+
+
+def h_water_side(flow_gpm: float) -> float:
+    """Water-film coefficient. Exactly H_TUBE_REF at FLOW_REF_GPM."""
+    return H_TUBE_NATURAL + (H_TUBE_REF - H_TUBE_NATURAL) * hydronic_scale(flow_gpm)
 
 
 def ua_roof_to_water(pipe: PipeGeometry) -> float:
     """
     Effective UA (W/K) from room air / absorber underside to circulating water.
-    Absorber strip contact + tube outer surface; h_eff ~ 40 W/(m²·K) with flow.
+    Absorber strip contact + tube outer surface. The water-side h follows
+    ``pipe.flow_gpm`` and matches the legacy 120 W/(m²·K) at 12 gpm.
     """
     od_m = pipe.pipe_id_m + 2 * 0.0018   # ~1/2" PEX OD
     # Use projected absorber width ≈ tube spacing (continuous plate) rather than
     # bare tube perimeter — plate transfers much better.
     plate_area = pipe.window_L_m * pipe.window_W_m
     tube_area = math.pi * od_m * pipe.serpentine_length_m
-    h_plate = 25.0   # room-side convection to plate underside
-    h_tube = 120.0   # water-side (forced)
+    h_plate = H_PLATE   # room-side convection to plate underside
+    h_tube = h_water_side(pipe.flow_gpm)
     # Two resistances in series: room→plate and plate→water (tube)
     R_room = 1.0 / (h_plate * plate_area)
     R_tube = 1.0 / (h_tube * tube_area * 0.5)  # half perimeter bonded
@@ -396,14 +425,23 @@ def simulate(
                 ua_bo = extras.UA_buffer_outdoor
                 qs = 0.0 if extras.Q_solar_buffer_W is None else float(extras.Q_solar_buffer_W[i])
                 c_b = extras.C_buffer if extras.C_buffer > 1.0 else 1.0
+                ua_wa = extras.UA_water_above if extras.water_above_uses_buffer else 0.0
                 # Implicit in the buffer unknown so a small air volume stays stable.
-                T_b[i + 1] = (c_b / dt_s * Tb + qs + ua_bo * To + ua_rb * Tr) / (
-                    c_b / dt_s + ua_bo + ua_rb
-                )
+                T_b[i + 1] = (
+                    c_b / dt_s * Tb + qs + ua_bo * To + ua_rb * Tr + ua_wa * Tw
+                ) / (c_b / dt_s + ua_bo + ua_rb + ua_wa)
+            if extras.UA_water_above > 0.0:
+                if extras.water_above_uses_buffer and extras.buffer_enabled:
+                    T_above = T_b[i + 1]
+                else:
+                    T_above = To
+                Q_water_above = extras.UA_water_above * (Tw - T_above)
+            else:
+                Q_water_above = 0.0
             Q_reject = UA_reject * (Tw - Ts_rej)
 
             dTr = (Q_solar_room + Q_int - Q_rw - Q_roof_amb - Q_earth - Q_wall_amb - Q_inf) / C_room
-            dTw = (Q_rw + Q_solar_water - Q_reject) / C_water
+            dTw = (Q_rw + Q_solar_water - Q_reject - Q_water_above) / C_water
             T_next = Tr + dTr * dt_s
             Q_hvac = 0.0
             if extras.T_heat_C is not None and extras.T_cool_C is not None:

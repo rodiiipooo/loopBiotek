@@ -70,6 +70,11 @@ BUFFER_ACH = 1.5
 BUFFER_TAU = 0.70
 BUFFER_ABSORPTANCE = 0.25
 BUFFER_ROOM_AIR_FROM_PAD = 0.75
+# Extra layer inside the clear ceiling tiles. ASSUMPTION: a transparent
+# insert, not an opaque batt. R is in series with the tile glazing U.
+# The tau factor keeps the ceiling a daylight path.
+TILE_INSULATION_R = 0.50
+TILE_INSULATION_TAU_FACTOR = 0.85
 # Visible transmittance of a water-film roof vs the dry glazing tau_vis.
 TAU_ROOF_WATER = 0.55
 # Share of monthly horizontal irradiance treated as isotropic diffuse.
@@ -268,6 +273,18 @@ class SubmersionCase:
     )
     # Greenhouse or vestibule over the light surface and/or the entrance.
     entrance_greenhouse_enclosure: bool = False
+    # Pad knobs. Defaults reproduce the nominal air-pad comparison.
+    # ASSUMPTION values, not a measured sunspace. Volume is plan × height.
+    # Outdoor air changes per hour also scale with height / 2.4 m (stack).
+    buffer_height_m: float = BUFFER_HEIGHT_M
+    buffer_ach: float = BUFFER_ACH
+    buffer_u: float = BUFFER_U
+    buffer_tau: float = BUFFER_TAU
+    buffer_absorptance: float = BUFFER_ABSORPTANCE
+    # Optional insulation inside the clear ceiling tiles (living water roof).
+    ceiling_tile_insulation: bool = False
+    # Roof hydronic loop. 12 gpm is PipeGeometry's nominal flow.
+    roof_flow_gpm: float = env.FLOW_REF_GPM
 
 
 @dataclass
@@ -472,8 +489,10 @@ def daylight_ratio(case: SubmersionCase, f: float, climate: SiteClimate) -> floa
     aperture = 0.0
     if case.clear_ceiling and case.glazed_roof_frac > 0.0:
         tau = TAU_ROOF_WATER if case.water_panes else glaze["tau_vis"]
+        if case.ceiling_tile_insulation:
+            tau *= TILE_INSULATION_TAU_FACTOR
         if case.entrance_greenhouse_enclosure:
-            tau *= BUFFER_TAU
+            tau *= case.buffer_tau
         sky = effective_tilt_factor(
             case.ceiling_tilt_deg,
             case.ceiling_azimuth_from_south_deg,
@@ -604,6 +623,14 @@ class BufferSpec:
     C_J_per_K: float
 
 
+def tile_glazing_u(u_glaze: float, insulated: bool) -> float:
+    """Clear-tile U. Insulation adds series R inside the tile when requested."""
+    u = max(0.05, float(u_glaze))
+    if not insulated:
+        return u
+    return 1.0 / (1.0 / u + TILE_INSULATION_R)
+
+
 def buffer_spec(
     case: SubmersionCase,
     floor_area: float,
@@ -628,11 +655,14 @@ def buffer_spec(
         plan = BUFFER_VESTIBULE_PLAN_M2
         hatch = max(0.0, BUFFER_ENTRANCE_M2 - wall_in)
         roof_in = min(hatch, opaque_area + glazed_area)
-    volume = plan * BUFFER_HEIGHT_M
-    side = 4.0 * math.sqrt(max(plan, 1e-6)) * BUFFER_HEIGHT_M
+    height = max(0.2, float(case.buffer_height_m))
+    # Taller pad: more air, and a higher stack-driven air-change rate.
+    ach = max(0.0, float(case.buffer_ach)) * (height / BUFFER_HEIGHT_M)
+    volume = plan * height
+    side = 4.0 * math.sqrt(max(plan, 1e-6)) * height
     skin = plan + side
-    ua_skin = BUFFER_U * skin
-    ua_inf = env.RHO_AIR * env.CP_AIR * volume * BUFFER_ACH / 3600.0
+    ua_skin = max(0.05, float(case.buffer_u)) * skin
+    ua_inf = env.RHO_AIR * env.CP_AIR * volume * ach / 3600.0
     capacitance = env.RHO_AIR * env.CP_AIR * volume
     return BufferSpec(
         enabled=True,
@@ -733,8 +763,10 @@ def build_envelope(
         T0_water_C=t_tube,
     )
     pipe = _pipe_for_roof(case, glazed_area if water_on else 0.0)
+    pipe.flow_gpm = max(0.0, float(case.roof_flow_gpm))
+    flow_scale = env.hydronic_scale(pipe.flow_gpm)
     if water_on:
-        ua_reject = throttled_tube_UA(room, pipe, floor_area, k_soil, f)
+        ua_reject = throttled_tube_UA(room, pipe, floor_area, k_soil, f) * flow_scale
     else:
         ua_reject = 0.0
 
@@ -757,7 +789,13 @@ def build_envelope(
         roof_scale = 1.0
 
     buf = buffer_spec(case, floor_area, exposed_area, glazed_area, opaque_area)
-    ua_roof = glaze["U"] * glazed_area + roof["U"] * opaque_area
+    u_tile = tile_glazing_u(glaze["U"], case.clear_ceiling and case.ceiling_tile_insulation)
+    ua_roof = u_tile * glazed_area + roof["U"] * opaque_area
+    # Above the nominal 12 gpm, extra film couples the ceiling fluid to the
+    # air above the tiles (the pad, when the pad covers that roof).
+    flow_extra = max(0.0, flow_scale - 1.0)
+    ua_water_above = u_tile * glazed_area * flow_extra if water_on else 0.0
+    water_above_buf = bool(buf.covers_light and ua_water_above > 0.0)
     if buf.enabled and floor_area > 0.0:
         roof_frac = min(1.0, buf.roof_area_in_buffer_m2 / floor_area)
         wall_frac = 0.0 if exposed_area <= 1e-8 else min(1.0, buf.wall_area_in_buffer_m2 / exposed_area)
@@ -767,8 +805,8 @@ def build_envelope(
         ua_wall_outdoor = ua_exposed - ua_wall_buffer
         pad_frac = BUFFER_ROOM_AIR_FROM_PAD
         if buf.covers_light:
-            roof_scale *= BUFFER_TAU
-        q_buffer = buf.plan_m2 * BUFFER_ABSORPTANCE * horizontal
+            roof_scale *= case.buffer_tau
+        q_buffer = buf.plan_m2 * case.buffer_absorptance * horizontal
     else:
         ua_roof_buffer = 0.0
         ua_roof_outdoor = ua_roof
@@ -804,7 +842,10 @@ def build_envelope(
         T0_buffer_C=0.5 * (spec.T_heat_C + spec.T_cool_C),
         buffer_plan_m2=buf.plan_m2,
         buffer_volume_m3=buf.volume_m3,
+        UA_water_above=ua_water_above,
+        water_above_uses_buffer=water_above_buf,
     )
+    room.U_glazing = u_tile
     return room, pipe, extras, clim
 
 
@@ -854,10 +895,29 @@ def steady_node_temperatures(
     ua_direct = max(0.0, ua_out - ua_rb)
     a_rr = ua_rw + ua_direct + ua_rb + ua_floor + ua_wall
     rhs_r = q_roof_r + q_wall + room.Q_internal_W + ua_direct * t_out + ua_floor * t_floor + ua_wall * t_wall
-    a_ww = ua_rw + ua_rej
-    rhs_w = q_roof_w + ua_rej * t_rej
+    ua_wa = extras.UA_water_above
+    ua_wa_buf = ua_wa if extras.water_above_uses_buffer and extras.buffer_enabled else 0.0
+    ua_wa_out = ua_wa - ua_wa_buf
+    a_ww = ua_rw + ua_rej + ua_wa
+    rhs_w = q_roof_w + ua_rej * t_rej + ua_wa_out * t_out
     q_buf = 0.0 if extras.Q_solar_buffer_W is None else float(np.mean(extras.Q_solar_buffer_W))
     ua_bo = extras.UA_buffer_outdoor if extras.buffer_enabled else 0.0
+    if ua_wa_buf > 1e-8:
+        ua_bb = ua_rb + ua_bo + ua_wa_buf
+        matrix = np.array(
+            [
+                [a_rr, -ua_rw, -ua_rb],
+                [-ua_rw, a_ww, -ua_wa_buf],
+                [-ua_rb, -ua_wa_buf, ua_bb],
+            ],
+            dtype=float,
+        )
+        load = np.array([rhs_r, rhs_w, q_buf + ua_bo * t_out], dtype=float)
+        try:
+            solved = np.linalg.solve(matrix, load)
+        except np.linalg.LinAlgError:
+            return t_out, t_rej, t_out
+        return float(solved[0]), float(solved[1]), float(solved[2])
     if a_ww <= 1e-8 and ua_rb <= 1e-8:
         t_r = t_out if a_rr <= 1e-8 else rhs_r / a_rr
         return t_r, t_rej, t_out
@@ -1072,6 +1132,13 @@ def switches_dict(case: SubmersionCase) -> Dict[str, object]:
         "egress_min_clear_height_m": spec.egress_min_clear_height_m,
         "view_min_exposed_fraction": spec.view_min_exposed_fraction,
         "entrance_greenhouse_enclosure": case.entrance_greenhouse_enclosure,
+        "buffer_height_m": case.buffer_height_m,
+        "buffer_ach": case.buffer_ach,
+        "buffer_u": case.buffer_u,
+        "buffer_tau": case.buffer_tau,
+        "buffer_absorptance": case.buffer_absorptance,
+        "ceiling_tile_insulation": case.ceiling_tile_insulation,
+        "roof_flow_gpm": case.roof_flow_gpm,
     }
 
 
@@ -1213,21 +1280,29 @@ def _energy_near(result: Optimum, f: float) -> Optional[float]:
 
 
 def format_buffer_comparison(base: Sequence[Optimum], padded: Sequence[Optimum]) -> str:
-    """Energy and f* with the air pad against the same cell without it."""
+    """Energy and f* with the air pad against the same cell without it.
+
+    This block is the nominal knob set only. Other heights, glazing, tile
+    insulation, and roof-loop flows are printed by ``format_knob_study``.
+    """
     by_name = {result.case.name: result for result in base}
     lines = [
         "",
-        "Entrance greenhouse air pad — with vs without",
-        "ASSUMPTION: buffer height {:.1f} m, outer glazing U {:.1f} W/(m²·K), "
-        "buffer ACH {:.1f}, outer transmittance {:.2f}.".format(
-            BUFFER_HEIGHT_M, BUFFER_U, BUFFER_ACH, BUFFER_TAU
+        "Entrance greenhouse air pad — nominal knobs only",
+        "ASSUMPTION nominal point: height {:.1f} m, outer U {:.1f} W/(m²·K), "
+        "ACH {:.1f}/h at that height, tau {:.2f}, tile insulation off, "
+        "roof flow {:.0f} gpm.".format(
+            BUFFER_HEIGHT_M, BUFFER_U, BUFFER_ACH, BUFFER_TAU, env.FLOW_REF_GPM
         ),
         "A clear roof is covered by a greenhouse of that plan. An opaque roof only "
         "pads a {:.0f} m² vestibule and a {:.0f} m² door or hatch.".format(
             BUFFER_VESTIBULE_PLAN_M2, BUFFER_ENTRANCE_M2
         ),
-        f"Room infiltration drawn from the pad: {BUFFER_ROOM_AIR_FROM_PAD:.0%}. "
-        f"Buffer keeps {BUFFER_ABSORPTANCE:.0%} of the horizontal irradiance on its plan.",
+        "Volume = plan × height. Air changes per hour scale with height / {:.1f} m, "
+        "so a taller pad exchanges more air. Room infiltration from the pad: {:.0%}. "
+        "Pad absorbs {:.0%} of the horizontal irradiance on its plan.".format(
+            BUFFER_HEIGHT_M, BUFFER_ROOM_AIR_FROM_PAD, BUFFER_ABSORPTANCE
+        ),
         f"{'case':<18}{'f* bare':>10}{'f* pad':>10}{'E bare':>12}{'E pad':>12}{'E pad at bare f*':>18}",
     ]
     for result in padded:
@@ -1245,6 +1320,209 @@ def format_buffer_comparison(base: Sequence[Optimum], padded: Sequence[Optimum])
     return "\n".join(lines)
 
 
+@dataclass
+class KnobRow:
+    """One with-pad versus bare comparison at a fixed submersion."""
+
+    group: str
+    label: str
+    f: float
+    e_bare_kwh: float
+    e_pad_kwh: float
+    f_star_pad: Optional[float] = None
+
+    @property
+    def help_kwh(self) -> float:
+        return self.e_bare_kwh - self.e_pad_kwh
+
+
+def _kwh_at(
+    case: SubmersionCase,
+    f: float,
+    climate: SiteClimate,
+    hours: float,
+    cache: Dict[Tuple, float],
+) -> float:
+    key = (
+        case.use_type,
+        case.entrance_greenhouse_enclosure,
+        round(case.buffer_height_m, 3),
+        round(case.buffer_u, 3),
+        round(case.buffer_tau, 3),
+        round(case.buffer_absorptance, 3),
+        round(case.buffer_ach, 3),
+        case.ceiling_tile_insulation,
+        round(case.roof_flow_gpm, 3),
+        round(f, 3),
+        round(hours, 3),
+    )
+    if key not in cache:
+        total, _, _, _ = annual_energy(case, f, climate, hours=hours)
+        cache[key] = total
+    return cache[key]
+
+
+def air_pad_knob_study(
+    climate: SiteClimate = DFW_TYPICAL,
+    hours: float = 72.0,
+) -> List[KnobRow]:
+    """Pad help for living (and a cold-store note) as the knobs move.
+
+    Living is scored at the nominal egress cap f=0.65. Cold storage is scored
+    at full burial. A few pad cases also get a coarse f* check.
+    """
+    living = next(case for case in example_cases() if case.name == "living")
+    cold = next(case for case in example_cases() if case.name == "cold_storage")
+    cache: Dict[Tuple, float] = {}
+    f_live = 0.65
+    rows: List[KnobRow] = []
+
+    def pair(group: str, label: str, bare: SubmersionCase, pad: SubmersionCase, f: float) -> KnobRow:
+        return KnobRow(
+            group=group,
+            label=label,
+            f=f,
+            e_bare_kwh=_kwh_at(bare, f, climate, hours, cache),
+            e_pad_kwh=_kwh_at(pad, f, climate, hours, cache),
+        )
+
+    for height in (1.2, 2.4, 3.6, 4.8):
+        pad = replace(
+            living,
+            name="living-h",
+            entrance_greenhouse_enclosure=True,
+            buffer_height_m=height,
+        )
+        rows.append(pair("height_m", f"{height:.1f}", living, pad, f_live))
+
+    for label, u_value, tau in (
+        ("U 2.8 / tau 0.70 (nominal)", 2.8, 0.70),
+        ("U 5.5 / tau 0.80 (single poly)", 5.5, 0.80),
+        ("U 1.6 / tau 0.60 (double low-e)", 1.6, 0.60),
+    ):
+        pad = replace(
+            living,
+            name="living-mat",
+            entrance_greenhouse_enclosure=True,
+            buffer_u=u_value,
+            buffer_tau=tau,
+        )
+        rows.append(pair("outer_glazing", label, living, pad, f_live))
+
+    for insulated in (False, True):
+        bare = replace(living, ceiling_tile_insulation=insulated)
+        pad = replace(
+            bare,
+            name="living-ins",
+            entrance_greenhouse_enclosure=True,
+        )
+        tag = "on" if insulated else "off"
+        rows.append(pair("tile_insulation", tag, bare, pad, f_live))
+
+    for insulated in (False, True):
+        for flow in (0.0, 3.0, 12.0, 24.0):
+            bare = replace(living, ceiling_tile_insulation=insulated, roof_flow_gpm=flow)
+            pad = replace(bare, name="living-flow", entrance_greenhouse_enclosure=True)
+            tag = f"{'insulated' if insulated else 'tiles only'}, {flow:.0f} gpm"
+            rows.append(pair("roof_flow_gpm", tag, bare, pad, f_live))
+
+    for height in (2.4, 4.8):
+        pad = replace(
+            cold,
+            name="cold-h",
+            entrance_greenhouse_enclosure=True,
+            buffer_height_m=height,
+        )
+        rows.append(pair("cold_storage_height_m", f"{height:.1f}", cold, pad, 1.0))
+    pad_u = replace(cold, name="cold-u", entrance_greenhouse_enclosure=True, buffer_u=1.6, buffer_tau=0.60)
+    rows.append(pair("cold_storage_outer_u", "U 1.6 / tau 0.60", cold, pad_u, 1.0))
+
+    # Coarse f* so a knob that flipped the curve would show up.
+    checks = (
+        ("height_m", "4.8", replace(living, entrance_greenhouse_enclosure=True, buffer_height_m=4.8)),
+        ("tile_insulation", "on", replace(living, entrance_greenhouse_enclosure=True, ceiling_tile_insulation=True)),
+        ("roof_flow_gpm", "tiles only, 0 gpm", replace(living, entrance_greenhouse_enclosure=True, roof_flow_gpm=0.0)),
+    )
+    for group, label, case in checks:
+        found = sweep_case(case, climate=climate, f_step=0.5, hours=min(hours, 48.0))
+        for row in rows:
+            if row.group == group and row.label == label:
+                row.f_star_pad = found.f_star
+    return rows
+
+
+def format_knob_study(rows: Sequence[KnobRow]) -> str:
+    lines = [
+        "",
+        "Air-pad help versus design knobs (ASSUMPTION sweeps)",
+        "Living rows are at f=65% (the egress cap). Cold-storage rows are at f=100%.",
+        "Pad help = bare thermal kWh − with-pad thermal kWh at that same f.",
+        "Nominal living help is the 2.4 m / U 2.8 / tau 0.70 / insulation off / 12 gpm row.",
+        "Roof flow scales the existing ceiling-loop UA (exactly the legacy h at 12 gpm).",
+        "Above 12 gpm an extra water film couples the loop to the air above the tiles.",
+        "Pump off drops earth-tube reject to zero and the water-side h to a stagnant film.",
+        f"{'knob':<22}{'setting':<32}{'E bare':>10}{'E pad':>10}{'help':>10}  f* pad",
+    ]
+    for row in rows:
+        star = "—" if row.f_star_pad is None else f"{row.f_star_pad * 100:.0f}%"
+        lines.append(
+            f"{row.group:<22}{row.label:<32}{row.e_bare_kwh:10.0f}{row.e_pad_kwh:10.0f}"
+            f"{row.help_kwh:10.0f}  {star}"
+        )
+    return "\n".join(lines)
+
+
+def plot_knob_study(rows: Sequence[KnobRow], path: str) -> None:
+    fig, axes = plt.subplots(1, 2, figsize=(10.2, 4.4))
+    heights = [row for row in rows if row.group == "height_m"]
+    axes[0].plot(
+        [float(row.label) for row in heights],
+        [row.help_kwh for row in heights],
+        "-o",
+        color="#c53030",
+        lw=2,
+    )
+    axes[0].axhline(0.0, color="#718096", lw=1)
+    axes[0].set_xlabel("Pad height (m)")
+    axes[0].set_ylabel("Pad help at f=65% (thermal kWh/year)")
+    axes[0].set_title("Living clear roof — height")
+    axes[0].grid(True, alpha=0.3)
+
+    for insulated, color, name in (
+        (False, "#c53030", "tiles only"),
+        (True, "#2b6cb0", "tile insulation on"),
+    ):
+        subset = []
+        for row in rows:
+            if row.group != "roof_flow_gpm":
+                continue
+            if insulated and row.label.startswith("insulated"):
+                flow = float(row.label.rsplit(",", 1)[1].replace("gpm", ""))
+                subset.append((flow, row.help_kwh))
+            if not insulated and row.label.startswith("tiles only"):
+                flow = float(row.label.rsplit(",", 1)[1].replace("gpm", ""))
+                subset.append((flow, row.help_kwh))
+        subset.sort()
+        if subset:
+            axes[1].plot(
+                [item[0] for item in subset],
+                [item[1] for item in subset],
+                "-o",
+                color=color,
+                lw=2,
+                label=name,
+            )
+    axes[1].axhline(0.0, color="#718096", lw=1)
+    axes[1].set_xlabel("Roof-loop flow (gpm)")
+    axes[1].set_ylabel("Pad help at f=65% (thermal kWh/year)")
+    axes[1].set_title("Living clear roof — fluid flow")
+    axes[1].grid(True, alpha=0.3)
+    axes[1].legend(loc="best", fontsize=8)
+    fig.tight_layout()
+    fig.savefig(path, dpi=140)
+    plt.close(fig)
+
+
 def run_examples(
     climate: SiteClimate = DFW_TYPICAL,
     f_step: float = 0.05,
@@ -1260,6 +1538,7 @@ def write_outputs(
     stem: str = "submersion_optimal",
     community: Optional[Dict] = None,
     buffer_comparison: Optional[Sequence[Optimum]] = None,
+    knob_rows: Optional[Sequence[KnobRow]] = None,
 ) -> Tuple[str, str]:
     os.makedirs(OUT_DIR, exist_ok=True)
     json_path = os.path.join(OUT_DIR, stem + ".json")
@@ -1294,8 +1573,25 @@ def write_outputs(
             "tau": BUFFER_TAU,
             "absorptance": BUFFER_ABSORPTANCE,
             "room_air_from_pad": BUFFER_ROOM_AIR_FROM_PAD,
-            "note": "ASSUMPTION. See SUBMERSION_OPTIMAL.md.",
+            "tile_insulation_R_m2K_per_W": TILE_INSULATION_R,
+            "tile_insulation_tau_factor": TILE_INSULATION_TAU_FACTOR,
+            "roof_flow_ref_gpm": env.FLOW_REF_GPM,
+            "note": "ASSUMPTION nominal point. Knob sweeps are air_pad_knobs.",
         },
+        "air_pad_knobs": None
+        if knob_rows is None
+        else [
+            {
+                "group": row.group,
+                "label": row.label,
+                "f": row.f,
+                "E_bare_kWh": row.e_bare_kwh,
+                "E_pad_kWh": row.e_pad_kwh,
+                "help_kWh": row.help_kwh,
+                "f_star_pad": row.f_star_pad,
+            }
+            for row in knob_rows
+        ],
     }
     with open(json_path, "w") as handle:
         json.dump(payload, handle, indent=2)
@@ -1344,6 +1640,8 @@ def main_optimize(argv: Optional[Sequence[str]] = None) -> List[Optimum]:
     )
     print(format_report(results))
     print(format_buffer_comparison(results, padded))
+    knob_rows = air_pad_knob_study(climate=climate, hours=args.hours)
+    print(format_knob_study(knob_rows))
     names = {result.case.name: result for result in results}
     living = names.get("living")
     storage = names.get("storage")
@@ -1370,10 +1668,16 @@ def main_optimize(argv: Optional[Sequence[str]] = None) -> List[Optimum]:
     print(community_energy.format_community_report(community))
     if not args.no_plot:
         json_path, png_path = write_outputs(
-            results, community=community, buffer_comparison=padded
+            results,
+            community=community,
+            buffer_comparison=padded,
+            knob_rows=knob_rows,
         )
+        knob_png = os.path.join(OUT_DIR, "air_pad_knobs.png")
+        plot_knob_study(knob_rows, knob_png)
         print(f"wrote {json_path}")
         print(f"wrote {png_path}")
+        print(f"wrote {knob_png}")
     return results
 
 

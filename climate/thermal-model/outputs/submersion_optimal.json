@@ -75,7 +75,14 @@
         "min_daylight_ratio": 0.12,
         "egress_min_clear_height_m": 1.05,
         "view_min_exposed_fraction": 0.3,
-        "entrance_greenhouse_enclosure": false
+        "entrance_greenhouse_enclosure": false,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
       },
       "note": "",
       "curve": [
@@ -348,7 +355,14 @@
         "min_daylight_ratio": 0.0,
         "egress_min_clear_height_m": 0.0,
         "view_min_exposed_fraction": 0.0,
-        "entrance_greenhouse_enclosure": false
+        "entrance_greenhouse_enclosure": false,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
       },
       "note": "",
       "curve": [
@@ -621,7 +635,14 @@
         "min_daylight_ratio": 0.0,
         "egress_min_clear_height_m": 0.0,
         "view_min_exposed_fraction": 0.0,
-        "entrance_greenhouse_enclosure": false
+        "entrance_greenhouse_enclosure": false,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
       },
       "note": "",
       "curve": [
@@ -895,7 +916,14 @@
         "min_daylight_ratio": 0.4,
         "egress_min_clear_height_m": 0.45,
         "view_min_exposed_fraction": 0.0,
-        "entrance_greenhouse_enclosure": false
+        "entrance_greenhouse_enclosure": false,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
       },
       "note": "",
       "curve": [
@@ -1292,7 +1320,14 @@
         "min_daylight_ratio": 0.12,
         "egress_min_clear_height_m": 1.05,
         "view_min_exposed_fraction": 0.3,
-        "entrance_greenhouse_enclosure": true
+        "entrance_greenhouse_enclosure": true,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
       },
       "note": "",
       "curve": [
@@ -1565,7 +1600,14 @@
         "min_daylight_ratio": 0.0,
         "egress_min_clear_height_m": 0.0,
         "view_min_exposed_fraction": 0.0,
-        "entrance_greenhouse_enclosure": true
+        "entrance_greenhouse_enclosure": true,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
       },
       "note": "",
       "curve": [
@@ -1838,7 +1880,14 @@
         "min_daylight_ratio": 0.0,
         "egress_min_clear_height_m": 0.0,
         "view_min_exposed_fraction": 0.0,
-        "entrance_greenhouse_enclosure": true
+        "entrance_greenhouse_enclosure": true,
+        "buffer_height_m": 2.4,
+        "buffer_ach": 1.5,
+        "buffer_u": 2.8,
+        "buffer_tau": 0.7,
+        "buffer_absorptance": 0.25,
+        "ceiling_tile_insulation": false,
+        "roof_flow_gpm": 12.0
       },
       "note": "",
       "curve": [
@@ -2064,6 +2113,191 @@
     "tau": 0.7,
     "absorptance": 0.25,
     "room_air_from_pad": 0.75,
-    "note": "ASSUMPTION. See SUBMERSION_OPTIMAL.md."
-  }
+    "tile_insulation_R_m2K_per_W": 0.5,
+    "tile_insulation_tau_factor": 0.85,
+    "roof_flow_ref_gpm": 12.0,
+    "note": "ASSUMPTION nominal point. Knob sweeps are air_pad_knobs."
+  },
+  "air_pad_knobs": [
+    {
+      "group": "height_m",
+      "label": "1.2",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 29516.367105760328,
+      "help_kWh": 2817.335331475326,
+      "f_star_pad": null
+    },
+    {
+      "group": "height_m",
+      "label": "2.4",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 28518.732780329665,
+      "help_kWh": 3814.969656905989,
+      "f_star_pad": null
+    },
+    {
+      "group": "height_m",
+      "label": "3.6",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 27921.308048775503,
+      "help_kWh": 4412.39438846015,
+      "f_star_pad": null
+    },
+    {
+      "group": "height_m",
+      "label": "4.8",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 27504.529620158897,
+      "help_kWh": 4829.1728170767565,
+      "f_star_pad": 0.65
+    },
+    {
+      "group": "outer_glazing",
+      "label": "U 2.8 / tau 0.70 (nominal)",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 28518.732780329665,
+      "help_kWh": 3814.969656905989,
+      "f_star_pad": null
+    },
+    {
+      "group": "outer_glazing",
+      "label": "U 5.5 / tau 0.80 (single poly)",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 29730.96125814523,
+      "help_kWh": 2602.7411790904225,
+      "f_star_pad": null
+    },
+    {
+      "group": "outer_glazing",
+      "label": "U 1.6 / tau 0.60 (double low-e)",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 27199.109952323142,
+      "help_kWh": 5134.592484912511,
+      "f_star_pad": null
+    },
+    {
+      "group": "tile_insulation",
+      "label": "off",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 28518.732780329665,
+      "help_kWh": 3814.969656905989,
+      "f_star_pad": null
+    },
+    {
+      "group": "tile_insulation",
+      "label": "on",
+      "f": 0.65,
+      "E_bare_kWh": 26771.30821381096,
+      "E_pad_kWh": 23366.984605305763,
+      "help_kWh": 3404.3236085051976,
+      "f_star_pad": 0.65
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "tiles only, 0 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 113582.71293970796,
+      "E_pad_kWh": 96606.41636470982,
+      "help_kWh": 16976.296574998138,
+      "f_star_pad": 0.65
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "tiles only, 3 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 45746.16081220126,
+      "E_pad_kWh": 40335.255942640695,
+      "help_kWh": 5410.904869560567,
+      "f_star_pad": null
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "tiles only, 12 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 32333.702437235654,
+      "E_pad_kWh": 28518.732780329665,
+      "help_kWh": 3814.969656905989,
+      "f_star_pad": null
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "tiles only, 24 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 31602.045355315015,
+      "E_pad_kWh": 26327.93080977044,
+      "help_kWh": 5274.114545544573,
+      "f_star_pad": null
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "insulated, 0 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 119450.44070609193,
+      "E_pad_kWh": 94916.41449289427,
+      "help_kWh": 24534.026213197663,
+      "f_star_pad": null
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "insulated, 3 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 42450.68801661862,
+      "E_pad_kWh": 35087.88659614722,
+      "help_kWh": 7362.801420471398,
+      "f_star_pad": null
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "insulated, 12 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 26771.30821381096,
+      "E_pad_kWh": 23366.984605305763,
+      "help_kWh": 3404.3236085051976,
+      "f_star_pad": null
+    },
+    {
+      "group": "roof_flow_gpm",
+      "label": "insulated, 24 gpm",
+      "f": 0.65,
+      "E_bare_kWh": 25020.335321023915,
+      "E_pad_kWh": 22497.0449311524,
+      "help_kWh": 2523.290389871516,
+      "f_star_pad": null
+    },
+    {
+      "group": "cold_storage_height_m",
+      "label": "2.4",
+      "f": 1.0,
+      "E_bare_kWh": 27035.005424780153,
+      "E_pad_kWh": 23509.62048410863,
+      "help_kWh": 3525.3849406715235,
+      "f_star_pad": null
+    },
+    {
+      "group": "cold_storage_height_m",
+      "label": "4.8",
+      "f": 1.0,
+      "E_bare_kWh": 27035.005424780153,
+      "E_pad_kWh": 24727.631956925296,
+      "help_kWh": 2307.373467854857,
+      "f_star_pad": null
+    },
+    {
+      "group": "cold_storage_outer_u",
+      "label": "U 1.6 / tau 0.60",
+      "f": 1.0,
+      "E_bare_kWh": 27035.005424780153,
+      "E_pad_kWh": 22552.34400278234,
+      "help_kWh": 4482.661421997811,
+      "f_star_pad": null
+    }
+  ]
 }

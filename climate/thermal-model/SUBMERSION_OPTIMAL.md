@@ -96,6 +96,9 @@ with \(k_\mathrm{ref} = 0.80\,\mathrm{W/(m\cdot K)}\) and \(\gamma_\mathrm{tube}
 | `glazing_azimuth_weights` | How exposed glazing (or an open stick-up) faces. Default 70% south, 15% east, 15% west |
 | `above_grade_enclosure` | True: exposed wall uses the wall material plus the glazing fraction. False: the stick-up is an opening, \(U=12\,\mathrm{W/(m^2\cdot K)}\), extra infiltration \(4(1-f)\) ACH |
 | `entrance_greenhouse_enclosure` | Air pad over the light roof or the entrance. Off by default. See below |
+| `buffer_height_m`, `buffer_ach`, `buffer_u`, `buffer_tau`, `buffer_absorptance` | Pad knobs. Defaults are the nominal row below. Volume is plan × height; air changes per hour scale with height / 2.4 m |
+| `ceiling_tile_insulation` | Extra series R inside a clear ceiling tile. Off by default |
+| `roof_flow_gpm` | Ceiling hydronic loop. 12 gpm matches `PipeGeometry` and the legacy water-side h |
 | material keys | `wall_material`, `roof_material`, `glazing_material`, `floor_material` |
 | `structure` | Slab thickness and berm mass fraction (mass scales up slightly with \(f\)) |
 | `soil_moisture_retention` | \(\phi\) in the \(k\) and \(\rho c\) blends |
@@ -179,32 +182,77 @@ A home with an opaque roof and no wall glazing is rejected (`sunlight` cap). Gre
 
 ## Entrance greenhouse (air pad)
 
-Switch: `entrance_greenhouse_enclosure`. Default is off, so the table above is the bare envelope.
+Switch: `entrance_greenhouse_enclosure`. Default is off, so the bare-envelope table above does not include a pad.
 
 When the facility still has a light-entering roof, an above-grade greenhouse covers that roof (plan area = floor area, at least a 6 m² vestibule). When the roof is opaque, only a vestibule covers the entrance: 6 m² of plan and a 2 m² door or hatch. At full burial the hatch is a patch of roof; if some wall is still above grade, that 2 m² comes out of the exposed wall first.
 
-The pad is one air node. ASSUMPTION defaults:
+The pad is one air node. These fields are the knobs. The numbers in the first table are one ASSUMPTION point, not a fixed benefit:
 
-| Input | Value |
-|-------|------:|
-| Height | 2.4 m |
-| Outer glazing U | 2.8 W/(m²·K) (double polycarbonate) |
-| Outdoor air changes of the pad | 1.5 /h |
-| Outer solar / visible transmittance | 0.70 |
-| Share of horizontal irradiance absorbed in the pad | 0.25 |
-| Room infiltration drawn from the pad | 75% (the rest still leaks outdoors) |
+| Knob | Nominal | What it does |
+|------|--------:|--------------|
+| `buffer_height_m` | 2.4 m | Volume = plan × height. Air changes per hour scale with height / 2.4 m, so a taller pad holds more air and exchanges faster. Wall area of the pad grows with height |
+| `buffer_ach` | 1.5 /h | Outdoor air changes at the nominal height. The height scale multiplies this |
+| `buffer_u` | 2.8 W/(m²·K) | Outer skin. Same number as `double_polycarbonate`, overridable |
+| `buffer_tau` | 0.70 | Outer transmittance on a covered light roof (solar and daylight) |
+| `buffer_absorptance` | 0.25 | Share of horizontal irradiance left in the pad air |
+| `ceiling_tile_insulation` | off | Series R = 0.50 m²·K/W inside a clear ceiling tile, and tile transmittance × 0.85. Still a daylight path |
+| `roof_flow_gpm` | 12 | Existing `PipeGeometry` loop. Water-side h is exactly 120 W/(m²·K) at 12 gpm. Earth-tube reject scales with (flow/12)^0.8 and is 0 when the pump is off. Above 12 gpm an extra film couples the fluid to the air above the tiles |
 
-Outdoor skin conductance is \(U\) times plan plus the four walls, plus the pad's own infiltration. The facility surfaces inside the pad, and 75% of the room's air changes, exchange with pad air \(T_b\) instead of outdoors. Those conductances still add up to the bare envelope; only the far-side temperature changes. A covered light roof also multiplies roof solar and the roof's daylight ratio by 0.70. The pad's capacitance is the air in \(A_\mathrm{plan} \times 2.4\,\mathrm{m}\), stepped implicitly each minute so a small vestibule stays stable.
+Room infiltration drawn from the pad stays 75%. Conductances of the facility shell still add up to the bare envelope at the nominal flow; only the far-side temperature changes. The extra film above 12 gpm is additional coupling, not a second copy of the nominal tile U.
 
-On the same DFW year, \(f^\star\) does not move. Living is still stopped at the 65% egress cap, and both stores still minimize at 100%. The energy at that \(f^\star\) does move:
+### Nominal point (the old 32,334 → 28,519 delta)
 
-| Case | \(f^\star\) bare | \(f^\star\) with pad | Thermal kWh bare | Thermal kWh with pad |
-|------|----------------:|---------------------:|-----------------:|---------------------:|
-| living (clear roof) | 65% | 65% | 32,334 | 28,519 |
-| storage | 100% | 100% | 16 | 143 |
-| cold storage | 100% | 100% | 27,035 | 23,510 |
+Same DFW year, nominal knobs. \(f^\star\) does not move. Living stays on the 65% egress cap. Both stores still minimize at 100%.
 
-The living roof sits under the greenhouse, so less solar enters and the roof conducts to pad air. That is about 3,800 kWh/year less at the same 65%. The cold store's hatch and most of its air leakage see pad air, which sits between the 1–4 °C room and the weather, so cooling falls by about 3,500 kWh/year and \(f^\star\) stays fully buried. The dry store was already near zero load; the vestibule's solar gain creates about 143 kWh/year of cooling that the bare buried box did not have. Full burial is still its minimum.
+| Case | \(f^\star\) bare | \(f^\star\) with pad | Thermal kWh bare | Thermal kWh with pad | Pad help |
+|------|----------------:|---------------------:|-----------------:|---------------------:|---------:|
+| living (clear roof) | 65% | 65% | 32,334 | 28,519 | 3,815 |
+| storage | 100% | 100% | 16 | 143 | −127 |
+| cold storage | 100% | 100% | 27,035 | 23,510 | 3,525 |
+
+That living help of about 3,800 kWh/year is this knob set only: height 2.4 m, outer U 2.8, tau 0.70, tile insulation off, roof flow 12 gpm. The dry store was already near zero load; the vestibule adds a little cooling. The cold store has no ceiling loop (water panes off); its help is the hatch and the air path.
+
+### Living clear roof — help moves with the knobs
+
+All of these are at f = 65%. Pad help = bare kWh − with-pad kWh. Coarse sweeps at height 4.8 m, with tile insulation, and with the pump off still put \(f^\star\) at 65%.
+
+| Height | E with pad | Help |
+|-------:|-----------:|-----:|
+| 1.2 m | 29,516 | 2,817 |
+| 2.4 m | 28,519 | 3,815 |
+| 3.6 m | 27,921 | 4,412 |
+| 4.8 m | 27,505 | 4,829 |
+
+| Outer skin | E with pad | Help |
+|------------|-----------:|-----:|
+| U 2.8 / tau 0.70 | 28,519 | 3,815 |
+| U 5.5 / tau 0.80 (single poly) | 29,731 | 2,603 |
+| U 1.6 / tau 0.60 (double low-e) | 27,199 | 5,135 |
+
+Tile insulation lowers both sides. The pad still helps, by less than the nominal 3,815, because the tile is already tighter:
+
+| Tile layer | E bare | E with pad | Help |
+|------------|-------:|-----------:|-----:|
+| off | 32,334 | 28,519 | 3,815 |
+| on (R = 0.50) | 26,771 | 23,367 | 3,404 |
+
+Roof-loop flow uses the existing ceiling circuit (`ua_roof_to_water` and the earth-tube reject). Pump off is the passive tile: reject goes to zero. At 24 gpm the water-side h rises and the extra film ties the fluid to the pad air.
+
+| Flow | Tile layer | E bare | E with pad | Help |
+|-----:|------------|-------:|-----------:|-----:|
+| 0 gpm | off | 113,583 | 96,606 | 16,976 |
+| 3 gpm | off | 45,746 | 40,335 | 5,411 |
+| 12 gpm | off | 32,334 | 28,519 | 3,815 |
+| 24 gpm | off | 31,602 | 26,328 | 5,274 |
+| 0 gpm | on | 119,450 | 94,916 | 24,534 |
+| 12 gpm | on | 26,771 | 23,367 | 3,404 |
+| 24 gpm | on | 25,020 | 22,497 | 2,523 |
+
+With the pump off, the pad is doing the work the hydronic loop is not, so the help is large and the absolute load is large. At nominal flow the loop is already rejecting heat and the pad's help is the smaller 3,815 kWh. With insulation and 24 gpm that help falls to about 2,500 kWh: the tile and the flowing loop have already cut the load the pad can still move.
+
+Cold storage has no roof loop. A taller vestibule helps less (3,525 kWh at 2.4 m, 2,307 kWh at 4.8 m) because the pad picks up more sun. A tighter outer skin helps more (about 4,480 kWh at U 1.6 / tau 0.60). Full burial stays the cold-store minimum on the nominal sweep.
+
+Curves: `outputs/air_pad_knobs.png`. Rows: `air_pad_knobs` in `outputs/submersion_optimal.json`.
 
 ## Community loads and shared microgrid
 

@@ -1,6 +1,7 @@
 """Checks for the submersion optimizer and the untouched legacy summer balance."""
 from __future__ import annotations
 
+import math
 import tempfile
 import unittest
 
@@ -146,6 +147,65 @@ class AirPadTest(unittest.TestCase):
         self.assertGreater(extras.UA_roof_buffer, 0.0)
         self.assertLess(extras.UA_roof_buffer, roof_ua)
         self.assertAlmostEqual(extras.UA_wall_outdoor + extras.UA_wall_buffer, extras.UA_exposed)
+
+
+class KnobTest(unittest.TestCase):
+    def test_nominal_flow_matches_legacy_water_side_h(self):
+        self.assertEqual(env.h_water_side(env.FLOW_REF_GPM), env.H_TUBE_REF)
+        self.assertEqual(env.hydronic_scale(env.FLOW_REF_GPM), 1.0)
+        self.assertEqual(env.hydronic_scale(0.0), 0.0)
+        self.assertGreater(env.h_water_side(24.0), env.H_TUBE_REF)
+        self.assertAlmostEqual(env.h_water_side(0.0), env.H_TUBE_NATURAL)
+        pipe = env.PipeGeometry()
+        self.assertEqual(pipe.flow_gpm, 12.0)
+        # Independent copy of the pre-flow formula, so a drift at 12 gpm fails.
+        od_m = pipe.pipe_id_m + 2 * 0.0018
+        plate = pipe.window_L_m * pipe.window_W_m
+        tube = math.pi * od_m * pipe.serpentine_length_m
+        expected = 1.0 / (1.0 / (25.0 * plate) + 1.0 / (120.0 * tube * 0.5))
+        self.assertAlmostEqual(env.ua_roof_to_water(pipe), expected, places=6)
+
+    def test_height_scales_volume_and_air_exchange(self):
+        storage = next(case for case in opt.example_cases() if case.name == "storage")
+        month = opt.DFW_MONTHS[0]
+        short = opt.replace(storage, entrance_greenhouse_enclosure=True, buffer_height_m=2.4)
+        tall = opt.replace(storage, entrance_greenhouse_enclosure=True, buffer_height_m=4.8)
+        _, _, ex_s, _ = opt.build_envelope(short, 1.0, month, opt.DFW_TYPICAL, 48.0, 60.0)
+        _, _, ex_t, _ = opt.build_envelope(tall, 1.0, month, opt.DFW_TYPICAL, 48.0, 60.0)
+        self.assertAlmostEqual(ex_t.buffer_volume_m3, 2.0 * ex_s.buffer_volume_m3)
+        # Skin grows with the walls; air exchange grows with volume × ACH(height).
+        self.assertGreater(ex_t.UA_buffer_outdoor, ex_s.UA_buffer_outdoor)
+
+    def test_tile_insulation_and_flow_change_the_links(self):
+        living = next(case for case in opt.example_cases() if case.name == "living")
+        month = opt.DFW_MONTHS[6]
+        plain = opt.build_envelope(living, 0.65, month, opt.DFW_TYPICAL, 48.0, 60.0)
+        insulated = opt.replace(living, ceiling_tile_insulation=True)
+        ins = opt.build_envelope(insulated, 0.65, month, opt.DFW_TYPICAL, 48.0, 60.0)
+        self.assertLess(ins[0].U_glazing, plain[0].U_glazing)
+        stopped = opt.replace(living, roof_flow_gpm=0.0)
+        high = opt.replace(living, roof_flow_gpm=24.0, entrance_greenhouse_enclosure=True)
+        off = opt.build_envelope(stopped, 0.65, month, opt.DFW_TYPICAL, 48.0, 60.0)
+        fast = opt.build_envelope(high, 0.65, month, opt.DFW_TYPICAL, 48.0, 60.0)
+        self.assertEqual(off[2].UA_reject, 0.0)
+        self.assertGreater(fast[2].UA_water_above, 0.0)
+        self.assertTrue(fast[2].water_above_uses_buffer)
+        self.assertEqual(plain[2].UA_water_above, 0.0)
+
+    def test_pad_help_depends_on_height_and_flow(self):
+        living = next(case for case in opt.example_cases() if case.name == "living")
+        months = (opt.DFW_MONTHS[0], opt.DFW_MONTHS[6])
+
+        def total(case):
+            return opt.annual_energy(case, 0.65, opt.DFW_TYPICAL, hours=48.0, months=months)[0]
+
+        bare = total(living)
+        short = total(opt.replace(living, entrance_greenhouse_enclosure=True, buffer_height_m=1.2))
+        tall = total(opt.replace(living, entrance_greenhouse_enclosure=True, buffer_height_m=4.8))
+        self.assertNotAlmostEqual(bare - short, bare - tall, places=0)
+        flow_off = total(opt.replace(living, entrance_greenhouse_enclosure=True, roof_flow_gpm=0.0))
+        flow_nom = total(opt.replace(living, entrance_greenhouse_enclosure=True, roof_flow_gpm=12.0))
+        self.assertGreater(abs(flow_off - flow_nom), 1.0)
 
 
 class SweepTest(unittest.TestCase):
