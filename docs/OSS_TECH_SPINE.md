@@ -4,7 +4,7 @@ Agent-editable infrastructure spine for a **10-acre** closed-loop biotech / rege
 
 | Zone | Acres | Role |
 |------|------:|------|
-| 1 Earth Habitat | 0.75 | Earth-sheltered cells (design min ≥50% submersion; sim baseline 70%) |
+| 1 Earth Habitat | 0.75 | Earth-sheltered cells (design min ≥50%; legacy summer illustration 70%; planning f* from the submersion optimizer) |
 | 2 Climate Canopy | 1.75 | Controlled canopy; **algae nutrient density primary**, biofuel secondary |
 | 3 Outdoor Production | 4.5 | Outdoor ag / open production |
 | 4 Buffer / Edge | 3.0 | Ecological buffer, access, utilities |
@@ -47,7 +47,7 @@ cd /workspace/loopBiotek
 .venv/bin/python climate/thermal-model/climate_envelope_sim.py
 ```
 
-Writes PNGs under `climate/thermal-model/outputs/` (`24h_temps_pressure.png`, `heatmap_cross_section.png`, `submersion_sensitivity.png`, `site_layout_10acre.png`). Details: `climate/thermal-model/README.md`.
+Writes PNGs under `climate/thermal-model/outputs/` (`24h_temps_pressure.png`, `heatmap_cross_section.png`, `submersion_sensitivity.png`, `site_layout_10acre.png`). Add `--optimize` for the annual submersion sweep (`submersion_optimal.png`). Details: `climate/thermal-model/README.md` and `climate/thermal-model/SUBMERSION_OPTIMAL.md`.
 
 ## How agents extend `site.yaml`
 

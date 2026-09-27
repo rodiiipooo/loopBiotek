@@ -11,13 +11,15 @@ Zone-1 cell-scale defaults: L=W=10 m, H=3 m, 70% submersion, 1/2" PEX @ 10 cm.
 
 Usage:
     python climate_envelope_sim.py
+    python climate_envelope_sim.py --optimize   # f* living vs storage vs greenhouse
 """
 from __future__ import annotations
 
+import argparse
 import math
 import os
 from dataclasses import dataclass, asdict
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import matplotlib
 
@@ -152,6 +154,50 @@ def solar_G(t_h: np.ndarray, clim: ClimateParams) -> np.ndarray:
     return np.clip(G, 0.0, None)
 
 
+def simulation_hours(hours: float, dt_s: float) -> np.ndarray:
+    """Time grid used by `simulate` (hours from t=0)."""
+    n = int(hours * 3600.0 / dt_s) + 1
+    return np.arange(n) * dt_s / 3600.0
+
+
+def ua_ground_reject(room: RoomParams, pipe: PipeGeometry, floor_area_m2: float) -> float:
+    """Earth-tube / buried-return reject UA (W/K), legacy envelope sizing.
+
+    A 70% submerged cell is sized to reject peak solar on about 12–15 K ΔT
+    to 18 °C soil. Linear in floor area; the 3200 W/K term and the buried
+    header term scale with submersion fraction. The submersion optimizer
+    applies soil-conductivity and throttling factors on top of this UA
+    (`submersion_opt.throttled_tube_UA`); it does not replace the formula.
+    """
+    UA_reject = (400.0 + 3200.0 * room.submersion) * (floor_area_m2 / 100.0)
+    UA_reject += 1.5 * pipe.serpentine_length_m * room.submersion
+    return UA_reject
+
+
+@dataclass
+class SimExtras:
+    """Optional envelope terms for the submersion optimizer.
+
+    When `simulate` is called without extras, none of these fields are read
+    and the legacy summer balance is unchanged.
+    """
+
+    T_soil_floor_C: Optional[float] = None
+    T_soil_wall_C: Optional[float] = None
+    T_soil_reject_C: Optional[float] = None
+    UA_floor_earth: Optional[float] = None  # W/K, already includes area
+    UA_wall_earth: Optional[float] = None
+    UA_exposed: Optional[float] = None
+    UA_reject: Optional[float] = None
+    U_roof_opaque: float = 0.0
+    A_roof_opaque: float = 0.0
+    ACH_extra: float = 0.0
+    roof_solar_scale: float = 1.0
+    Q_solar_room_extra_W: Optional[np.ndarray] = None
+    T_heat_C: Optional[float] = None
+    T_cool_C: Optional[float] = None
+
+
 def ua_roof_to_water(pipe: PipeGeometry) -> float:
     """
     Effective UA (W/K) from room air / absorber underside to circulating water.
@@ -200,26 +246,40 @@ def simulate(
     clim: ClimateParams,
     hours: float = 48.0,   # 2 days so diurnal state settles; report last 24 h
     dt_s: float = 60.0,
+    extras: Optional[SimExtras] = None,
 ) -> Dict[str, np.ndarray]:
-    """Forward-Euler coupled transient for room (air+mass) + loop water."""
+    """Forward-Euler coupled transient for room (air+mass) + loop water.
+
+    `extras` is the submersion-optimizer path (separate soil temperatures,
+    throttled UAs, opaque roof, wall solar, ideal thermostat). Omit it for
+    the legacy free-float summer balance.
+    """
     A = areas(room)
     UA_rw = room.UA_roof_to_water if room.UA_roof_to_water is not None else ua_roof_to_water(pipe)
     C_room = room_capacitance(room)
     C_water = pipe.fluid_mass_kg * CP_WATER
 
-    V_dot = A["volume"] * room.ACH / 3600.0
+    ach = room.ACH
+    if extras is not None and extras.ACH_extra:
+        ach = room.ACH + extras.ACH_extra
+    V_dot = A["volume"] * ach / 3600.0
     UA_inf = RHO_AIR * CP_AIR * V_dot
 
-    # Ground heat-exchanger reject (dedicated earth tubes in berm + buried
-    # return). Sized so a 70%-submerged cell can reject ~peak solar on ~12–15 K
-    # ΔT to 18 °C soil. Scales strongly with submersion.
-    # Base: ~3.5 kW/K at full submersion for 100 m² roof; linear in floor area.
-    UA_reject = (400.0 + 3200.0 * room.submersion) * (A["floor"] / 100.0)  # W/K
-    # Extra from buried header trunks in the berm
-    UA_reject += 1.5 * pipe.serpentine_length_m * room.submersion  # ~1.5 W/(m·K)
+    UA_reject = ua_ground_reject(room, pipe, A["floor"])
+    if extras is not None and extras.UA_reject is not None:
+        UA_reject = extras.UA_reject
 
-    n = int(hours * 3600 / dt_s) + 1
-    t_all = np.arange(n) * dt_s / 3600.0
+    t_all = simulation_hours(hours, dt_s)
+    n = int(t_all.size)
+    if extras is not None and extras.Q_solar_room_extra_W is not None:
+        if len(extras.Q_solar_room_extra_W) != n:
+            raise ValueError(
+                f"Q_solar_room_extra_W length {len(extras.Q_solar_room_extra_W)} != time steps {n}"
+            )
+    if extras is not None and extras.T_heat_C is not None and extras.T_cool_C is not None:
+        if extras.T_heat_C > extras.T_cool_C:
+            raise ValueError("thermostat heating setpoint is above cooling setpoint")
+
     T_out_all = outdoor_T(t_all % 24.0, clim)
     G_all = solar_G(t_all % 24.0, clim)
 
@@ -227,6 +287,7 @@ def simulate(
     T_w = np.zeros(n)
     P = np.zeros(n)
     Q_water_abs = np.zeros(n)
+    Q_hvac_series = np.zeros(n)
 
     T_r[0] = room.T0_room_C
     T_w[0] = room.T0_water_C
@@ -236,42 +297,101 @@ def simulate(
     V_tank = pipe.expansion_tank_gal / GALLON_PER_M3
     soft = V_pipe / (V_pipe + 1.2 * V_tank + 1e-12)
 
+    heat_J = 0.0
+    cool_J = 0.0
+    report_after = hours - 24.0
+
     for i in range(n - 1):
         To = T_out_all[i]
         Gi = G_all[i]
         Tr, Tw = T_r[i], T_w[i]
         Ts = room.T_soil_C
 
-        Q_solar_room = room.g_solar_to_room * Gi * A["glazed_roof"]
-        Q_solar_water = room.g_solar_to_water * Gi * A["glazed_roof"]
-        Q_int = room.Q_internal_W
+        if extras is None:
+            Q_solar_room = room.g_solar_to_room * Gi * A["glazed_roof"]
+            Q_solar_water = room.g_solar_to_water * Gi * A["glazed_roof"]
+            Q_int = room.Q_internal_W
 
-        Q_rw = UA_rw * (Tr - Tw)
-        Q_roof_amb = room.U_glazing * A["glazed_roof"] * (Tr - To)
-        Q_earth = (
-            room.U_earth_floor * A["floor"] * (Tr - Ts)
-            + room.U_earth_wall * A["buried_wall"] * (Tr - Ts)
-        )
-        Q_wall_amb = room.U_exposed_wall * A["exposed_wall"] * (Tr - To)
-        Q_inf = UA_inf * (Tr - To)
-        Q_reject = UA_reject * (Tw - Ts)
+            Q_rw = UA_rw * (Tr - Tw)
+            Q_roof_amb = room.U_glazing * A["glazed_roof"] * (Tr - To)
+            Q_earth = (
+                room.U_earth_floor * A["floor"] * (Tr - Ts)
+                + room.U_earth_wall * A["buried_wall"] * (Tr - Ts)
+            )
+            Q_wall_amb = room.U_exposed_wall * A["exposed_wall"] * (Tr - To)
+            Q_inf = UA_inf * (Tr - To)
+            Q_reject = UA_reject * (Tw - Ts)
 
-        dTr = (Q_solar_room + Q_int - Q_rw - Q_roof_amb - Q_earth - Q_wall_amb - Q_inf) / C_room
-        dTw = (Q_rw + Q_solar_water - Q_reject) / C_water
+            dTr = (Q_solar_room + Q_int - Q_rw - Q_roof_amb - Q_earth - Q_wall_amb - Q_inf) / C_room
+            dTw = (Q_rw + Q_solar_water - Q_reject) / C_water
 
-        T_r[i + 1] = Tr + dTr * dt_s
-        T_w[i + 1] = Tw + dTw * dt_s
+            T_r[i + 1] = Tr + dTr * dt_s
+            T_w[i + 1] = Tw + dTw * dt_s
+            Q_hvac = 0.0
+        else:
+            Gi_roof = Gi * extras.roof_solar_scale
+            Q_solar_room = room.g_solar_to_room * Gi_roof * A["glazed_roof"]
+            if extras.Q_solar_room_extra_W is not None:
+                Q_solar_room += float(extras.Q_solar_room_extra_W[i])
+            Q_solar_water = room.g_solar_to_water * Gi_roof * A["glazed_roof"]
+            Q_int = room.Q_internal_W
+
+            Q_rw = UA_rw * (Tr - Tw)
+            Q_roof_amb = room.U_glazing * A["glazed_roof"] * (Tr - To)
+            if extras.A_roof_opaque:
+                Q_roof_amb += extras.U_roof_opaque * extras.A_roof_opaque * (Tr - To)
+
+            Ts_floor = Ts if extras.T_soil_floor_C is None else extras.T_soil_floor_C
+            Ts_wall = Ts if extras.T_soil_wall_C is None else extras.T_soil_wall_C
+            Ts_rej = Ts if extras.T_soil_reject_C is None else extras.T_soil_reject_C
+            if extras.UA_floor_earth is None:
+                Q_floor = room.U_earth_floor * A["floor"] * (Tr - Ts_floor)
+            else:
+                Q_floor = extras.UA_floor_earth * (Tr - Ts_floor)
+            if extras.UA_wall_earth is None:
+                Q_wall_e = room.U_earth_wall * A["buried_wall"] * (Tr - Ts_wall)
+            else:
+                Q_wall_e = extras.UA_wall_earth * (Tr - Ts_wall)
+            Q_earth = Q_floor + Q_wall_e
+            if extras.UA_exposed is None:
+                Q_wall_amb = room.U_exposed_wall * A["exposed_wall"] * (Tr - To)
+            else:
+                Q_wall_amb = extras.UA_exposed * (Tr - To)
+            Q_inf = UA_inf * (Tr - To)
+            Q_reject = UA_reject * (Tw - Ts_rej)
+
+            dTr = (Q_solar_room + Q_int - Q_rw - Q_roof_amb - Q_earth - Q_wall_amb - Q_inf) / C_room
+            dTw = (Q_rw + Q_solar_water - Q_reject) / C_water
+            T_next = Tr + dTr * dt_s
+            Q_hvac = 0.0
+            if extras.T_heat_C is not None and extras.T_cool_C is not None:
+                if T_next > extras.T_cool_C:
+                    Q_hvac = C_room * (extras.T_cool_C - T_next) / dt_s
+                    T_next = extras.T_cool_C
+                elif T_next < extras.T_heat_C:
+                    Q_hvac = C_room * (extras.T_heat_C - T_next) / dt_s
+                    T_next = extras.T_heat_C
+                if t_all[i] >= report_after:
+                    if Q_hvac >= 0.0:
+                        heat_J += Q_hvac * dt_s
+                    else:
+                        cool_J += -Q_hvac * dt_s
+            T_r[i + 1] = T_next
+            T_w[i + 1] = Tw + dTw * dt_s
+
         Q_water_abs[i] = Q_rw + Q_solar_water
+        Q_hvac_series[i] = Q_hvac
 
         dT_w = T_w[i + 1] - T_ref
         P[i + 1] = room.P0_kPa + room.K_sys_kPa * soft * BETA_WATER * dT_w
 
     Q_water_abs[-1] = Q_water_abs[-2]
+    Q_hvac_series[-1] = Q_hvac_series[-2]
     P[0] = room.P0_kPa
 
     # Return last 24 h only (settled diurnal)
-    mask = t_all >= (hours - 24.0)
-    t_h = t_all[mask] - (hours - 24.0)
+    mask = t_all >= report_after
+    t_h = t_all[mask] - report_after
     return {
         "t_h": t_h,
         "T_out": T_out_all[mask],
@@ -280,9 +400,12 @@ def simulate(
         "P_kPa": P[mask],
         "G": G_all[mask],
         "Q_water_W": Q_water_abs[mask],
+        "Q_hvac_W": Q_hvac_series[mask],
         "UA_rw": np.array([UA_rw]),
         "UA_reject": np.array([UA_reject]),
         "C_room": np.array([C_room]),
+        "E_heat_kWh": np.array([heat_J / 3.6e6]),
+        "E_cool_kWh": np.array([cool_J / 3.6e6]),
     }
 
 
@@ -547,7 +670,7 @@ def plot_submersion_sensitivity(
     ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper right", fontsize=9)
     ax1.set_title(
         "Submersion sensitivity — peak room T & HVAC-proxy energy\n"
-        "(water-cooled roof held constant; earth UA scales with buried area)"
+        "(legacy free-float summer day; planning f* is submersion_optimal.png)"
     )
     fig.tight_layout()
     fig.savefig(path, dpi=140)
@@ -651,7 +774,26 @@ def plot_site_layout_10acre(path: str) -> None:
     plt.close(fig)
 
 
-def main() -> None:
+def main(argv: Optional[list] = None) -> None:
+    parser = argparse.ArgumentParser(description="LoopBiotek climate-envelope simulation")
+    parser.add_argument(
+        "--optimize",
+        action="store_true",
+        help="sweep submersion fraction and print f* for living, storage, and greenhouse",
+    )
+    parser.add_argument(
+        "--with-plots",
+        action="store_true",
+        help="with --optimize, also write the legacy 24 h envelope figures",
+    )
+    args = parser.parse_args(argv)
+    if args.optimize:
+        from submersion_opt import main_optimize
+
+        main_optimize()
+        if not args.with_plots:
+            return
+
     room = RoomParams()
     pipe = PipeGeometry()
     clim = ClimateParams()
