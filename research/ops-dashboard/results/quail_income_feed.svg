@@ -2,24 +2,24 @@
 <rect width="100%" height="100%" fill="#f7f4ee"/>
 <text x="70" y="24" font-family="Georgia, serif" font-size="18" fill="#1c1915">Feed for the heavy herd, with the meat sales on</text>
 <line x1="70" y1="312.0" x2="716" y2="312.0" stroke="#e4dccf"/>
-<text x="62" y="316.0" text-anchor="end" font-family="sans-serif" font-size="12" fill="#5c564c">829</text>
+<text x="62" y="316.0" text-anchor="end" font-family="sans-serif" font-size="12" fill="#5c564c">816</text>
 <line x1="70" y1="220.0" x2="716" y2="220.0" stroke="#e4dccf"/>
-<text x="62" y="224.0" text-anchor="end" font-family="sans-serif" font-size="12" fill="#5c564c">1,658</text>
+<text x="62" y="224.0" text-anchor="end" font-family="sans-serif" font-size="12" fill="#5c564c">1,632</text>
 <line x1="70" y1="128.0" x2="716" y2="128.0" stroke="#e4dccf"/>
-<text x="62" y="132.0" text-anchor="end" font-family="sans-serif" font-size="12" fill="#5c564c">2,488</text>
+<text x="62" y="132.0" text-anchor="end" font-family="sans-serif" font-size="12" fill="#5c564c">2,448</text>
 <line x1="70" y1="36.0" x2="716" y2="36.0" stroke="#e4dccf"/>
-<text x="62" y="40.0" text-anchor="end" font-family="sans-serif" font-size="12" fill="#5c564c">3,317</text>
-<polyline fill="none" stroke="#3f6212" stroke-width="2.5" points="70.0,236.4 98.1,214.2 126.2,212.7 154.3,210.7 182.3,204.0 210.4,201.8 238.5,200.0 266.6,193.3 294.7,191.2 322.8,188.8 350.9,181.2 379.0,178.7 407.0,175.0 435.1,166.5 463.2,163.2 491.3,159.7 519.4,150.1 547.5,144.4 575.6,140.4 603.7,128.7 631.7,124.0 659.8,117.3 687.9,104.7 716.0,97.3"/>
-<polyline fill="none" stroke="#9a3412" stroke-width="2.5" points="70.0,332.2 98.1,322.7 126.2,322.0 154.3,321.1 182.3,318.3 210.4,317.3 238.5,316.6 266.6,313.7 294.7,312.8 322.8,311.8 350.9,308.5 379.0,307.4 407.0,305.9 435.1,302.2 463.2,300.8 491.3,299.3 519.4,295.2 547.5,292.7 575.6,291.0 603.7,286.0 631.7,284.0 659.8,281.1 687.9,275.7 716.0,272.6"/>
-<polyline fill="none" stroke="#1d4e89" stroke-width="2" stroke-dasharray="5 4" points="70.0,212.5 98.1,187.1 126.2,185.3 154.3,183.1 182.3,175.5 210.4,172.9 238.5,170.9 266.6,163.2 294.7,160.8 322.8,158.1 350.9,149.3 379.0,146.5 407.0,142.3 435.1,132.5 463.2,128.8 491.3,124.8 519.4,113.9 547.5,107.3 575.6,102.8 603.7,89.3 631.7,83.9 659.8,76.3 687.9,62.0 716.0,53.5"/>
+<text x="62" y="40.0" text-anchor="end" font-family="sans-serif" font-size="12" fill="#5c564c">3,264</text>
+<polyline fill="none" stroke="#3f6212" stroke-width="2.5" points="70.0,237.0 98.1,214.9 126.2,213.7 154.3,211.9 182.3,205.6 210.4,203.5 238.5,202.0 266.6,195.3 294.7,193.5 322.8,191.2 350.9,183.8 379.0,181.3 407.0,177.7 435.1,169.1 463.2,165.4 491.3,161.8 519.4,152.6 547.5,146.7 575.6,142.3 603.7,130.4 631.7,125.3 659.8,118.4 687.9,104.7 716.0,97.3"/>
+<polyline fill="none" stroke="#9a3412" stroke-width="2.5" points="70.0,332.4 98.1,323.0 126.2,322.4 154.3,321.7 182.3,319.0 210.4,318.1 238.5,317.4 266.6,314.6 294.7,313.8 322.8,312.8 350.9,309.6 379.0,308.5 407.0,307.0 435.1,303.3 463.2,301.7 491.3,300.2 519.4,296.3 547.5,293.7 575.6,291.9 603.7,286.7 631.7,284.5 659.8,281.6 687.9,275.7 716.0,272.6"/>
+<polyline fill="none" stroke="#1d4e89" stroke-width="2" stroke-dasharray="5 4" points="70.0,213.2 98.1,187.9 126.2,186.5 154.3,184.5 182.3,177.2 210.4,174.9 238.5,173.1 266.6,165.5 294.7,163.4 322.8,160.8 350.9,152.3 379.0,149.4 407.0,145.4 435.1,135.5 463.2,131.3 491.3,127.2 519.4,116.7 547.5,109.9 575.6,104.9 603.7,91.3 631.7,85.4 659.8,77.7 687.9,62.0 716.0,53.5"/>
 <line x1="98.1" y1="36" x2="98.1" y2="404" stroke="#5c564c" stroke-dasharray="3 3"/>
 <text x="104.1" y="52" font-family="sans-serif" font-size="12" fill="#5c564c">first sale, month 2</text>
 <line x1="70" y1="404" x2="716" y2="404" stroke="#1c1915"/>
 <line x1="70" y1="36" x2="70" y2="404" stroke="#1c1915"/>
 <line x1="716" y1="36" x2="716" y2="404" stroke="#1d4e89"/>
 <text x="722" y="408.0" font-family="sans-serif" font-size="11" fill="#1d4e89">0</text>
-<text x="722" y="224.0" font-family="sans-serif" font-size="11" fill="#1d4e89">3,096</text>
-<text x="722" y="40.0" font-family="sans-serif" font-size="11" fill="#1d4e89">6,192</text>
+<text x="722" y="224.0" font-family="sans-serif" font-size="11" fill="#1d4e89">3,047</text>
+<text x="722" y="40.0" font-family="sans-serif" font-size="11" fill="#1d4e89">6,094</text>
 <text x="393" y="444" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#1c1915">Month from purchase</text>
 <text x="18" y="220" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#1c1915" transform="rotate(-90 18 220)">Feed kg / month</text>
 <line x1="78" y1="386" x2="98" y2="386" stroke="#3f6212" stroke-width="2.5"/>

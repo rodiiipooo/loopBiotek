@@ -14,7 +14,15 @@ from pathlib import Path
 # Defaults shared with research/quail fair prepaid.
 R_INF = 0.027  # SOURCED BLS CPI-U Food, August 2026
 R_INF_AS_OF = "2026-08"
-R_PRIME = 0.07  # SOURCED Fed H.15 bank prime, 2026-09-24
+# 3-month Treasury constant maturity, nominal yield, percent per annum.
+# SOURCED Fed H.15, observation 2026-09-25, release 2026-09-28: 4.24%.
+# https://www.federalreserve.gov/releases/h15/
+# Same-day 3-month bill secondary market is 4.08% on a discount basis
+# (360-day year). That quote is not this r_tbill.
+R_TBILL = 0.0424
+R_TBILL_AS_OF = "2026-09-25"
+R_TBILL_TENOR = "3-month"
+R_TBILL_SOURCE = "https://www.federalreserve.gov/releases/h15/"
 FAIRNESS = 0.9
 EPSILON = 0.01  # Loop report alpha_Q example
 ALPHA = 0.9  # reliability stand-in for the worm P10 firm book
@@ -85,24 +93,26 @@ def fair_prepaid(
     p0: float,
     T: float,
     r_inf: float = R_INF,
-    r_prime: float = R_PRIME,
+    r_tbill: float = R_TBILL,
     fairness: float = FAIRNESS,
     transport: float = 0.0,
 ) -> dict:
     """Unified prepaid for any sellable good.
 
     E[P(T)] = E[P0] * (1+r_inf)^T
-    F_prelim = fairness * E[P(T)] / (1+r_prime)^T
+    F_prelim = fairness * E[P(T)] / (1+r_tbill)^T
     F_final = F_prelim + transport
+
+    r_tbill is the 3-month Treasury constant-maturity yield (annual).
     """
     if T < 0:
         raise ValueError("T must be >= 0")
-    if r_inf <= -1.0 or r_prime <= -1.0:
+    if r_inf <= -1.0 or r_tbill <= -1.0:
         raise ValueError("rates must be > -1")
     if fairness < 0 or transport < 0:
         raise ValueError("fairness and transport must be >= 0")
     e_t = float(p0) * (1.0 + r_inf) ** T
-    npv = e_t / (1.0 + r_prime) ** T
+    npv = e_t / (1.0 + r_tbill) ** T
     f_prelim = fairness * npv
     f_final = f_prelim + float(transport)
     return {
@@ -113,12 +123,14 @@ def fair_prepaid(
         "F_final": f_final,
         "T": T,
         "r_inf": r_inf,
-        "r_prime": r_prime,
+        "r_tbill": r_tbill,
+        "r_tbill_as_of": R_TBILL_AS_OF,
+        "r_tbill_tenor": R_TBILL_TENOR,
         "fairness": fairness,
         "transport": float(transport),
         "formula": (
             "E[P(T)] = E[P0] * (1+r_inf)^T; "
-            "F_prelim = fairness * E[P(T)] / (1+r_prime)^T; "
+            "F_prelim = fairness * E[P(T)] / (1+r_tbill)^T; "
             "F_final = F_prelim + transport"
         ),
     }

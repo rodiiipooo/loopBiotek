@@ -116,12 +116,13 @@ def meta() -> dict:
         "stage_gate": "Stage 1 worms are the only active spend. This screen does not approve Stage 2–5 purchases.",
         "r_inf": engine.R_INF,
         "r_inf_as_of": "2026-08",
-        "r_prime": engine.R_PRIME,
-        "r_prime_as_of": "2026-09-24",
+        "r_tbill": engine.R_TBILL,
+        "r_tbill_as_of": engine.R_TBILL_AS_OF,
+        "r_tbill_tenor": engine.R_TBILL_TENOR,
         "fairness": engine.FAIRNESS,
         "formula": (
             "E[P(T)] = E[P0] * (1+r_inf)^T; "
-            "F_prelim = 0.9 * E[P(T)] / (1+r_prime)^T"
+            "F_prelim = 0.9 * E[P(T)] / (1+r_tbill)^T"
         ),
         "species": {key: model.to_public() for key, model in engine.SPECIES.items()},
         "p10_plain": (

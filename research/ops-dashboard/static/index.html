@@ -262,7 +262,7 @@
       </figure>
       <figure>
         <img src="/plots/quail_n0_for_2000.png" alt="Starting birds needed for two thousand dollars a month" />
-        <figcaption>About 2,872 birds hold $2,000 a month from month 2 on the P10 tail. The purchased flock is not sold.</figcaption>
+        <figcaption>About 2,816 birds hold $2,000 a month from month 2 on the P10 tail. The purchased flock is not sold.</figcaption>
       </figure>
       <figure>
         <img src="/plots/quail_feed_vs_herd.png" alt="Worm and plant feed next to the heavy herd" />
@@ -610,7 +610,7 @@ $("delivery").addEventListener("change", refreshPriceHint);
   $("gate").textContent = meta.stage_gate;
   $("pricing").innerHTML =
     `Fair prepaid defaults: food inflation <strong>${(meta.r_inf * 100).toFixed(1)}%</strong> (August 2026), ` +
-    `prime <strong>${(meta.r_prime * 100).toFixed(0)}%</strong>, fairness <strong>${meta.fairness}</strong>. ` +
+    `3-month T-bill <strong>${(meta.r_tbill * 100).toFixed(2)}%</strong>, fairness <strong>${meta.fairness}</strong>. ` +
     `<span class="formula">${escapeHtml(meta.formula)}</span>. ${escapeHtml(meta.p10_plain)}`;
   await loadAll();
   await refreshPriceHint();

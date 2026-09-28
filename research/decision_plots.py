@@ -121,7 +121,7 @@ def birds_vs_month(order_lb: float = 40.0) -> dict:
         fig,
         OUT / "birds_per_lb_vs_month.png",
         "ASSUMPTION growth (26-week doubling). Floor of 68 is the Ne formula. P10.\n"
-        "F_prelim = 0.9 * E[P0] * ((1+0.027)/(1+0.07))^(month/12). Foodservice spot.\n"
+        "F_prelim = 0.9 * E[P0] * ((1+0.027)/(1+0.0424))^(month/12). 3-month T-bill yield.\n"
         "Stage 4 planning. Not a purchase. Around month 6: ~2.5 starters/lb, N0 ~100,\n"
         "and F_prelim is still near 0.9 x spot. A shorter T burns starters.\n"
         "A much later T trims starters only a little and discounts the prepaid.",
@@ -135,7 +135,7 @@ def birds_vs_month(order_lb: float = 40.0) -> dict:
         "p0": p0,
         "spot_prepaid_t0": spot_prepaid,
         "r_inf": engine.R_INF,
-        "r_prime": engine.R_PRIME,
+        "r_tbill": engine.R_TBILL,
         "fairness": engine.FAIRNESS,
     }
 
@@ -281,7 +281,7 @@ def main() -> dict:
         expected = (
             birds["fairness"]
             * birds["p0"]
-            * ((1.0 + birds["r_inf"]) / (1.0 + birds["r_prime"])) ** years
+            * ((1.0 + birds["r_inf"]) / (1.0 + birds["r_tbill"])) ** years
         )
         assert abs(quoted - expected) < 1e-9
     split = split_vs_soon()
@@ -305,7 +305,7 @@ def main() -> dict:
         "delivery_split_vs_soon.png": "A book that can wait for part of the pounds needs fewer starters than shipping all of it in month 3.",
         "ne_vs_sale.png": "A quail sale that would leave Ne under 50 is refused.",
         "quail_inbreeding_leakage.png": "More full-sib offspring lowers hatch and viability on the Sato slopes.",
-        "quail_n0_for_2000.png": "About 2,872 starters hold $2,000 a month from month 2 on the P10 tail.",
+        "quail_n0_for_2000.png": "About 2,816 starters hold $2,000 a month from month 2 on the P10 tail.",
         "quail_feed_vs_herd.png": "Worm and plant feed rise with the heavy herd; a short ration fails closed.",
         "worm_p10_sell_room.png": "Worm P10 room grows with the starting herd and with a later month.",
     }

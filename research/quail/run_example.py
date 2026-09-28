@@ -13,8 +13,9 @@ from quail_model import (
     INFLATION_RATE,
     INFLATION_RATE_AS_OF,
     KIT_PRICE_USD,
-    PRIME_RATE,
-    PRIME_RATE_AS_OF,
+    TBILL_RATE,
+    TBILL_RATE_AS_OF,
+    TBILL_RATE_TENOR,
     can_sustain,
     expected_comp_price,
     fair_prepaid_forward_per_lb,
@@ -78,14 +79,14 @@ def main() -> None:
     print()
     p_comp = expected_comp_price()
     print(
-        f"--- Fair prepaid (prime={PRIME_RATE*100:.2f}% as of {PRIME_RATE_AS_OF}; "
+        f"--- Fair prepaid ({TBILL_RATE_TENOR} T-bill={TBILL_RATE*100:.2f}% as of {TBILL_RATE_AS_OF}; "
         f"r_inf={INFLATION_RATE*100:.1f}% CPI-U Food {INFLATION_RATE_AS_OF}; "
         f"fairness={FAIRNESS_DISCOUNT_FACTOR:.2f}; transport=$0/lb) ---"
     )
     print(f"E[P_comp(0)] spot = ${p_comp:.4f}/lb (foodservice mean)")
     print(
         "E[P_comp(T)] = E[P_comp(0)] * (1+r_inf)^T; "
-        "NPV = E[P_comp(T)] / (1+r_prime)^T; "
+        "NPV = E[P_comp(T)] / (1+r_tbill)^T; "
         "F_prelim = 0.9 * NPV; F_final = F_prelim + transport"
     )
     print(f"{'T_yr':>6} {'P_meat(T)':>12} {'F_prelim':>12} {'F_final':>12} {'DF':>8}")
@@ -104,7 +105,7 @@ def main() -> None:
         f"E[P_comp(T)] ${sample['E_P_comp_at_T']:.4f}); deliver 1 lb at T."
     )
     print(
-        f"Zero-inflation check (r_inf=0, same T, prime, fairness): "
+        f"Zero-inflation check (r_inf=0, same T, r_tbill, fairness): "
         f"F_prelim ${flat['F_prelim_usd_per_lb']:.4f}/lb"
     )
 
@@ -117,8 +118,9 @@ def main() -> None:
         "fair_forward_sample_T0.5": sample,
         "fair_forward_sample_T0.5_r_inf_0": flat,
         "E_P_comp": p_comp,
-        "prime_rate": PRIME_RATE,
-        "prime_as_of": PRIME_RATE_AS_OF,
+        "r_tbill": TBILL_RATE,
+        "r_tbill_as_of": TBILL_RATE_AS_OF,
+        "r_tbill_tenor": TBILL_RATE_TENOR,
         "r_inf": INFLATION_RATE,
         "r_inf_as_of": INFLATION_RATE_AS_OF,
         "defaults": defaults_table(),

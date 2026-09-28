@@ -49,13 +49,13 @@ URL: https://store.grit.com/products/quail-professional-kit?variant=472137662466
 
 Note: foodservice comps are often standard-size birds; $/lb still used as competing meat price for fair forward. Jumbo portion size differs; adjust comps when Loop SKU is quoted.
 
-## Prime rate
+## Prepaid discount — 3-month T-bill
 
 | Item | Value | Tag | Source |
 |------|-------|-----|--------|
-| Bank prime loan | **7.00%** | SOURCED | Fed H.15 daily; 2026-09-18…24 all 7.00; release date 2026-09-25 https://www.federalreserve.gov/releases/h15/ |
-| As-of used in model | 2026-09-24 | SOURCED | H.15 observation column |
-| Context | Raised from 6.75% after Sep 16, 2026 FOMC | SOURCED | Reuters / U.S. Bank IR 2026-09-16 |
+| \(r_{\mathrm{tbill}}\), 3-month constant maturity | **4.24%** | SOURCED | Fed H.15 nominal Treasury constant maturity, observation 2026-09-25, release 2026-09-28. https://www.federalreserve.gov/releases/h15/ |
+| 3-month bill, secondary market | 4.08% | SOURCED, not used | Same H.15 column. Discount basis, 360-day year. Not the rate inside \((1+r)^{T}\). |
+| Tenor | 3-month | planning lock | Short-horizon prepaid discount. |
 
 ## Food inflation (competing-goods drift)
 
@@ -69,7 +69,7 @@ Default \(r_{\mathrm{inf}}\) for this meat forward is **Food 2.7%** (`INFLATION_
 
 ## Booking window (40 lb, P10)
 
-The chart [`../plots/birds_per_lb_vs_month.png`](../plots/birds_per_lb_vs_month.png) (`research/decision_plots.py`) draws starters per pound and \(N_0\) on the upper panel and \(F_{\mathrm{prelim}}\) on a lower panel. The price uses the locked formula and this file’s foodservice spot. \(T\) in the formula is the delivery month divided by 12. Defaults: \(r_{\mathrm{inf}} = 0.027\), \(r_{\mathrm{prime}} = 0.07\), fairness \(0.9\).
+The chart [`../plots/birds_per_lb_vs_month.png`](../plots/birds_per_lb_vs_month.png) (`research/decision_plots.py`) draws starters per pound and \(N_0\) on the upper panel and \(F_{\mathrm{prelim}}\) on a lower panel. The price uses the locked formula and this file’s foodservice spot. \(T\) in the formula is the delivery month divided by 12. Defaults: \(r_{\mathrm{inf}} = 0.027\), \(r_{\mathrm{tbill}} = 0.0424\) (3-month constant maturity), fairness \(0.9\).
 
 Around month 6, starters per pound have flattened to about 2.5 and a 40 lb P10 order needs about 100 birds, while \(F_{\mathrm{prelim}}\) is still close to the spot NPV after fairness (0.9 times $12.4633/lb). That neighborhood is the window for a firm forward. A very short \(T\) burns starters (month 1 is on the order of 20 birds per pound). A very long \(T\) only weakly improves starter efficiency — \(N_0\) is soon the 68-bird Ne floor — and the prepaid is discounted further versus waiting. This is Stage 4 planning. It does not open quail spend. Stage 1 worms remain the source of record.
 
