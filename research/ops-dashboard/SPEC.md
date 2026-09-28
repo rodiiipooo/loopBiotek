@@ -121,7 +121,7 @@ Smoke (`python3 quail_income.py`, 2,000 paths, seed `20260926`): **N0 = 2,872**.
 
 | Chart | Decision |
 |-------|----------|
-| `birds_per_lb_vs_month.png` | Shorter T needs more starters per pound. For 40 lb, N0 falls from about 925 at month 1 to the 68-bird floor by month 8. |
+| `birds_per_lb_vs_month.png` | Shorter T needs more starters per pound. For 40 lb, N0 falls from about 925 at month 1 to about 100 at month 6 (~2.5 birds/lb) and the 68-bird floor by month 8. The lower panel is \(F_{\mathrm{prelim}}\). At month 6 it is still close to 0.9 times the foodservice spot. |
 | `delivery_split_vs_soon.png` | 15 lb locked in month 3 plus 15 lb that can wait needs about 87 starters. All 30 lb in month 3 needs about 173. |
 | `quail_n0_for_2000.png` and `quail_feed_vs_herd.png` | The $2,000 case above, and the feed that heavy herd eats. |
 | `worm_p10_sell_room.png` | At 16,500 worms, P10 room is about 13 lb in month 3 and about 113 lb in month 12. |

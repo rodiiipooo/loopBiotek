@@ -67,6 +67,12 @@ Note: foodservice comps are often standard-size birds; $/lb still used as compet
 
 Default \(r_{\mathrm{inf}}\) for this meat forward is **Food 2.7%** (`INFLATION_RATE`). Override with `r_inf` or `drift_per_year`, including 0 for a flat curve.
 
+## Booking window (40 lb, P10)
+
+The chart [`../plots/birds_per_lb_vs_month.png`](../plots/birds_per_lb_vs_month.png) (`research/decision_plots.py`) draws starters per pound and \(N_0\) on the upper panel and \(F_{\mathrm{prelim}}\) on a lower panel. The price uses the locked formula and this file’s foodservice spot. \(T\) in the formula is the delivery month divided by 12. Defaults: \(r_{\mathrm{inf}} = 0.027\), \(r_{\mathrm{prime}} = 0.07\), fairness \(0.9\).
+
+Around month 6, starters per pound have flattened to about 2.5 and a 40 lb P10 order needs about 100 birds, while \(F_{\mathrm{prelim}}\) is still close to the spot NPV after fairness (0.9 times $12.4633/lb). That neighborhood is the window for a firm forward. A very short \(T\) burns starters (month 1 is on the order of 20 birds per pound). A very long \(T\) only weakly improves starter efficiency — \(N_0\) is soon the 68-bird Ne floor — and the prepaid is discounted further versus waiting. This is Stage 4 planning. It does not open quail spend. Stage 1 worms remain the source of record.
+
 ## Model limitations (honest)
 
 - Deterministic weekly cohorts; no stochastic disease / fertility shock.

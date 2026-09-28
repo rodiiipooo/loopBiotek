@@ -39,34 +39,105 @@ except ImportError as err:
     ) from err
 
 
-def _finish(fig, path: Path, note: str) -> None:
-    fig.text(0.01, 0.005, note, fontsize=8, color="#5c564c")
-    fig.tight_layout(rect=(0, 0.07, 1, 1))
+def _finish(fig, path: Path, note: str, after_layout=None) -> None:
+    lines = note.count("\n") + 1
+    if lines == 1:
+        fig.text(0.01, 0.005, note, fontsize=8, color="#5c564c")
+        fig.tight_layout(rect=(0, 0.07, 1, 1))
+    else:
+        bottom = 0.02 + 0.028 * lines
+        fig.text(0.01, 0.01, note, fontsize=8, color="#5c564c", va="bottom", linespacing=1.35)
+        fig.tight_layout(rect=(0, bottom, 1, 1))
+    if after_layout is not None:
+        after_layout()
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, dpi=140)
     plt.close(fig)
 
 
 def birds_vs_month(order_lb: float = 40.0) -> dict:
+    """P10 starters for one order, plus locked prepaid F_prelim at the same month.
+
+    The herd series stay on the upper panel. F_prelim is a companion panel so a
+    third unit ($/lb) does not sit on top of birds per pound and N0.
+    """
     months = [1, 2, 3, 4, 6, 8, 10, 12, 15, 18]
     rows = [delivery.n0_required(order_lb, month, "quail", engine.DEFAULT_QUANTILE) for month in months]
-    fig, ax = plt.subplots(figsize=(8.4, 4.8))
-    ax.plot(months, [row["birds_per_lb"] for row in rows], color="#1d4e89", lw=2.2, marker="o", label="Birds per lb")
-    ax.set_xlabel("Delivery month T")
+    quotes = [engine.price_quote("quail", month) for month in months]
+    birds = [row["birds_per_lb"] for row in rows]
+    herds = [row["n0"] for row in rows]
+    f_prelim = [float(quote["F_prelim"]) for quote in quotes]
+    p0 = float(quotes[0]["E_P0"])
+    spot_prepaid = float(engine.FAIRNESS) * p0
+    fig, (ax, axp) = plt.subplots(
+        2,
+        1,
+        figsize=(8.8, 8.1),
+        sharex=True,
+        gridspec_kw={"height_ratios": [1.45, 1.0]},
+    )
+    ax.plot(months, birds, color="#1d4e89", lw=2.2, marker="o", label="Birds per lb")
     ax.set_ylabel("Starters per delivered pound")
     ax2 = ax.twinx()
-    ax2.plot(months, [row["n0"] for row in rows], color="#9a3412", lw=2.2, marker="s", label="Starting herd N0")
+    ax2.plot(months, herds, color="#9a3412", lw=2.2, marker="s", label="Starting herd N0")
     ax2.set_ylabel("Starting herd for this order", color="#9a3412")
+    ax2.tick_params(axis="y", colors="#9a3412")
     ax.set_title(f"P10 starters for a {order_lb:.0f} lb quail order")
+    ax.axvline(6, color="#8a5a12", ls=":", lw=1.15, zorder=0, label="Month 6")
     lines, labels = ax.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax.legend(lines + lines2, labels + labels2, frameon=False, loc="upper right")
+
+    axp.plot(months, f_prelim, color="#3f6212", lw=2.2, marker="D", label="F_prelim")
+    axp.axhline(
+        spot_prepaid,
+        color="#5c564c",
+        ls="--",
+        lw=1.15,
+        label="0.9 × spot (prepaid at T = 0)",
+    )
+    axp.axvline(6, color="#8a5a12", ls=":", lw=1.15, zorder=0)
+    # Invisible herd ticks keep the same right gutter so the months line up.
+    axp_right = axp.twinx()
+    axp_right.set_ylim(ax2.get_ylim())
+    axp_right.set_yticks(ax2.get_yticks())
+    axp_right.set_ylabel("Starting herd for this order", color="#ffffff")
+    axp_right.tick_params(axis="y", colors="#ffffff", length=0)
+    axp.set_xlabel("Delivery month T")
+    axp.set_ylabel("Prepaid F_prelim ($/lb)")
+    axp.yaxis.set_major_formatter(plt.FuncFormatter(lambda value, _pos: f"{value:.2f}"))
+    low = min(f_prelim)
+    high = max(spot_prepaid, max(f_prelim))
+    axp.set_ylim(low - 0.32, high + 0.1)
+    axp.legend(frameon=False, loc="lower left")
+
+    def _align_panels() -> None:
+        box = ax.get_position()
+        for host in (axp, axp_right):
+            old = host.get_position()
+            host.set_position([box.x0, old.y0, box.width, old.height])
+
     _finish(
         fig,
         OUT / "birds_per_lb_vs_month.png",
-        "ASSUMPTION growth (26-week doubling). Floor of 68 is the Ne formula. P10. Stage 4 planning. Not a purchase.",
+        "ASSUMPTION growth (26-week doubling). Floor of 68 is the Ne formula. P10.\n"
+        "F_prelim = 0.9 * E[P0] * ((1+0.027)/(1+0.07))^(month/12). Foodservice spot.\n"
+        "Stage 4 planning. Not a purchase. Around month 6: ~2.5 starters/lb, N0 ~100,\n"
+        "and F_prelim is still near 0.9 x spot. A shorter T burns starters.\n"
+        "A much later T trims starters only a little and discounts the prepaid.",
+        after_layout=_align_panels,
     )
-    return {"months": months, "birds_per_lb": [row["birds_per_lb"] for row in rows], "n0": [row["n0"] for row in rows]}
+    return {
+        "months": months,
+        "birds_per_lb": birds,
+        "n0": herds,
+        "f_prelim": f_prelim,
+        "p0": p0,
+        "spot_prepaid_t0": spot_prepaid,
+        "r_inf": engine.R_INF,
+        "r_prime": engine.R_PRIME,
+        "fairness": engine.FAIRNESS,
+    }
 
 
 def split_vs_soon() -> dict:
@@ -199,6 +270,20 @@ def main() -> dict:
     birds = birds_vs_month()
     assert birds["birds_per_lb"][0] > birds["birds_per_lb"][-1]
     assert birds["n0"][0] > birds["n0"][-1]
+    assert birds["f_prelim"][0] > birds["f_prelim"][-1]
+    at_six = birds["months"].index(6)
+    assert abs(birds["birds_per_lb"][at_six] - 2.45) < 0.15
+    assert 90 < birds["n0"][at_six] < 110
+    spot_prepaid = birds["fairness"] * birds["p0"]
+    assert abs(birds["f_prelim"][at_six] / spot_prepaid - 1.0) < 0.03
+    for month, quoted in zip(birds["months"], birds["f_prelim"]):
+        years = month / 12.0
+        expected = (
+            birds["fairness"]
+            * birds["p0"]
+            * ((1.0 + birds["r_inf"]) / (1.0 + birds["r_prime"])) ** years
+        )
+        assert abs(quoted - expected) < 1e-9
     split = split_vs_soon()
     assert split["split_n0"] + 1 < split["all_soon_n0"]
     assert any(lot["month"] > 3 for lot in split["split_lots"])
@@ -216,7 +301,7 @@ def main() -> dict:
     assert worms["lb_at_month_12"][0] < worms["lb_at_month_12"][-1]
     assert worms["lb_at_16500"][0] < worms["lb_at_16500"][-1]
     teachings = {
-        "birds_per_lb_vs_month.png": "Shorter delivery month, more starters per pound, and a larger N0 for a 40 lb order.",
+        "birds_per_lb_vs_month.png": "Around month 6 a 40 lb P10 order needs about 2.5 starters per pound (N0 about 100) while F_prelim is still near 0.9 times spot. A shorter month burns starters. A much later month trims starters only a little and discounts the prepaid.",
         "delivery_split_vs_soon.png": "A book that can wait for part of the pounds needs fewer starters than shipping all of it in month 3.",
         "ne_vs_sale.png": "A quail sale that would leave Ne under 50 is refused.",
         "quail_inbreeding_leakage.png": "More full-sib offspring lowers hatch and viability on the Sato slopes.",
