@@ -31,7 +31,7 @@ Given average buyer/community consumption \(\bar{c}\) (lb/week) of product \(p\)
 | `rate_ramp_table(y, z, U, weeks)` | full ramp |
 | `meat_lbs(t, y, z, U)` | cumulative dressed lbs (helper) |
 | `kits_needed(X, t, y, z)` | min \(U\) for cumulative demand \(X\) (helper) |
-| `P_meat(t)`, `fair_prepaid_forward_per_lb(T)` | competing forward + prime-discounted prepaid |
+| `P_meat(t)`, `fair_prepaid_forward_per_lb(T)` | competing forward + T-bill-discounted prepaid |
 
 ---
 
@@ -78,30 +78,30 @@ Weekly incubator set approx: \(U \times 216 \times 7/17.5\).
 
 Competing spot \(E[P_{\mathrm{comp}}(0)]\) = mean of foodservice whole-bird $/lb comps (Webstaurant Manchester Farms regular/plus, Manchester case) — see RESEARCH. Specialty retail (D’Artagnan) listed but **excluded** from default mean.
 
-Buyer prepay at \(t=0\) is a loan to Loop until delivery \(T\). **Most-fair prepaid** inflates competing goods first, then discounts at prime, then applies fairness 0.9 (Rod 2026-09-26):
+Buyer prepay at \(t=0\) is a loan to Loop until delivery \(T\). **Most-fair prepaid** inflates competing goods first, then discounts at the 3-month Treasury bill yield, then applies fairness 0.9 (Rod 2026-09-26; discount lock updated from bank prime to the T-bill):
 
 \[
 E[P_{\mathrm{comp}}(T)] = E[P_{\mathrm{comp}}(0)]\,(1 + r_{\mathrm{inf}})^{T}
 \]
 
 \[
-\mathrm{NPV}_{\mathrm{comp}}(T) = \frac{E[P_{\mathrm{comp}}(T)]}{(1 + r_{\mathrm{prime}})^{T}}
+\mathrm{NPV}_{\mathrm{comp}}(T) = \frac{E[P_{\mathrm{comp}}(T)]}{(1 + r_{\mathrm{tbill}})^{T}}
 \]
 
 \[
 F_{\mathrm{prelim}} = 0.9 \cdot \mathrm{NPV}_{\mathrm{comp}}(T)
-= 0.9 \cdot E[P_{\mathrm{comp}}(0)] \left(\frac{1 + r_{\mathrm{inf}}}{1 + r_{\mathrm{prime}}}\right)^{T}
+= 0.9 \cdot E[P_{\mathrm{comp}}(0)] \left(\frac{1 + r_{\mathrm{inf}}}{1 + r_{\mathrm{tbill}}}\right)^{T}
 \]
 
 Continuous flag (`continuous=True`):
 
 \[
 E[P_{\mathrm{comp}}(T)] = E[P_{\mathrm{comp}}(0)]\, e^{r_{\mathrm{inf}} T},\quad
-\mathrm{NPV}_{\mathrm{comp}}(T) = E[P_{\mathrm{comp}}(T)]\, e^{-r_{\mathrm{prime}} T},\quad
+\mathrm{NPV}_{\mathrm{comp}}(T) = E[P_{\mathrm{comp}}(T)]\, e^{-r_{\mathrm{tbill}} T},\quad
 F_{\mathrm{prelim}} = 0.9 \cdot \mathrm{NPV}_{\mathrm{comp}}(T)
 \]
 
-The factor \(0.9\) is a **10% discount on the NPV** of competing goods. The deposit is still discounted at prime.
+The factor \(0.9\) is a **10% discount on the NPV** of competing goods. The deposit is discounted at \(r_{\mathrm{tbill}}\).
 
 **Default \(r_{\mathrm{inf}} = 2.7\%\)** — BLS CPI-U **Food**, 12-month percent change, **August 2026** (release 2026-09-11). https://www.bls.gov/news.release/archives/cpi_09112026.htm Overridable via `r_inf` or `drift_per_year` (pass 0 for a flat goods curve, or another rate). Same window, not used as the default: all-items CPI **3.4%**; meats, poultry, fish, and eggs **1.1%**. This meat forward uses **Food 2.7%**.
 
@@ -113,11 +113,11 @@ $$
 
 That layer enables richer strategies for the network (hub placement, route pooling).
 
-**Prime rate used:** \(r_{\mathrm{prime}} = 7.00\%\) — Fed H.15 bank prime loan, observation **2026-09-24**, release 2026-09-25. https://www.federalreserve.gov/releases/h15/
+**Bill rate used:** \(r_{\mathrm{tbill}} = 4.01\%\), tenor **3-month**. FRED series **DTB3** (secondary-market discount basis), observation **2026-09-22**. https://fred.stlouisfed.org/series/DTB3 Rod locked this quote for the prepaid discount. The H.15 3-month constant maturity on 2026-09-25 is 4.24% and is not \(r_{\mathrm{tbill}}\).
 
 Cash flows: deposit \(F_{\mathrm{final}}\) per lb at 0; deliver 1 lb at \(T\); no further cash if fully prepaid.
 
-**Pitch:** \(F_{\mathrm{prelim}}\) is the most-fair goods price (food inflation, prime on the deposit, then 10% NPV discount). Add transparent transport only when using the location model. Margin vs \(F_{\mathrm{prelim}}\) is Loop surplus/subsidy on the goods; transport should track cost, not hidden margin.
+**Pitch:** \(F_{\mathrm{prelim}}\) is the most-fair goods price (food inflation, the 3-month T-bill yield on the deposit, then 10% NPV discount). Add transparent transport only when using the location model. Margin vs \(F_{\mathrm{prelim}}\) is Loop surplus/subsidy on the goods; transport should track cost, not hidden margin.
 
 This is the same identity implemented by `fair_prepaid_forward_per_lb` in `quail_model.py` and, for every sellable cascade good, by `fair_prepaid` in [`../synergy/circular_buffers.py`](../synergy/circular_buffers.py).
 

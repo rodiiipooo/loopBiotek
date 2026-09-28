@@ -49,13 +49,13 @@ URL: https://store.grit.com/products/quail-professional-kit?variant=472137662466
 
 Note: foodservice comps are often standard-size birds; $/lb still used as competing meat price for fair forward. Jumbo portion size differs; adjust comps when Loop SKU is quoted.
 
-## Prime rate
+## Prepaid discount — 3-month T-bill
 
 | Item | Value | Tag | Source |
 |------|-------|-----|--------|
-| Bank prime loan | **7.00%** | SOURCED | Fed H.15 daily; 2026-09-18…24 all 7.00; release date 2026-09-25 https://www.federalreserve.gov/releases/h15/ |
-| As-of used in model | 2026-09-24 | SOURCED | H.15 observation column |
-| Context | Raised from 6.75% after Sep 16, 2026 FOMC | SOURCED | Reuters / U.S. Bank IR 2026-09-16 |
+| \(r_{\mathrm{tbill}}\), FRED DTB3 | **4.01%** | SOURCED | 3-month Treasury bill, secondary market, discount basis, 2026-09-22. https://fred.stlouisfed.org/series/DTB3 |
+| 3-month constant maturity | 4.24% | SOURCED, not used | Fed H.15, 2026-09-25. Not the prepaid discount. |
+| Tenor | 3-month | planning lock | Short-horizon prepaid discount. |
 
 ## Food inflation (competing-goods drift)
 
@@ -66,6 +66,16 @@ Note: foodservice comps are often standard-size birds; $/lb still used as compet
 | Same window, meats, poultry, fish, and eggs | 1.1% | SOURCED | Same release. Not the default. |
 
 Default \(r_{\mathrm{inf}}\) for this meat forward is **Food 2.7%** (`INFLATION_RATE`). Override with `r_inf` or `drift_per_year`, including 0 for a flat curve.
+
+## Booking window (40 lb, P10)
+
+The chart [`../plots/birds_per_lb_vs_month.png`](../plots/birds_per_lb_vs_month.png) (`research/decision_plots.py`) answers a different question from starters per pound. For an order of \(x\) pounds (default 40) delivered at week \(n\), it draws the flock that must already be on hand. The upper panel stacks males and females. The lower panel is \(F_{\mathrm{prelim}}\) with \(T = n/52\). Defaults: \(r_{\mathrm{inf}} = 0.027\), \(r_{\mathrm{tbill}} = 0.0401\), fairness \(0.9\).
+
+The standing flock is **1 male : 3 females**, the jumbo Coturnix breeder ratio in this SPEC. That ratio is the reproductive maximum used here: more hens would leave some without a male at that practice, and more males would idle egg slots. The Ne floor at that ratio is 17 males and 51 females. Those birds are not sold.
+
+\(N_{\mathrm{today}}\) is the larger of two fail-closed counts. One is the P10 herd that can finish \(x \times 1.15 / 0.9\) pounds, so the harsh tail still covers the order after the firm fraction and the cull-governor gross-up. The other is the Ne nucleus, grossed up for 1% weekly mortality over the lead, plus `birds_now_for_demand` for the dressed headcount. `safe_sell_limit` has to clear the sale with the floor still in place.
+
+For 40 lb, week 4 needs 1,184 birds. Week 26 (about 6 months) needs 204 birds, 51 males and 153 females, and \(F_{\mathrm{prelim}}\) is about $11.15/lb, still near 0.9 times the $12.46 spot. A shorter lead burns starters on the P10 tail. A longer lead raises today’s pipeline because more weeks of mortality sit in front of the same order, and the prepaid is discounted further. This is Stage 4 planning. It does not open quail spend. Stage 1 worms remain the source of record.
 
 ## Model limitations (honest)
 

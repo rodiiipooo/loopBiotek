@@ -39,34 +39,107 @@ except ImportError as err:
     ) from err
 
 
-def _finish(fig, path: Path, note: str) -> None:
-    fig.text(0.01, 0.005, note, fontsize=8, color="#5c564c")
-    fig.tight_layout(rect=(0, 0.07, 1, 1))
+def _finish(fig, path: Path, note: str, after_layout=None) -> None:
+    lines = note.count("\n") + 1
+    if lines == 1:
+        fig.text(0.01, 0.005, note, fontsize=8, color="#5c564c")
+        fig.tight_layout(rect=(0, 0.07, 1, 1))
+    else:
+        bottom = 0.02 + 0.028 * lines
+        fig.text(0.01, 0.01, note, fontsize=8, color="#5c564c", va="bottom", linespacing=1.35)
+        fig.tight_layout(rect=(0, bottom, 1, 1))
+    if after_layout is not None:
+        after_layout()
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, dpi=140)
     plt.close(fig)
 
 
 def birds_vs_month(order_lb: float = 40.0) -> dict:
+    """Flock on hand today for one dressed order, plus F_prelim at that week.
+
+    Upper panel: N_today, stacked as males and females at 1:3. Lower panel:
+    prepaid $/lb, so the price scale does not cover the flock.
+    """
     months = [1, 2, 3, 4, 6, 8, 10, 12, 15, 18]
-    rows = [delivery.n0_required(order_lb, month, "quail", engine.DEFAULT_QUANTILE) for month in months]
-    fig, ax = plt.subplots(figsize=(8.4, 4.8))
-    ax.plot(months, [row["birds_per_lb"] for row in rows], color="#1d4e89", lw=2.2, marker="o", label="Birds per lb")
-    ax.set_xlabel("Delivery month T")
-    ax.set_ylabel("Starters per delivered pound")
-    ax2 = ax.twinx()
-    ax2.plot(months, [row["n0"] for row in rows], color="#9a3412", lw=2.2, marker="s", label="Starting herd N0")
-    ax2.set_ylabel("Starting herd for this order", color="#9a3412")
-    ax.set_title(f"P10 starters for a {order_lb:.0f} lb quail order")
-    lines, labels = ax.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    ax.legend(lines + lines2, labels + labels2, frameon=False, loc="upper right")
+    weeks = [engine.weeks_for_month(month) for month in months]
+    rows = [delivery.flock_today(week, order_lb) for week in weeks]
+    if not all(row["fail_closed"] for row in rows):
+        raise RuntimeError("flock_today would raid the breed floor")
+    totals = [row["n_today"] for row in rows]
+    males = [row["males"] for row in rows]
+    females = [row["females"] for row in rows]
+    f_prelim = [row["f_prelim"] for row in rows]
+    p0 = rows[0]["p0"]
+    spot_prepaid = float(engine.FAIRNESS) * p0
+    knee = months.index(6)
+    fig, (ax, axp) = plt.subplots(
+        2,
+        1,
+        figsize=(8.8, 8.2),
+        sharex=True,
+        gridspec_kw={"height_ratios": [1.5, 1.0]},
+    )
+    ax.stackplot(
+        weeks,
+        males,
+        females,
+        colors=["#c4a484", "#1d4e89"],
+        labels=["Males today", "Females today"],
+        alpha=0.9,
+    )
+    ax.plot(weeks, totals, color="#1c1915", lw=1.6, marker="o", label="N_today")
+    ax.axvline(weeks[knee], color="#8a5a12", ls=":", lw=1.15, zorder=0)
+    ax.set_ylabel("Birds on hand today")
+    ax.set_title(f"Flock today for a {order_lb:.0f} lb quail delivery from surplus")
+    ax.legend(frameon=False, loc="upper right")
+    knee_row = rows[knee]
+    ax.annotate(
+        f"x = {order_lb:.0f} lb\nweek {knee_row['week']}\n{knee_row['males']}♂ {knee_row['females']}♀",
+        xy=(knee_row["week"], knee_row["n_today"]),
+        xytext=(knee_row["week"] + 14, max(totals) * 0.42),
+        fontsize=8,
+        color="#1c1915",
+        arrowprops={"arrowstyle": "->", "color": "#8a5a12", "lw": 0.8},
+    )
+
+    axp.plot(weeks, f_prelim, color="#3f6212", lw=2.2, marker="D", label="F_prelim")
+    axp.axhline(spot_prepaid, color="#5c564c", ls="--", lw=1.15, label="0.9 × spot (T = 0)")
+    axp.axvline(weeks[knee], color="#8a5a12", ls=":", lw=1.15, zorder=0)
+    axp.set_xlabel("Delivery week n")
+    axp.set_ylabel("Prepaid F_prelim ($/lb)")
+    axp.yaxis.set_major_formatter(plt.FuncFormatter(lambda value, _pos: f"{value:.2f}"))
+    low = min(f_prelim)
+    high = max(spot_prepaid, max(f_prelim))
+    pad = max(0.05, (high - low) * 0.8)
+    axp.set_ylim(low - pad, high + pad * 0.35)
+    axp.legend(frameon=False, loc="lower left")
     _finish(
         fig,
         OUT / "birds_per_lb_vs_month.png",
-        "ASSUMPTION growth (26-week doubling). Floor of 68 is the Ne formula. P10. Stage 4 planning. Not a purchase.",
+        f"Order x = {order_lb:.0f} lb dressed. N_today sells surplus only and leaves a 1♂:3♀ flock.\n"
+        "P10 herd for x * 1.15 / 0.9, or the Ne nucleus plus the mortality pipeline, whichever is larger.\n"
+        "F_prelim = 0.9 * E[P0] * ((1+0.027)/(1+0.0401))^(week/52). FRED DTB3 4.01% (2026-09-22).\n"
+        "Week 26 (~6 mo) is the knee: a short lead needs a much larger flock; a long lead\n"
+        "adds mortality to the pipeline and discounts the prepaid. Stage 4 planning. Not a purchase.",
     )
-    return {"months": months, "birds_per_lb": [row["birds_per_lb"] for row in rows], "n0": [row["n0"] for row in rows]}
+    return {
+        "order_lb": order_lb,
+        "months": months,
+        "weeks": weeks,
+        "n_today": totals,
+        "males": males,
+        "females": females,
+        "binding": [row["binding"] for row in rows],
+        "fail_closed": [row["fail_closed"] for row in rows],
+        "f_prelim": f_prelim,
+        "p0": p0,
+        "spot_prepaid_t0": spot_prepaid,
+        "r_inf": engine.R_INF,
+        "r_tbill": engine.R_TBILL,
+        "fairness": engine.FAIRNESS,
+        "knee": knee_row,
+    }
 
 
 def split_vs_soon() -> dict:
@@ -197,8 +270,26 @@ def copy_income_plots() -> dict:
 def main() -> dict:
     OUT.mkdir(parents=True, exist_ok=True)
     birds = birds_vs_month()
-    assert birds["birds_per_lb"][0] > birds["birds_per_lb"][-1]
-    assert birds["n0"][0] > birds["n0"][-1]
+    assert all(birds["fail_closed"])
+    assert all(f == 3 * m for m, f in zip(birds["males"], birds["females"]))
+    assert birds["n_today"][0] > birds["n_today"][birds["months"].index(6)]
+    knee_i = birds["months"].index(6)
+    assert birds["weeks"][knee_i] == 26
+    assert min(birds["n_today"]) == min(birds["n_today"][2:6])
+    bigger = delivery.flock_today(26, 80.0)
+    assert bigger["n_today"] > birds["knee"]["n_today"]
+    assert bigger["fail_closed"] and bigger["females"] == 3 * bigger["males"]
+    assert abs(birds["r_tbill"] - 0.0401) < 1e-12
+    spot_prepaid = birds["fairness"] * birds["p0"]
+    assert abs(birds["f_prelim"][knee_i] / spot_prepaid - 1.0) < 0.03
+    for week, quoted in zip(birds["weeks"], birds["f_prelim"]):
+        years = week / 52.0
+        expected = (
+            birds["fairness"]
+            * birds["p0"]
+            * ((1.0 + birds["r_inf"]) / (1.0 + birds["r_tbill"])) ** years
+        )
+        assert abs(quoted - expected) < 1e-6
     split = split_vs_soon()
     assert split["split_n0"] + 1 < split["all_soon_n0"]
     assert any(lot["month"] > 3 for lot in split["split_lots"])
@@ -216,11 +307,11 @@ def main() -> dict:
     assert worms["lb_at_month_12"][0] < worms["lb_at_month_12"][-1]
     assert worms["lb_at_16500"][0] < worms["lb_at_16500"][-1]
     teachings = {
-        "birds_per_lb_vs_month.png": "Shorter delivery month, more starters per pound, and a larger N0 for a 40 lb order.",
+        "birds_per_lb_vs_month.png": "For 40 lb at week n, N_today is the 1:3 flock on hand now that can sell surplus only. The low point is near week 26. F_prelim uses the 4.01% 3-month bill.",
         "delivery_split_vs_soon.png": "A book that can wait for part of the pounds needs fewer starters than shipping all of it in month 3.",
         "ne_vs_sale.png": "A quail sale that would leave Ne under 50 is refused.",
         "quail_inbreeding_leakage.png": "More full-sib offspring lowers hatch and viability on the Sato slopes.",
-        "quail_n0_for_2000.png": "About 2,872 starters hold $2,000 a month from month 2 on the P10 tail.",
+        "quail_n0_for_2000.png": f"About {income['n0']:,.0f} starters hold $2,000 a month from month 2 on the P10 tail.",
         "quail_feed_vs_herd.png": "Worm and plant feed rise with the heavy herd; a short ration fails closed.",
         "worm_p10_sell_room.png": "Worm P10 room grows with the starting herd and with a later month.",
     }

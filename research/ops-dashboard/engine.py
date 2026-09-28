@@ -17,7 +17,15 @@ if str(_SYNERGY) not in sys.path:
     sys.path.insert(0, str(_SYNERGY))
 
 try:
-    from circular_buffers import FAIRNESS, R_INF, R_PRIME, breed_floor, fair_prepaid  # noqa: E402
+    from circular_buffers import (  # noqa: E402
+        FAIRNESS,
+        R_INF,
+        R_TBILL,
+        R_TBILL_AS_OF,
+        R_TBILL_TENOR,
+        breed_floor,
+        fair_prepaid,
+    )
 except ImportError as err:
     raise ImportError(
         "This folder expects research/synergy next to it. Clone the whole repository, "
@@ -181,7 +189,7 @@ def price_quote(species: str, delivery_month: int, transport: float = 0.0) -> di
         model.spot_usd_per_unit,
         delivery_month / 12.0,
         r_inf=R_INF,
-        r_prime=R_PRIME,
+        r_tbill=R_TBILL,
         fairness=FAIRNESS,
         transport=transport,
     )

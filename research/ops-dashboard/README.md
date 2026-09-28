@@ -109,7 +109,7 @@ To keep your herd numbers and only remove promises, delete the rows in the table
 
 The screen runs 2,000 seeded futures of herd growth. **Safe to sell (P10)** is the amount you can still deliver in the harsh futures. Only 10% of scenarios are this low or lower. You plan as if outcomes are bad. P90, the good-growth case, is not the default and the screen will not take a percentile above 50. Draft and promised rows are already subtracted. If a new promise would miss the P10 bar, the save is refused and the screen says the sale is blocked.
 
-Food inflation **2.7%** (BLS CPI-U Food, August 2026), prime **7%**, and fairness **0.9** are the prepaid defaults. The formula is on the screen and in `SPEC.md`.
+Food inflation **2.7%** (BLS CPI-U Food, August 2026), the **3-month T-bill 4.01%** (FRED DTB3, 2026-09-22), and fairness **0.9** are the prepaid defaults. The formula is on the screen and in `SPEC.md`.
 
 Worm growth here is a planning stand-in that ships with this folder. It does not replace whatever Stage-1 records you keep outside this screen. Quail numbers are marked **ASSUMPTION**.
 

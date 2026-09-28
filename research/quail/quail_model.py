@@ -8,8 +8,9 @@ This module is planning math only — do not open quail spend until Stage-1 gate
 Capacity unit: Grit "Quail Professional Kit" (U = number of kits).
 Core inverse: kits_needed(X, t, y, z) s.t. meat_lbs(t,y,z,U) >= X under kit caps.
 
-Also: fair prepaid F_prelim = 0.9 * E[P_comp(0)] * ((1+r_inf)/(1+r_prime))^T
+Also: fair prepaid F_prelim = 0.9 * E[P_comp(0)] * ((1+r_inf)/(1+r_tbill))^T
 (+ optional transport $/lb). Default r_inf is BLS CPI-U Food.
+Default r_tbill is the 3-month Treasury constant-maturity yield.
 
 Tags: SOURCED vs ASSUMPTION — see SPEC.md. No fabricated Admin-analytics labels.
 """
@@ -76,10 +77,16 @@ KIT_GROWOUT_HEADS = KIT_GROWOUT_HEADS_JUMBO
 # Economics
 # ---------------------------------------------------------------------------
 
-PRIME_RATE = 0.07  # SOURCED Fed H.15 bank prime 7.00% as of 2026-09-24 (release 2026-09-25)
+# 3-month Treasury bill, secondary market, discount basis (FRED DTB3).
+# SOURCED FRED DTB3 observation 2026-09-22: 4.01%.
+# https://fred.stlouisfed.org/series/DTB3
+# Same lock as research/synergy R_TBILL. The H.15 3-month constant maturity
+# (4.24% on 2026-09-25) is a different quote and is not this rate.
+TBILL_RATE = 0.0401
+TBILL_RATE_AS_OF = "2026-09-22"
+TBILL_RATE_TENOR = "3-month"
+TBILL_RATE_SOURCE = "https://www.federalreserve.gov/releases/h15/"
 FAIRNESS_DISCOUNT_FACTOR = 0.9  # Rod: 10% discount on NPV of competing goods (most-fair prepaid)
-PRIME_RATE_AS_OF = "2026-09-24"
-PRIME_RATE_SOURCE = "https://www.federalreserve.gov/releases/h15/"
 # BLS CPI-U Food, 12-month percent change, August 2026 (release 2026-09-11).
 # Same window: all-items CPI 3.4%; meats, poultry, fish, and eggs 1.1%.
 # Default meat forward uses Food 2.7%. Override with r_inf / drift_per_year.
@@ -210,7 +217,7 @@ def P_meat(
 def fair_prepaid_forward_per_lb(
     T_years: float,
     p_comp: Optional[float] = None,
-    r_prime: float = PRIME_RATE,
+    r_tbill: float = TBILL_RATE,
     continuous: bool = False,
     drift_per_year: float = FORWARD_DRIFT_PER_YEAR,
     r_inf: Optional[float] = None,
@@ -218,22 +225,24 @@ def fair_prepaid_forward_per_lb(
     transport_usd_per_lb: float = 0.0,
 ) -> dict:
     """
-    Most-fair prepaid forward $/lb (Rod 2026-09-26, inflation in the prelim).
+    Most-fair prepaid forward $/lb (Rod 2026-09-26, inflation in the prelim;
+    Rod lock: discount the deposit at the 3-month T-bill yield).
 
     Spot stays E[P_comp(0)]. Inflate competing goods to delivery, discount at
-    prime, then apply fairness (default 0.9). ``r_inf`` overrides
+    r_tbill, then apply fairness (default 0.9). ``r_inf`` overrides
     ``drift_per_year`` when passed; either may be 0 for a flat goods curve.
-    Default r_inf is BLS CPI-U Food.
+    Default r_inf is BLS CPI-U Food. Default r_tbill is the 3-month Treasury
+    constant-maturity yield.
 
     Discrete:
         E[P_comp(T)] = E[P_comp(0)] * (1 + r_inf)^T
-        NPV_comp(T)  = E[P_comp(T)] / (1 + r_prime)^T
+        NPV_comp(T)  = E[P_comp(T)] / (1 + r_tbill)^T
         F_prelim     = fairness_factor * NPV_comp(T)
-    equivalently F_prelim = fairness_factor * E[P_comp(0)] * ((1+r_inf)/(1+r_prime))^T
+    equivalently F_prelim = fairness_factor * E[P_comp(0)] * ((1+r_inf)/(1+r_tbill))^T
 
     Continuous (continuous=True):
         E[P_comp(T)] = E[P_comp(0)] * exp(r_inf * T)
-        NPV_comp(T)  = E[P_comp(T)] * exp(-r_prime * T)
+        NPV_comp(T)  = E[P_comp(T)] * exp(-r_tbill * T)
         F_prelim     = fairness_factor * NPV_comp(T)
 
     Network layer, unchanged:
@@ -249,24 +258,24 @@ def fair_prepaid_forward_per_lb(
         raise ValueError("fairness_factor must be >= 0")
     if transport_usd_per_lb < 0:
         raise ValueError("transport_usd_per_lb must be >= 0")
-    if r_prime <= -1.0:
-        raise ValueError("r_prime must be > -1")
+    if r_tbill <= -1.0:
+        raise ValueError("r_tbill must be > -1")
     p_delivery = P_meat(
         T_years, p_spot=p_comp, drift_per_year=r_inf, continuous=continuous
     )
     if continuous:
-        df = math.exp(-r_prime * T_years)
+        df = math.exp(-r_tbill * T_years)
         formula = (
             "E[P_comp(T)] = E[P_comp(0)] * exp(r_inf * T); "
-            "NPV_comp(T) = E[P_comp(T)] * exp(-r_prime * T); "
+            "NPV_comp(T) = E[P_comp(T)] * exp(-r_tbill * T); "
             "F_prelim = fairness_factor * NPV_comp(T); "
             "F_final = F_prelim + transport"
         )
     else:
-        df = 1.0 / ((1.0 + r_prime) ** T_years)
+        df = 1.0 / ((1.0 + r_tbill) ** T_years)
         formula = (
             "E[P_comp(T)] = E[P_comp(0)] * (1 + r_inf)^T; "
-            "NPV_comp(T) = E[P_comp(T)] / (1 + r_prime)^T; "
+            "NPV_comp(T) = E[P_comp(T)] / (1 + r_tbill)^T; "
             "F_prelim = fairness_factor * NPV_comp(T); "
             "F_final = F_prelim + transport"
         )
@@ -281,8 +290,9 @@ def fair_prepaid_forward_per_lb(
         "E_P_comp_at_T": p_delivery,
         "P_comp_spot": p_comp,
         "T_years": T_years,
-        "r_prime": r_prime,
-        "r_prime_as_of": PRIME_RATE_AS_OF,
+        "r_tbill": r_tbill,
+        "r_tbill_as_of": TBILL_RATE_AS_OF,
+        "r_tbill_tenor": TBILL_RATE_TENOR,
         "r_inf": r_inf,
         "r_inf_as_of": INFLATION_RATE_AS_OF,
         "time_value_discount_factor": df,
@@ -946,11 +956,11 @@ def rate_ramp_table(
 def forward_table(
     delivery_years: Sequence[float],
     p_comp: Optional[float] = None,
-    r_prime: float = PRIME_RATE,
+    r_tbill: float = TBILL_RATE,
     continuous: bool = False,
 ) -> list:
     return [
-        fair_prepaid_forward_per_lb(T, p_comp=p_comp, r_prime=r_prime, continuous=continuous)
+        fair_prepaid_forward_per_lb(T, p_comp=p_comp, r_tbill=r_tbill, continuous=continuous)
         for T in delivery_years
     ]
 
@@ -972,7 +982,7 @@ def defaults_table() -> list:
         {"name": "kit_growout_heads_jumbo", "value": KIT_GROWOUT_HEADS_JUMBO, "unit": "birds", "tag": "ASSUMPTION derated"},
         {"name": "kit_breeder_heads_jumbo", "value": KIT_BREEDER_HEADS_JUMBO, "unit": "birds", "tag": "SOURCED 3/section×15"},
         {"name": "kit_price_usd", "value": KIT_PRICE_USD, "unit": "USD", "tag": "SOURCED Grit sale"},
-        {"name": "prime_rate", "value": PRIME_RATE, "unit": "/yr", "tag": f"SOURCED Fed H.15 {PRIME_RATE_AS_OF}"},
+        {"name": "r_tbill", "value": TBILL_RATE, "unit": "/yr", "tag": f"SOURCED FRED DTB3 3-month {TBILL_RATE_AS_OF}"},
         {"name": "inflation_rate_cpi_food", "value": INFLATION_RATE, "unit": "/yr", "tag": f"SOURCED BLS CPI-U Food {INFLATION_RATE_AS_OF}"},
         {"name": "E_P_comp_default", "value": round(expected_comp_price(), 4), "unit": "USD/lb", "tag": "DERIVED foodservice mean"},
     ]
