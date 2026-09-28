@@ -31,8 +31,8 @@ Computed from the deterministic Module 2 curves in `reference/complete_model.ipy
 | \(r_{\mathrm{inf}}\) | 2.7% | SOURCED | BLS CPI-U Food, 12-month change, August 2026, release 2026-09-11. https://www.bls.gov/news.release/archives/cpi_09112026.htm |
 | Same window, all items | 3.4% | SOURCED | Same release. Not the default. |
 | Same window, meats, poultry, fish, and eggs | 1.1% | SOURCED | Same release. Not the default. |
-| \(r_{\mathrm{tbill}}\) | 4.24% | SOURCED | 3-month Treasury constant maturity, nominal yield. Fed H.15 observation 2026-09-25, release 2026-09-28. https://www.federalreserve.gov/releases/h15/ |
-| 3-month bill, discount basis | 4.08% | SOURCED, not used | Same H.15 day, secondary market, 360-day discount quote. Not \(r_{\mathrm{tbill}}\). |
+| \(r_{\mathrm{tbill}}\) | 4.01% | SOURCED | 3-month Treasury bill, secondary market, discount basis. FRED DTB3, 2026-09-22. https://fred.stlouisfed.org/series/DTB3 |
+| 3-month constant maturity | 4.24% | SOURCED, not used | Fed H.15 nominal constant maturity, 2026-09-25. A different quote. Not \(r_{\mathrm{tbill}}\). |
 | Fairness | 0.9 | planning rule | 10% discount on the NPV of competing goods. Same as `research/quail`. |
 | Worm flat 33% discount | legacy | LEGACY | External `/workspace/worm-revenue-model/` forward book. Not vendored. Not used by `fair_prepaid`. |
 

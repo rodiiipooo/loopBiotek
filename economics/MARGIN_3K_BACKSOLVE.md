@@ -14,18 +14,18 @@ Fail closed = cut offtake first. \(\alpha=0.9\), \(m=0.01\), \(s=1.15\), \(\epsi
 
 | Stream | Price | Variable cost | Contribution | Tag |
 |--------|------:|-------------:|-------------:|-----|
-| Quail, fair \(F_{\mathrm{prelim}}\) | **$11.13/lb** | **$3.169/lb** | **$7.96/lb** (~**$4.66/bird** at dress 0.585 lb) | Price DERIVED; cost PLANNING |
-| Quail, Rod compete | **$3.60/bird** | $3.169/lb → ~$1.85/bird | **~$1.75/bird** (~38% of fair) | PLANNING, aggressive |
+| Quail, fair \(F_{\mathrm{prelim}}\) | **$11.15/lb** | **$3.169/lb** | **$7.98/lb** (~**$4.67/bird** at dress 0.585 lb) | Price DERIVED; cost PLANNING |
+| Quail, Rod compete | **$3.60/bird** | $3.169/lb → ~$1.85/bird | **~$1.75/bird** (~37% of fair) | PLANNING, aggressive |
 | Worms | **$0.03/worm** | opex in the margin ratio below | see path C | PLANNING |
 | Insects, greens, algae, fish | — | — | **not locked** | do not size CapEx |
 
-Quail price: fair prepaid at \(T=0.5\) yr is $11.1338/lb in `research/synergy` smoke and `research/quail` (`F_prelim`), discounted at the 3-month T-bill yield. This page rounds that to $11.13/lb. Dress weight 0.585 lb/bird is the quail model default.
+Quail price: fair prepaid at \(T=0.5\) yr (week 26) is $11.1461/lb from `fair_prepaid` at \(r_{\mathrm{tbill}} = 0.0401\) (FRED DTB3, 2026-09-22). This page rounds that to $11.15/lb. Dress weight 0.585 lb/bird is the quail model default.
 
-Quail variable cost $3.169/lb is a **PLANNING** lock named from `research/quail/results/margin_2k_starter_impact.json`. That file is not in this checkout, so the lock is recorded here and is not re-derived. Contribution: \(11.13-3.169=7.961\) → **$7.96/lb**. Per bird: \(7.96\times 0.585=4.66\).
+Quail variable cost $3.169/lb is a **PLANNING** lock named from `research/quail/results/margin_2k_starter_impact.json`. That file is not in this checkout, so the lock is recorded here and is not re-derived. Contribution: \(11.15-3.169=7.981\) → **$7.98/lb**. Per bird: \(7.98\times 0.585=4.668\) → **$4.67**.
 
-Compete case uses the same variable cost: \(3.60-3.169\times 0.585=1.75\) per bird, \(1.75/4.66\approx 38\%\) of the fair bird margin. Prefer fair \(F_{\mathrm{prelim}}\) for capacity math.
+Compete case uses the same variable cost: \(3.60-3.169\times 0.585=1.75\) per bird, \(1.75/4.67\approx 37\%\) of the fair bird margin. Prefer fair \(F_{\mathrm{prelim}}\) for capacity math.
 
-`margin_backsolve(3000, 7.96, "lb")` → **376.9 lb/mo**, reported below as **~377 lb/mo**. `margin_backsolve(3000, 4.66, "bird")` → **~644 birds/mo**.
+`margin_backsolve(3000, 7.98, "lb")` → **375.9 lb/mo**, reported below as **~376 lb/mo**. `margin_backsolve(3000, 4.67, "bird")` → **~642 birds/mo**.
 
 ## Paths
 
@@ -34,21 +34,21 @@ Compete case uses the same variable cost: \(3.60-3.169\times 0.585=1.75\) per bi
 | Item | Planning figure |
 |------|----------------:|
 | Contribution | $3,000/mo |
-| Dressed meat | ~377 lb/mo |
-| Birds sold | ~644 birds/mo |
+| Dressed meat | ~376 lb/mo |
+| Birds sold | ~642 birds/mo |
 | Kits | ~6 Grit Quail Professional Kits |
 | Breeders | ~90♀ / ~30♂ |
 | Pipeline | ≥ **1.41×** the next firm delivery over ~70 days |
 
-**ASSUMPTION scale, not a purchase.** Six kits × 45 jumbo breeder slots = 270 heads, so a 120-bird set at the model’s 1♂:3♀ ratio fits. A one-kit quail sample is often brooder or grow-out bound after ramp; ~377 lb/mo (~87 lb/week) is a few kits, and **6** is the envelope used here. Kit price in `research/quail/SPEC.md` is not spend authority.
+**ASSUMPTION scale, not a purchase.** Six kits × 45 jumbo breeder slots = 270 heads, so a 120-bird set at the model’s 1♂:3♀ ratio fits. A one-kit quail sample is often brooder or grow-out bound after ramp; ~376 lb/mo (~87 lb/week) is a few kits, and **6** is the envelope used here. Kit price in `research/quail/SPEC.md` is not spend authority.
 
-Pipeline: `birds_now_for_demand` at the defaults (\(w=10\) weeks ≈ 70 days) returns `pipeline_multiple` ≈ **1.413** (smoke key `birds_now_for_demand`). For 644 firm birds that is ~910 birds on hand before that delivery. Use the helper when a round ~1.35× sketch and this compound disagree.
+Pipeline: `birds_now_for_demand` at the defaults (\(w=10\) weeks ≈ 70 days) returns `pipeline_multiple` ≈ **1.413** (smoke key `birds_now_for_demand`). For 642 firm birds that is ~908 birds on hand before that delivery. Use the helper when a round ~1.35× sketch and this compound disagree.
 
 ### B — quail only, $3.60/bird
 
-`margin_backsolve(3000, 1.75, "bird")` → **~1,714 birds/mo**, about **16 kits** if path A’s 6 kits scale with bird count (\(1714/644\times 6\approx 16\)).
+`margin_backsolve(3000, 1.75, "bird")` → **~1,714 birds/mo**, about **16 kits** if path A’s 6 kits scale with bird count (\(1714/642\times 6\approx 16\)).
 
-**Discourage this path for capacity math.** The price is aggressive (~38% of fair contribution). Size buildings and flocks on path A. This row does not authorize kits.
+**Discourage this path for capacity math.** The price is aggressive (~37% of fair contribution). Size buildings and flocks on path A. This row does not authorize kits.
 
 ### C — worms only
 
@@ -67,12 +67,12 @@ Never harvest until the herd is above the floor. Monthly firm offtake is at most
 
 ### D — mix (fair quail / worms)
 
-Splits of the **$3,000 contribution**. Quail birds use $4.66/bird. Worm surplus and herd scale in proportion to path C (122k surplus and 690k floor at $3,000).
+Splits of the **$3,000 contribution**. Quail birds use $4.67/bird. Worm surplus and herd scale in proportion to path C (122k surplus and 690k floor at $3,000).
 
 | Quail / worms | Quail margin | lb/mo | birds/mo | Worm margin | Worm revenue | Surplus / mo | Herd floor |
 |---------------|-------------:|------:|---------:|------------:|-------------:|-------------:|-----------:|
-| 70 / 30 | $2,100 | ~264 | ~451 | $900 | ~$1,095 | ~36.5k | ~207k |
-| 50 / 50 | $1,500 | ~188 | ~322 | $1,500 | ~$1,825 | ~60.8k | ~345k |
+| 70 / 30 | $2,100 | ~263 | ~450 | $900 | ~$1,095 | ~36.5k | ~207k |
+| 50 / 50 | $1,500 | ~188 | ~321 | $1,500 | ~$1,825 | ~60.8k | ~345k |
 | 30 / 70 | $900 | ~113 | ~193 | $2,100 | ~$2,555 | ~85.2k | ~483k |
 
 Insects, greens, algae, and fish stay out of this table. Their margins are not locked.

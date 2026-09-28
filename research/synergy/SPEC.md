@@ -99,7 +99,7 @@ F_{\mathrm{prelim},s} = 0.9 \cdot \frac{E[P_s(T)]}{(1 + r_{\mathrm{tbill}})^{T}}
 F_{\mathrm{final},s} = F_{\mathrm{prelim},s} + c_{\mathrm{transport}}(\mathrm{location})
 \]
 
-Defaults: \(r_{\mathrm{inf}} = 0.027\) (BLS CPI-U Food, August 2026), \(r_{\mathrm{tbill}} = 0.0424\) (3-month Treasury constant maturity, Fed H.15 observation 2026-09-25, release 2026-09-28). That quote is an annual investment yield, so it plugs into \((1+r)^{T}\). The same-day 3-month bill secondary-market rate is 4.08% on a discount basis (360-day year) and is not \(r_{\mathrm{tbill}}\). Transport defaults to 0. Firm quantity is the reliability-quantile surplus (section 3), priced at \(F_{\mathrm{prelim}}\) or at \(F_{\mathrm{final}}\) when a location transport rate is set.
+Defaults: \(r_{\mathrm{inf}} = 0.027\) (BLS CPI-U Food, August 2026), \(r_{\mathrm{tbill}} = 0.0401\) (3-month Treasury bill, FRED series DTB3, secondary-market discount basis, observation 2026-09-22). https://fred.stlouisfed.org/series/DTB3 Rod locked this quote for the prepaid discount. The H.15 3-month constant maturity the same week is 4.24% (2026-09-25) and is not \(r_{\mathrm{tbill}}\). Transport defaults to 0. Firm quantity is the reliability-quantile surplus (section 3), priced at \(F_{\mathrm{prelim}}\) or at \(F_{\mathrm{final}}\) when a location transport rate is set.
 
 **Legacy:** the external `worm_forward_book` flat 33% discount is not used for new planning and is not ported here. Migration is a note only. New documents use \(F_{\mathrm{prelim}}\).
 

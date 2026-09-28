@@ -9,6 +9,7 @@ synergy rule that founders are not the product. Stage 4 planning only.
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -19,6 +20,17 @@ if str(_GENETICS) not in sys.path:
     sys.path.insert(0, str(_GENETICS))
 
 import reproduction as genetics  # noqa: E402
+from circular_buffers import (  # noqa: E402
+    ALPHA,
+    FAIRNESS,
+    M_WEEKLY,
+    R_INF,
+    R_TBILL,
+    SAFETY_FRAC,
+    birds_now_for_demand,
+    fair_prepaid,
+    safe_sell_limit,
+)
 
 N0_CAP = 20000
 PROBE = 1000.0
@@ -112,6 +124,160 @@ def n0_required(q_lb: float, month: int, species: str = "quail", reliability: fl
         "stage": profile["stage"],
         "growth_tag": profile["growth_tag"],
         "genetics_mode": "strict",
+    }
+
+
+def _month_for_week(week: int) -> int:
+    """Smallest planning month whose end falls on or after this delivery week."""
+    if week < 1:
+        raise ValueError("week must be >= 1")
+    month = 1
+    while engine.weeks_for_month(month) < week:
+        month += 1
+        if month >= engine.MAX_MONTH:
+            return engine.MAX_MONTH
+    return month
+
+
+def _sex_one_to_three(n_needed: float, males_min: int, females_min: int) -> tuple[int, int]:
+    """Smallest whole flock at 1 male : 3 females that covers the count and both floors.
+
+    Jumbo Coturnix in the quail SPEC keep one male for three females. That ratio
+    puts as many hens on eggs as the mating practice allows, which is the
+    reproductive maximum used here. A hen-heavier flock would leave hens without
+    a male at that practice; a male-heavier flock would idle egg slots.
+    """
+    males = max(int(males_min), math.ceil(float(n_needed) / 4.0 - 1e-12))
+    females = 3 * males
+    if females < int(females_min):
+        males = max(males, math.ceil(int(females_min) / 3.0 - 1e-12))
+        females = 3 * males
+    return males, females
+
+
+def flock_today(
+    week: int,
+    order_lb: float = 40.0,
+    species: str = "quail",
+    reliability: float = engine.DEFAULT_QUANTILE,
+    n_paths: int = engine.DEFAULT_PATHS,
+    seed: int = engine.DEFAULT_SEED,
+) -> dict:
+    """Flock on hand today for a surplus-only dressed-quail delivery at week `week`.
+
+    Question: a buyer takes `order_lb` pounds at week n. What population must
+    already be here so the sale comes from firm surplus, and a 1:3 breeding
+    flock is still on hand and able to grow.
+
+    N_today is the larger of:
+    - the P10 herd that can finish order_lb * safety_frac / alpha pounds
+      (harsh tail, firm fraction, cull-governor gross-up), and
+    - the Ne nucleus grossed up for weekly mortality over the lead, plus
+      birds_now_for_demand for the slaughtered headcount.
+
+    Breeders are not the product. safe_sell_limit must still allow the sale
+    above the genetics floor. min_breeders_for_demand is not used: that kit
+    inverse can cull above a cage cap, which would raid the breed floor.
+    Stage 4 planning.
+    """
+    if species != "quail":
+        raise ValueError("flock_today is quail planning")
+    week = int(week)
+    if week < 1:
+        raise ValueError("week must be >= 1")
+    if order_lb <= 0:
+        raise ValueError("order_lb must be > 0")
+
+    profile = _profile(species)
+    dress = float(engine.QUAIL_LB_PER_BIRD)
+    heads = float(order_lb) / dress
+    survival = (1.0 - M_WEEKLY) ** week
+    if survival <= 0.0:
+        raise RuntimeError("no survivors over this lead")
+
+    floor = genetics.keep_floor(1, None, None, profile["females_per_male"])
+    males_floor = int(floor["males_min"])
+    females_floor = int(floor["females_min"])
+    males_min_today = math.ceil(males_floor / survival - 1e-12)
+    females_min_today = math.ceil(females_floor / survival - 1e-12)
+    n_breed_today = males_min_today + females_min_today
+
+    pipe = birds_now_for_demand(
+        heads,
+        m_weekly=M_WEEKLY,
+        lead_weeks=float(week),
+        safety_frac=SAFETY_FRAC,
+        alpha=ALPHA,
+    )
+    n_pipe = float(pipe["n_pipeline_min"])
+    n_deterministic = n_breed_today + n_pipe
+
+    month = _month_for_week(week)
+    firm_lb = float(order_lb) * SAFETY_FRAC / ALPHA
+    p10 = n0_required(firm_lb, month, species, reliability, n_paths, seed)
+    n_p10 = float(p10["n0"])
+    n_needed = max(n_deterministic, n_p10)
+    males, females = _sex_one_to_three(n_needed, males_min_today, females_min_today)
+    n_today = males + females
+
+    males_alive = males * survival
+    females_alive = females * survival
+    alive = males_alive + females_alive
+    breed_floor_n = float(males_floor + females_floor)
+    surplus_alive = alive - breed_floor_n
+    breeders_remain = (
+        surplus_alive + 1e-6 >= heads
+        and males_alive + 1e-6 >= males_floor
+        and females_alive + 1e-6 >= females_floor
+    )
+    limited = safe_sell_limit(
+        alive,
+        breed_floor_n,
+        alpha=ALPHA,
+        safety_frac=SAFETY_FRAC,
+        m_weekly=M_WEEKLY,
+        lead_weeks=0.0,
+        n_req_forward=breed_floor_n,
+    )
+    firm_ok = float(limited["allowed_firm"]) + 1e-6 >= heads
+    fail_closed = bool(breeders_remain and firm_ok and p10["feasible"])
+
+    spot = float(engine.SPECIES["quail"].spot_usd_per_unit)
+    price = fair_prepaid(spot, week / 52.0, r_inf=R_INF, r_tbill=R_TBILL, fairness=FAIRNESS)
+    return {
+        "week": week,
+        "month": month,
+        "order_lb": float(order_lb),
+        "heads": heads,
+        "dress_lb": dress,
+        "n_today": n_today,
+        "males": males,
+        "females": females,
+        "ratio_females_per_male": females / males,
+        "ratio_label": "1:3",
+        "n_pipe": n_pipe,
+        "n_breed_today": n_breed_today,
+        "n_deterministic": n_deterministic,
+        "n_p10": n_p10,
+        "binding": "p10" if n_p10 >= n_deterministic - 1e-9 else "pipeline",
+        "males_floor": males_floor,
+        "females_floor": females_floor,
+        "alpha": ALPHA,
+        "safety_frac": SAFETY_FRAC,
+        "m_weekly": M_WEEKLY,
+        "f_prelim": float(price["F_prelim"]),
+        "p0": float(price["E_P0"]),
+        "T_years": week / 52.0,
+        "allowed_firm": float(limited["allowed_firm"]),
+        "fail_closed": fail_closed,
+        "stage": profile["stage"],
+        "growth_tag": "ASSUMPTION",
+        "note": (
+            "Surplus only. The standing flock is 1 male : 3 females, the jumbo "
+            "Coturnix ratio in the quail SPEC. N_today is the larger of the P10 "
+            "herd for the safety-grossed firm order and the mortality pipeline "
+            "plus the Ne nucleus. Breeders are not sold. Stage 4 planning."
+        ),
     }
 
 
@@ -382,8 +548,25 @@ def smoke(path: Path | None = None) -> dict:
     else:
         raise AssertionError("P90 is not a sell-room or delivery quantile")
 
+    today = flock_today(26, 40.0)
+    soon = flock_today(4, 40.0)
+    heavier = flock_today(26, 80.0)
+    assert today["fail_closed"] and soon["fail_closed"] and heavier["fail_closed"]
+    assert today["females"] == 3 * today["males"]
+    assert soon["n_today"] > today["n_today"]
+    assert heavier["n_today"] > today["n_today"]
+    assert today["week"] == 26 and abs(today["f_prelim"] - soon["p0"] * 0.9) < 0.4
+
     payload = {
         "ok": True,
+        "flock_today_40lb_week_26": {
+            "n_today": today["n_today"],
+            "males": today["males"],
+            "females": today["females"],
+            "binding": today["binding"],
+            "f_prelim": today["f_prelim"],
+            "fail_closed": today["fail_closed"],
+        },
         "sample_10lb": table,
         "birds_per_lb": per_lb,
         "ten_lb_recommendation": one["recommendation"]["recommended"],
@@ -414,3 +597,8 @@ if __name__ == "__main__":
             f"safe_lb={row['safe_lb']:.2f} room={row['remaining_lb']:.2f}"
         )
     print("split", round(result["split_n0"], 1), "vs all soon", round(result["all_soon_split_case_n0"], 1))
+    knee = result["flock_today_40lb_week_26"]
+    print(
+        f"flock today week 26: N={knee['n_today']} {knee['males']}M/{knee['females']}F "
+        f"bind={knee['binding']} F_prelim={knee['f_prelim']:.4f}"
+    )

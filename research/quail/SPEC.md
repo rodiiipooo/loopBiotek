@@ -113,7 +113,7 @@ $$
 
 That layer enables richer strategies for the network (hub placement, route pooling).
 
-**Bill rate used:** \(r_{\mathrm{tbill}} = 4.24\%\), tenor **3-month**. Fed H.15 Treasury constant maturity, nominal yield, observation **2026-09-25**, release 2026-09-28. https://www.federalreserve.gov/releases/h15/ This is an annual investment yield, which is what \((1 + r_{\mathrm{tbill}})^{T}\) expects. The same release’s 3-month bill secondary-market rate is **4.08%** on a discount basis (360-day year). That discount quote is not \(r_{\mathrm{tbill}}\).
+**Bill rate used:** \(r_{\mathrm{tbill}} = 4.01\%\), tenor **3-month**. FRED series **DTB3** (secondary-market discount basis), observation **2026-09-22**. https://fred.stlouisfed.org/series/DTB3 Rod locked this quote for the prepaid discount. The H.15 3-month constant maturity on 2026-09-25 is 4.24% and is not \(r_{\mathrm{tbill}}\).
 
 Cash flows: deposit \(F_{\mathrm{final}}\) per lb at 0; deliver 1 lb at \(T\); no further cash if fully prepaid.
 

@@ -14,13 +14,13 @@ from pathlib import Path
 # Defaults shared with research/quail fair prepaid.
 R_INF = 0.027  # SOURCED BLS CPI-U Food, August 2026
 R_INF_AS_OF = "2026-08"
-# 3-month Treasury constant maturity, nominal yield, percent per annum.
-# SOURCED Fed H.15, observation 2026-09-25, release 2026-09-28: 4.24%.
-# https://www.federalreserve.gov/releases/h15/
-# Same-day 3-month bill secondary market is 4.08% on a discount basis
-# (360-day year). That quote is not this r_tbill.
-R_TBILL = 0.0424
-R_TBILL_AS_OF = "2026-09-25"
+# 3-month Treasury bill, secondary market, discount basis (FRED DTB3).
+# SOURCED FRED DTB3 observation 2026-09-22: 4.01%.
+# https://fred.stlouisfed.org/series/DTB3
+# Rod lock for the prepaid discount. The H.15 3-month constant maturity
+# the same week (4.24% on 2026-09-25) is a different quote and is not r_tbill.
+R_TBILL = 0.0401
+R_TBILL_AS_OF = "2026-09-22"
 R_TBILL_TENOR = "3-month"
 R_TBILL_SOURCE = "https://www.federalreserve.gov/releases/h15/"
 FAIRNESS = 0.9

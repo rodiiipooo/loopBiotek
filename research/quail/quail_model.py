@@ -77,12 +77,13 @@ KIT_GROWOUT_HEADS = KIT_GROWOUT_HEADS_JUMBO
 # Economics
 # ---------------------------------------------------------------------------
 
-# 3-month Treasury constant maturity, nominal yield, percent per annum.
-# SOURCED Fed H.15, observation 2026-09-25, release 2026-09-28: 4.24%.
-# Same lock as research/synergy R_TBILL. The same-day 3-month bill on a
-# discount basis is 4.08% (360-day year) and is not this rate.
-TBILL_RATE = 0.0424
-TBILL_RATE_AS_OF = "2026-09-25"
+# 3-month Treasury bill, secondary market, discount basis (FRED DTB3).
+# SOURCED FRED DTB3 observation 2026-09-22: 4.01%.
+# https://fred.stlouisfed.org/series/DTB3
+# Same lock as research/synergy R_TBILL. The H.15 3-month constant maturity
+# (4.24% on 2026-09-25) is a different quote and is not this rate.
+TBILL_RATE = 0.0401
+TBILL_RATE_AS_OF = "2026-09-22"
 TBILL_RATE_TENOR = "3-month"
 TBILL_RATE_SOURCE = "https://www.federalreserve.gov/releases/h15/"
 FAIRNESS_DISCOUNT_FACTOR = 0.9  # Rod: 10% discount on NPV of competing goods (most-fair prepaid)
@@ -981,7 +982,7 @@ def defaults_table() -> list:
         {"name": "kit_growout_heads_jumbo", "value": KIT_GROWOUT_HEADS_JUMBO, "unit": "birds", "tag": "ASSUMPTION derated"},
         {"name": "kit_breeder_heads_jumbo", "value": KIT_BREEDER_HEADS_JUMBO, "unit": "birds", "tag": "SOURCED 3/section×15"},
         {"name": "kit_price_usd", "value": KIT_PRICE_USD, "unit": "USD", "tag": "SOURCED Grit sale"},
-        {"name": "r_tbill", "value": TBILL_RATE, "unit": "/yr", "tag": f"SOURCED H.15 3-month CMT {TBILL_RATE_AS_OF}"},
+        {"name": "r_tbill", "value": TBILL_RATE, "unit": "/yr", "tag": f"SOURCED FRED DTB3 3-month {TBILL_RATE_AS_OF}"},
         {"name": "inflation_rate_cpi_food", "value": INFLATION_RATE, "unit": "/yr", "tag": f"SOURCED BLS CPI-U Food {INFLATION_RATE_AS_OF}"},
         {"name": "E_P_comp_default", "value": round(expected_comp_price(), 4), "unit": "USD/lb", "tag": "DERIVED foodservice mean"},
     ]

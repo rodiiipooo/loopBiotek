@@ -1,5 +1,13 @@
 {
   "ok": true,
+  "flock_today_40lb_week_26": {
+    "n_today": 204,
+    "males": 51,
+    "females": 153,
+    "binding": "pipeline",
+    "f_prelim": 11.146137428803351,
+    "fail_closed": true
+  },
   "sample_10lb": [
     {
       "species": "quail",

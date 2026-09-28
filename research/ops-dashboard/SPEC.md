@@ -66,7 +66,7 @@ F_{\mathrm{prelim}}(m) = 0.9 \cdot \frac{E[P(T)]}{(1 + r_{\mathrm{tbill}})^{T}}
 \mathrm{Income}(q) = \sum_{m=1}^{t} q\, F_{\mathrm{prelim}}(m)
 \]
 
-Defaults match `research/synergy`: \(r_{\mathrm{inf}} = 0.027\), \(r_{\mathrm{tbill}} = 0.0424\) (3-month Treasury constant maturity), fairness \(0.9\).
+Defaults match `research/synergy`: \(r_{\mathrm{inf}} = 0.027\), \(r_{\mathrm{tbill}} = 0.0401\) (FRED DTB3, 3-month bill, 2026-09-22), fairness \(0.9\).
 
 The steady monthly target is feasible when \(\mathrm{Income}(q^{\star}) \ge\) target. If it is not, the tool searches a larger \(N0\) (floor inputs scale with it, up to 256×) and the earliest later month through month 36.
 
@@ -113,7 +113,7 @@ Pounds in month `m` are `$2,000 / F_prelim(m)`, using the quail prepaid already 
 
 Feed is an ASSUMPTION, not a measured ration: 22 g as-fed per bird per day, split 30% live worms and 70% plant. The 0.41 waste ceiling in the synergy spec is a different limit. It is not this split. The standing count used for feed is the heavy herd (only 10% of futures are larger). On top of that month's ration, the synergy buffer keeps 2 weeks of feed on hand. If the supply is only enough for the light herd and has no buffer, the meat sale fails closed. The breeding floor is not cut to stretch the feed.
 
-Smoke (`python3 quail_income.py`, 2,000 paths, seed `20260926`): **N0 = 2,816**. Month 2 sells 178.74 lb at \(F_{\mathrm{prelim}} = \$11.1892\). Month 24 sells 183.69 lb at \$10.8880. Both months are \$2,000. At month 24 the heavy herd needs about 1,166 kg of worms and 2,720 kg of plant feed (1.17 t and 2.72 t), plus the 2-week buffer of that same ration.
+Smoke (`python3 quail_income.py`, 2,000 paths, seed `20260926`): **N0 = 2,813**. Month 2 sells 178.68 lb at \(F_{\mathrm{prelim}} = \$11.1933\). Month 24 sells 182.88 lb at \$10.9362. Both months are \$2,000. At month 24 the heavy herd needs about 1,167 kg of worms and 2,723 kg of plant feed (1.17 t and 2.72 t), plus the 2-week buffer of that same ration.
 
 ## Decision charts
 
@@ -121,7 +121,7 @@ Smoke (`python3 quail_income.py`, 2,000 paths, seed `20260926`): **N0 = 2,816**.
 
 | Chart | Decision |
 |-------|----------|
-| `birds_per_lb_vs_month.png` | Shorter T needs more starters per pound. For 40 lb, N0 falls from about 925 at month 1 to about 100 at month 6 (~2.5 birds/lb) and the 68-bird floor by month 8. The lower panel is \(F_{\mathrm{prelim}}\). At month 6 it is still close to 0.9 times the foodservice spot. |
+| `birds_per_lb_vs_month.png` | Flock on hand today for a 40 lb surplus-only delivery. Week 4 needs 1,184 birds. Week 26 needs 204 (51 males and 153 females at 1:3). Later weeks need more because of pipeline mortality. The lower panel is \(F_{\mathrm{prelim}}\) at the 4.01% 3-month bill. |
 | `delivery_split_vs_soon.png` | 15 lb locked in month 3 plus 15 lb that can wait needs about 87 starters. All 30 lb in month 3 needs about 173. |
 | `quail_n0_for_2000.png` and `quail_feed_vs_herd.png` | The $2,000 case above, and the feed that heavy herd eats. |
 | `worm_p10_sell_room.png` | At 16,500 worms, P10 room is about 13 lb in month 3 and about 113 lb in month 12. |

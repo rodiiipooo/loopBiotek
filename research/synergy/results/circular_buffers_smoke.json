@@ -5,20 +5,20 @@
   "fair_prepaid_T0.5": {
     "E_P0": 12.463333333333333,
     "E_P_T": 12.630467690381767,
-    "NPV": 12.37092662162097,
-    "F_prelim": 11.133833959458874,
-    "F_final": 11.133833959458874,
+    "NPV": 12.384597143114835,
+    "F_prelim": 11.146137428803351,
+    "F_final": 11.146137428803351,
     "T": 0.5,
     "r_inf": 0.027,
-    "r_tbill": 0.0424,
-    "r_tbill_as_of": "2026-09-25",
+    "r_tbill": 0.0401,
+    "r_tbill_as_of": "2026-09-22",
     "r_tbill_tenor": "3-month",
     "fairness": 0.9,
     "transport": 0.0,
     "formula": "E[P(T)] = E[P0] * (1+r_inf)^T; F_prelim = fairness * E[P(T)] / (1+r_tbill)^T; F_final = F_prelim + transport"
   },
   "fair_prepaid_T0.5_r_inf_0": {
-    "F_prelim": 10.986504008904847
+    "F_prelim": 10.998644670941728
   },
   "waste_ceilings": {
     "quail": {

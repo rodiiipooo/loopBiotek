@@ -16,8 +16,8 @@ python run_example.py --y 5 --z 15 --U 1 --c-bar 2 --weeks 40
 
 Primary API: production rate vs average consumption \(\bar{c}\). Secondary: fair prepaid $/lb and `kits_needed`.
 
-The P10 starter-versus-month chart and the $2,000 flock chart use this prepaid and are in [`../plots/README.md`](../plots/README.md). They are planning pictures, not a purchase.
+The flock-today chart and the $2,000 flock chart use this prepaid and are in [`../plots/README.md`](../plots/README.md). They are planning pictures, not a purchase.
 
-Fair prepaid inflates the foodservice spot at BLS CPI-U Food **2.7%** (August 2026), discounts the deposit at the **3-month Treasury constant-maturity yield 4.24%** (H.15, 2026-09-25), then applies fairness **0.9**. Transport is added after that and defaults to $0/lb. Pass `r_inf=0` for the pre-inflation prelim. The same identity for every cascade good, plus breed floors and shock guards, is in [`../synergy/SPEC.md`](../synergy/SPEC.md).
+Fair prepaid inflates the foodservice spot at BLS CPI-U Food **2.7%** (August 2026), discounts the deposit at the **3-month T-bill 4.01%** (FRED DTB3, 2026-09-22), then applies fairness **0.9**. Transport is added after that and defaults to $0/lb. Pass `r_inf=0` for the pre-inflation prelim. The same identity for every cascade good, plus breed floors and shock guards, is in [`../synergy/SPEC.md`](../synergy/SPEC.md).
 
-On the P10 starter chart, that \(F_{\mathrm{prelim}}\) is the lower panel. Around six months, a 40 lb order needs about 2.5 starters per pound (about 100 birds at P10) and the prepaid is still close to 0.9 times the foodservice spot. A shorter date burns starters. A much later date improves starter efficiency only a little and discounts the deposit. Notes: [`RESEARCH.md`](RESEARCH.md). Stage 4 planning. Not a purchase.
+On the flock-today chart, that \(F_{\mathrm{prelim}}\) is the lower panel and \(T = n/52\). For 40 lb at week 26 the flock on hand is 204 birds (51 males and 153 females at 1:3) and the prepaid is still close to 0.9 times the foodservice spot. A shorter week needs a much larger flock. A later week adds pipeline mortality and discounts the deposit. Notes: [`RESEARCH.md`](RESEARCH.md). Stage 4 planning. Not a purchase.

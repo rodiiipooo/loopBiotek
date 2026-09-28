@@ -53,8 +53,8 @@ Note: foodservice comps are often standard-size birds; $/lb still used as compet
 
 | Item | Value | Tag | Source |
 |------|-------|-----|--------|
-| \(r_{\mathrm{tbill}}\), 3-month constant maturity | **4.24%** | SOURCED | Fed H.15 nominal Treasury constant maturity, observation 2026-09-25, release 2026-09-28. https://www.federalreserve.gov/releases/h15/ |
-| 3-month bill, secondary market | 4.08% | SOURCED, not used | Same H.15 column. Discount basis, 360-day year. Not the rate inside \((1+r)^{T}\). |
+| \(r_{\mathrm{tbill}}\), FRED DTB3 | **4.01%** | SOURCED | 3-month Treasury bill, secondary market, discount basis, 2026-09-22. https://fred.stlouisfed.org/series/DTB3 |
+| 3-month constant maturity | 4.24% | SOURCED, not used | Fed H.15, 2026-09-25. Not the prepaid discount. |
 | Tenor | 3-month | planning lock | Short-horizon prepaid discount. |
 
 ## Food inflation (competing-goods drift)
@@ -69,9 +69,13 @@ Default \(r_{\mathrm{inf}}\) for this meat forward is **Food 2.7%** (`INFLATION_
 
 ## Booking window (40 lb, P10)
 
-The chart [`../plots/birds_per_lb_vs_month.png`](../plots/birds_per_lb_vs_month.png) (`research/decision_plots.py`) draws starters per pound and \(N_0\) on the upper panel and \(F_{\mathrm{prelim}}\) on a lower panel. The price uses the locked formula and this file’s foodservice spot. \(T\) in the formula is the delivery month divided by 12. Defaults: \(r_{\mathrm{inf}} = 0.027\), \(r_{\mathrm{tbill}} = 0.0424\) (3-month constant maturity), fairness \(0.9\).
+The chart [`../plots/birds_per_lb_vs_month.png`](../plots/birds_per_lb_vs_month.png) (`research/decision_plots.py`) answers a different question from starters per pound. For an order of \(x\) pounds (default 40) delivered at week \(n\), it draws the flock that must already be on hand. The upper panel stacks males and females. The lower panel is \(F_{\mathrm{prelim}}\) with \(T = n/52\). Defaults: \(r_{\mathrm{inf}} = 0.027\), \(r_{\mathrm{tbill}} = 0.0401\), fairness \(0.9\).
 
-Around month 6, starters per pound have flattened to about 2.5 and a 40 lb P10 order needs about 100 birds, while \(F_{\mathrm{prelim}}\) is still close to the spot NPV after fairness (0.9 times $12.4633/lb). That neighborhood is the window for a firm forward. A very short \(T\) burns starters (month 1 is on the order of 20 birds per pound). A very long \(T\) only weakly improves starter efficiency — \(N_0\) is soon the 68-bird Ne floor — and the prepaid is discounted further versus waiting. This is Stage 4 planning. It does not open quail spend. Stage 1 worms remain the source of record.
+The standing flock is **1 male : 3 females**, the jumbo Coturnix breeder ratio in this SPEC. That ratio is the reproductive maximum used here: more hens would leave some without a male at that practice, and more males would idle egg slots. The Ne floor at that ratio is 17 males and 51 females. Those birds are not sold.
+
+\(N_{\mathrm{today}}\) is the larger of two fail-closed counts. One is the P10 herd that can finish \(x \times 1.15 / 0.9\) pounds, so the harsh tail still covers the order after the firm fraction and the cull-governor gross-up. The other is the Ne nucleus, grossed up for 1% weekly mortality over the lead, plus `birds_now_for_demand` for the dressed headcount. `safe_sell_limit` has to clear the sale with the floor still in place.
+
+For 40 lb, week 4 needs 1,184 birds. Week 26 (about 6 months) needs 204 birds, 51 males and 153 females, and \(F_{\mathrm{prelim}}\) is about $11.15/lb, still near 0.9 times the $12.46 spot. A shorter lead burns starters on the P10 tail. A longer lead raises today’s pipeline because more weeks of mortality sit in front of the same order, and the prepaid is discounted further. This is Stage 4 planning. It does not open quail spend. Stage 1 worms remain the source of record.
 
 ## Model limitations (honest)
 
