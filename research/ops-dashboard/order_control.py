@@ -1,11 +1,23 @@
 #!/usr/bin/env python3
-"""Which orders to accept without giving up the breeding herd or the growth path.
+"""Which orders to accept without starving the cascade or the breeding herd.
 
 Stage 4 planning only. Stage 1 worms remain the only spend. Nothing here places
 a live order, quotes a buyer, or authorizes a purchase.
 
-Growth rate ``g`` is a fraction per week, the same clock as ``M_WEEKLY``.
-``g = 0.01`` means one percent per week. ``t`` is a whole number of weeks.
+The operator knob is ``R_min``: average monthly revenue over the next ``H``
+months (default 3). Default ``R_min`` is $3,000, the planning figure in
+``economics/MARGIN_3K_BACKSOLVE.md``. This gate compares revenue, not
+contribution. Contribution is a second check, and only when a variable cost
+exists. That cost is an ASSUMPTION.
+
+``g`` is not chosen first. After a sale, every feed edge and every Ne floor
+still has to clear. The implied ``g_s`` is 0 on that retained stock: do not
+shrink it. Biological doubling is reported beside it. It is not the target.
+
+``sellable_for_growth`` is still the weekly growth helper. ``g`` there is a
+fraction per week, the same clock as ``M_WEEKLY``. ``g = 0.01`` means one
+percent per week. ``t`` is a whole number of weeks. ``accept_order`` uses that
+helper as an extra cap only when the operator explicitly passes ``g``.
 
 The biological stand-in is the ops-dashboard doubling time:
 
@@ -56,6 +68,7 @@ import engine  # noqa: E402
 import reproduction as genetics  # noqa: E402
 from circular_buffers import (  # noqa: E402
     ALPHA,
+    BUFFER_WEEKS,
     FAIRNESS,
     M_WEEKLY,
     R_INF,
@@ -91,12 +104,54 @@ WORM_OPEX_TAG = (
     "(1 - 0.822 from MARGIN_3K_BACKSOLVE path C)."
 )
 
-# ASSUMPTION optional income target from the same backsolve page. Not a
-# measured obligation and not permission to buy birds.
-DEFAULT_M_MIN = 3000.0
-DEFAULT_M_MIN_TAG = (
-    "ASSUMPTION $3,000/mo optional target from economics/MARGIN_3K_BACKSOLVE.md. "
-    "A flock that cannot throw this off refuses orders. Pass M_min to change it."
+# Operator-facing target is REVENUE, not contribution. The $3,000 figure is the
+# planning target on economics/MARGIN_3K_BACKSOLVE.md (that page also shows a
+# contribution backsolve). Not a measured bill and not permission to buy birds.
+DEFAULT_R_MIN = 3000.0
+DEFAULT_H_MONTHS = 3
+DEFAULT_R_MIN_TAG = (
+    "Primary gate is average monthly REVENUE, default $3,000 over 3 months, "
+    "from economics/MARGIN_3K_BACKSOLVE.md. Contribution is a secondary "
+    "ASSUMPTION check when a variable cost exists."
+)
+# Older calls passed M_min. It is the same dollar knob, read as revenue.
+DEFAULT_M_MIN = DEFAULT_R_MIN
+DEFAULT_M_MIN_TAG = DEFAULT_R_MIN_TAG
+
+# Cyclic feed. This is the order-control graph, not the Stage-1 spend order
+# in biology/CASCADE.md. Stage 1 worms remain the only spend.
+# algae (nutrient water) → plants
+# plants → worms, crickets, and quail (edible plants)
+# worms → fish and quail
+# crickets → fish and quail
+CASCADE_EDGES = (
+    ("algae", "plants", "enriched nutrient water"),
+    ("plants", "worms", "plant product and waste"),
+    ("plants", "crickets", "plant product and waste"),
+    ("plants", "quail", "edible plants"),
+    ("worms", "fish", "worms"),
+    ("worms", "quail", "worms"),
+    ("crickets", "fish", "crickets"),
+    ("crickets", "quail", "crickets"),
+)
+# greens is the herd-book name for the plant node.
+NODE_ALIASES = {"greens": "plants", "vegetables": "plants", "fruit": "plants", "fruits": "plants"}
+
+# ASSUMPTION weekly ration: upstream herd-units per downstream head.
+# Not a measured diet. Algae and plant edges have no default rate; those
+# edges fail closed until feed_rates or feed_reserve_heads is set.
+# The stock that must stay is rate * downstream breed floor * BUFFER_WEEKS.
+ASSUMPTION_FEED_PER_WEEK = {
+    ("worms", "quail"): 20.0,
+    ("worms", "fish"): 20.0,
+    ("crickets", "quail"): 10.0,
+    ("crickets", "fish"): 10.0,
+}
+ASSUMPTION_FEED_TAG = (
+    "ASSUMPTION ration, upstream units per downstream head per week. "
+    "Not a measured diet. Override with policy['feed_rates']. "
+    "Buffer on hand is that rate times the downstream breed floor times "
+    f"{BUFFER_WEEKS:g} weeks."
 )
 
 # Species this gate knows how to sex. Doubling times for worms and quail come
@@ -107,6 +162,7 @@ SPECIES_META = {
     "crickets": {"sexed": False, "females_per_male": None, "stage": "Stage 2 planning. Not a purchase."},
     "isopods": {"sexed": False, "females_per_male": None, "stage": "Stage 2 planning. Not a purchase."},
     "greens": {"sexed": False, "females_per_male": None, "stage": "Stage 3 planning. Not a purchase."},
+    "plants": {"sexed": False, "females_per_male": None, "stage": "Stage 3 planning. Not a purchase. Aquaponic vegetables, fruits, and plants."},
     "algae": {"sexed": False, "females_per_male": None, "stage": "Stage 3 planning. Not a purchase."},
     "quail": {"sexed": True, "females_per_male": 3.0, "stage": "Stage 4 quail planning. Not a purchase."},
     "fish": {"sexed": True, "females_per_male": 1.0, "stage": "Stage 5 fish planning. Not a purchase."},
@@ -593,6 +649,294 @@ class OrderBook:
         return f"ord-{1 + len(self.orders) + len(self.released)}"
 
 
+def _node_name(species: str) -> str:
+    key = str(species).strip().lower()
+    return NODE_ALIASES.get(key, key)
+
+
+def _book_key_for_node(cascade_state: dict, node: str) -> str | None:
+    """Herd-book key for a feed-graph node. ``plants`` also matches ``greens``."""
+    names = [node]
+    if node == "plants":
+        names.extend(["greens", "plants"])
+    seen: list[str] = []
+    for name in names:
+        if name not in seen:
+            seen.append(name)
+    for name, herd_key in ((n, n) for n in seen):
+        if herd_key in cascade_state:
+            return herd_key
+    for herd_key in cascade_state:
+        if _node_name(herd_key) == node:
+            return str(herd_key)
+    return None
+
+
+def _feed_rate(upstream: str, downstream: str, policy: dict | None) -> tuple[float | None, str]:
+    rates = {} if not policy else (policy.get("feed_rates") or {})
+    for key in ((upstream, downstream), f"{upstream}->{downstream}"):
+        if key in rates and rates[key] is not None:
+            value = _optional_float(rates[key])
+            if value is None or value < 0:
+                return None, "bad"
+            return value, "policy"
+    if (upstream, downstream) in ASSUMPTION_FEED_PER_WEEK:
+        return float(ASSUMPTION_FEED_PER_WEEK[(upstream, downstream)]), "ASSUMPTION"
+    return None, "missing"
+
+
+def cascade_feed_plan(
+    cascade_state: dict | None,
+    policy: dict | None = None,
+    pending_heads: dict | None = None,
+) -> dict:
+    """Retained stock, implied weekly g, and whether every feed edge still clears.
+
+    The operator does not pick ``g``. For each species the retained headcount
+    is the breed floor plus the feed buffer. Implied ``g_s`` is 0 when that
+    stock is still on hand after the pending sale (do not shrink it). It is
+    missing when the sale would cut the buffer. Biological doubling is reported
+    next to that and is not the target.
+
+    A feed edge with both ends in the book and no ration fails closed, unless
+    the upstream already carries ``feed_reserve_heads``.
+    """
+    if not isinstance(cascade_state, dict):
+        return {
+            "edges_clear": False,
+            "reasons": ["cascade_state is missing; feed check fail closed"],
+            "by_species": {},
+            "edges": [],
+            "stage_gate": STAGE_GATE,
+        }
+    pending = pending_heads or {}
+    reasons: list[str] = []
+    edges: list[dict] = []
+    draws: dict[str, float] = {}
+    for upstream, downstream, what in CASCADE_EDGES:
+        up_key = _book_key_for_node(cascade_state, upstream)
+        down_key = _book_key_for_node(cascade_state, downstream)
+        if up_key is None or down_key is None:
+            continue
+        up_herd = _load_herd(up_key, cascade_state.get(up_key))
+        down_herd = _load_herd(down_key, cascade_state.get(down_key))
+        if up_herd is None or down_herd is None:
+            reasons.append(f"{upstream} → {downstream}: herd counts missing; feed edge fail closed")
+            edges.append({
+                "upstream": upstream,
+                "downstream": downstream,
+                "what": what,
+                "clears": False,
+                "reason": "counts missing",
+            })
+            continue
+        rate, rate_tag = _feed_rate(upstream, downstream, policy)
+        explicit = _optional_float(up_herd.get("feed_reserve_heads")) or 0.0
+        if rate_tag == "bad":
+            reasons.append(f"{upstream} → {downstream}: feed rate is not a positive number; fail closed")
+            edges.append({"upstream": upstream, "downstream": downstream, "what": what, "clears": False})
+            continue
+        if rate is None:
+            if explicit > 0:
+                # One explicit buffer covers every unrated edge out of this upstream.
+                draws[up_key] = max(draws.get(up_key, 0.0), explicit)
+                edges.append({
+                    "upstream": upstream,
+                    "upstream_key": up_key,
+                    "downstream": downstream,
+                    "downstream_key": down_key,
+                    "what": what,
+                    "rate_per_week": None,
+                    "rate_tag": "feed_reserve_heads",
+                    "buffer_weeks": float(BUFFER_WEEKS),
+                    "draw_heads": explicit,
+                    "clears": True,
+                })
+                continue
+            else:
+                reasons.append(
+                    f"{upstream} → {downstream} ({what}): no ration; fail closed. "
+                    "Set policy['feed_rates'] or feed_reserve_heads. " + ASSUMPTION_FEED_TAG
+                )
+                edges.append({
+                    "upstream": upstream,
+                    "downstream": downstream,
+                    "what": what,
+                    "clears": False,
+                    "rate_tag": "missing",
+                })
+                continue
+        else:
+            down_floor = _floors(down_key, down_herd)["keep"]
+            draw = float(rate) * float(down_floor) * float(BUFFER_WEEKS)
+        draws[up_key] = draws.get(up_key, 0.0) + draw
+        edges.append({
+            "upstream": upstream,
+            "upstream_key": up_key,
+            "downstream": downstream,
+            "downstream_key": down_key,
+            "what": what,
+            "rate_per_week": rate,
+            "rate_tag": rate_tag,
+            "buffer_weeks": float(BUFFER_WEEKS),
+            "draw_heads": draw,
+            "clears": True,
+        })
+
+    by_species: dict[str, dict] = {}
+    for key, herd in cascade_state.items():
+        loaded = _load_herd(str(key), herd if isinstance(herd, dict) else None)
+        if loaded is None:
+            reasons.append(f"{key}: herd counts missing; fail closed")
+            by_species[str(key)] = {"edges_clear": False}
+            continue
+        floors = _floors(str(key), loaded)
+        feed_heads = max(float(loaded.get("feed_reserve_heads") or 0.0), draws.get(str(key), 0.0))
+        retained = float(floors["keep"]) + feed_heads
+        sold = float(pending.get(str(key), pending.get(_node_name(key), 0.0)) or 0.0)
+        n_after = float(loaded["n_now"]) - sold
+        headroom = n_after - retained
+        rho = _rho(str(key), loaded)
+        g_bio = None if rho is None else rho - 1.0
+        holds = headroom >= -1e-6
+        if not holds:
+            reasons.append(
+                f"{key}: after the sale {n_after:.1f} heads remain, under the "
+                f"retained {retained:.1f} (breed floor {floors['keep']:.1f} + feed buffer {feed_heads:.1f})"
+            )
+        by_species[str(key)] = {
+            "retained_heads": retained,
+            "breed_floor": float(floors["keep"]),
+            "feed_heads": feed_heads,
+            "n_now": float(loaded["n_now"]),
+            "n_after": n_after,
+            "headroom_heads": headroom,
+            "g_implied_per_week": 0.0 if holds else None,
+            "g_biological_per_week": g_bio,
+            "g_note": (
+                "Implied g is 0 on the retained stock: do not shrink the breed floor or the feed buffer. "
+                "g_biological_per_week is the doubling stand-in, not a target."
+            ),
+            "edges_clear": holds,
+        }
+    for edge in edges:
+        if not edge.get("clears", False):
+            continue
+        up_key = edge.get("upstream_key")
+        if up_key is None or up_key not in by_species:
+            continue
+        edge["clears"] = bool(by_species[up_key].get("edges_clear"))
+    edges_clear = not reasons and all(edge.get("clears", False) for edge in edges)
+    return {
+        "edges_clear": edges_clear,
+        "reasons": reasons,
+        "by_species": by_species,
+        "edges": edges,
+        "feed_tag": ASSUMPTION_FEED_TAG,
+        "stage_gate": STAGE_GATE,
+    }
+
+
+def rank_skus(cascade_state: dict | None, policy: dict | None = None) -> dict:
+    """Rank sellable species by revenue toward ``R_min`` per unit of the tightest upstream.
+
+    Score = prepaid revenue per head / upstream units that head consumes per week.
+    The denominator is the binding inbound edge: the upstream with the fewest
+    weeks of firm surplus cover. A species with no upstream in the book is
+    scored on its own head (denominator 1).
+
+    Missing price, or a live inbound edge with no ration, leaves the species
+    unranked. The winner is the highest finite score.
+    """
+    if not isinstance(cascade_state, dict) or not cascade_state:
+        return {
+            "ranked": [],
+            "unranked": [],
+            "winner": None,
+            "reasons": ["cascade_state is missing; ranking fail closed"],
+            "stage_gate": STAGE_GATE,
+        }
+    rules = policy or {}
+    rows: list[dict] = []
+    unranked: list[dict] = []
+    firm_surplus: dict[str, float] = {}
+    for key, herd in cascade_state.items():
+        loaded = _load_herd(str(key), herd if isinstance(herd, dict) else None)
+        if loaded is None:
+            unranked.append({"species": str(key), "reason": "herd counts missing"})
+            continue
+        floors = _floors(str(key), loaded)
+        firm_surplus[str(key)] = _firm_sex_cap(str(key), loaded, 0, floors)["cap"]
+    for key in list(cascade_state):
+        species = str(key)
+        if species not in firm_surplus:
+            continue
+        revenue = _revenue_per_head(species)
+        if revenue is None or revenue <= 0:
+            unranked.append({"species": species, "reason": "no prepaid price; fail closed"})
+            continue
+        inbound = []
+        for upstream, downstream, what in CASCADE_EDGES:
+            if _node_name(species) != downstream and species != downstream:
+                continue
+            up_key = _book_key_for_node(cascade_state, upstream)
+            if up_key is None:
+                continue
+            rate, rate_tag = _feed_rate(upstream, downstream, rules)
+            if rate is None or rate <= 0:
+                unranked.append({
+                    "species": species,
+                    "reason": f"{upstream} → {downstream} ({what}) has no ration; not ranked",
+                })
+                inbound = None
+                break
+            surplus = firm_surplus.get(up_key, 0.0)
+            weekly = float(rate)
+            cover = surplus / weekly if weekly > 0 else 0.0
+            inbound.append({
+                "upstream": up_key,
+                "what": what,
+                "rate_per_week": weekly,
+                "rate_tag": rate_tag,
+                "upstream_surplus_heads": surplus,
+                "weeks_of_cover": cover,
+            })
+        if inbound is None:
+            continue
+        if not inbound:
+            score = revenue
+            bottleneck = species
+            units = 1.0
+            cover = None
+            rate_tag = "own surplus"
+        else:
+            binding = min(inbound, key=lambda edge: edge["weeks_of_cover"])
+            units = float(binding["rate_per_week"])
+            score = revenue / units
+            bottleneck = binding["upstream"]
+            cover = binding["weeks_of_cover"]
+            rate_tag = binding["rate_tag"]
+        rows.append({
+            "species": species,
+            "revenue_per_head": revenue,
+            "bottleneck": bottleneck,
+            "bottleneck_units_per_head": units,
+            "weeks_of_cover": cover,
+            "score": score,
+            "rate_tag": rate_tag,
+            "score_formula": "revenue_per_head / bottleneck_units_per_head",
+        })
+    rows.sort(key=lambda row: row["score"], reverse=True)
+    return {
+        "ranked": rows,
+        "unranked": unranked,
+        "winner": None if not rows else rows[0]["species"],
+        "objective": "revenue toward R_min per unit of the tightest upstream surplus",
+        "feed_tag": ASSUMPTION_FEED_TAG,
+        "stage_gate": STAGE_GATE,
+    }
+
+
 def firm_monthly_contribution(
     species: str,
     state: dict,
@@ -602,15 +946,18 @@ def firm_monthly_contribution(
     *,
     weeks: int | None = None,
 ) -> dict:
-    """Cash contribution of the weekly firm surplus, scaled to a month.
+    """Monthly revenue of the weekly firm surplus, plus contribution when cost is known.
+
+    The operator-facing number is revenue (``min_monthly_revenue``). ``min_monthly``
+    is that same revenue figure. Contribution is secondary and is present only
+    when the ASSUMPTION variable cost exists.
 
     Each week the herd sells ``sellable_for_growth(..., t=1).allowed`` and the
-    remainder is multiplied by ``rho``. At ``g = 0`` that holds the herd flat.
-    The gate uses the thinnest week in the window, times 52/12.
+    remainder is multiplied by ``rho``. At ``g = 0`` that holds the herd flat,
+    which is the implied rule when the operator did not set a growth rate.
 
     An order inside the window that is larger than that week's take is removed
-    anyway. Later weeks then run on the smaller herd, so a liquidation fails
-    this check even when the herd would have grown back by a long horizon.
+    anyway. Later weeks then run on the smaller herd.
 
     Prices are fair prepaid at a 4-week tenor. Opportunity cost is not charged
     again here; it lives on ``order_roi``.
@@ -644,14 +991,21 @@ def firm_monthly_contribution(
         span = int(weeks)
     if span < 1:
         span = 1
+    revenue_per = _revenue_per_head(key)
     margin = _margin_per_head(key)
-    if margin is None or margin <= 0:
+    if revenue_per is None or revenue_per <= 0:
         return {
             "ok": False,
             "min_monthly": 0.0,
+            "min_monthly_revenue": 0.0,
             "mean_monthly": 0.0,
-            "reasons": ["no positive fair contribution per head; runway fail closed"],
+            "mean_monthly_revenue": 0.0,
+            "min_monthly_contribution": None,
+            "contribution_ok": False,
+            "target_kind": "revenue",
+            "reasons": ["no positive fair revenue per head; runway fail closed"],
             "weekly_heads": [],
+            "revenue_per_head": revenue_per,
             "margin_per_head": margin,
             "stage_gate": STAGE_GATE,
         }
@@ -671,7 +1025,8 @@ def firm_monthly_contribution(
             }
     cursor = dict(loaded)
     weekly_heads: list[float] = []
-    weekly_cash: list[float] = []
+    weekly_revenue: list[float] = []
+    weekly_contribution: list[float] = []
     reasons: list[str] = []
     for week in range(span):
         cap_row = sellable_for_growth(key, cursor, rate, 1, delivery_cap=False)
@@ -686,22 +1041,48 @@ def firm_monthly_contribution(
                 f"week {week}: selling {sell:.2f} heads breaks the breed floor"
             )
             weekly_heads.append(0.0)
-            weekly_cash.append(0.0)
+            weekly_revenue.append(0.0)
             break
         weekly_heads.append(sell)
-        weekly_cash.append(sell * margin)
+        weekly_revenue.append(sell * revenue_per)
+        if margin is not None:
+            weekly_contribution.append(sell * margin)
         cursor = nxt
-    if not weekly_cash:
+    if not weekly_revenue:
         reasons.append("runway window was empty")
-    min_week = min(weekly_cash) if weekly_cash else 0.0
-    mean_week = (sum(weekly_cash) / len(weekly_cash)) if weekly_cash else 0.0
+    min_week = min(weekly_revenue) if weekly_revenue else 0.0
+    mean_week = (sum(weekly_revenue) / len(weekly_revenue)) if weekly_revenue else 0.0
     scale = 52.0 / 12.0
+    min_revenue = min_week * scale
+    mean_revenue = mean_week * scale
+    if weekly_contribution:
+        min_contribution = min(weekly_contribution) * scale
+        mean_contribution = (sum(weekly_contribution) / len(weekly_contribution)) * scale
+        contribution_ok = min_contribution >= -1e-9
+    else:
+        min_contribution = None
+        mean_contribution = None
+        contribution_ok = True
+    if margin is not None and margin < 0:
+        contribution_ok = False
+        reasons.append("ASSUMPTION contribution check: variable cost exceeds prepaid revenue per head")
     return {
         "ok": not reasons,
-        "min_monthly": min_week * scale,
-        "mean_monthly": mean_week * scale,
+        "target_kind": "revenue",
+        "min_monthly": min_revenue,
+        "mean_monthly": mean_revenue,
+        "min_monthly_revenue": min_revenue,
+        "mean_monthly_revenue": mean_revenue,
+        "min_monthly_contribution": min_contribution,
+        "mean_monthly_contribution": mean_contribution,
+        "contribution_ok": contribution_ok and not reasons,
+        "revenue_per_head": revenue_per,
         "margin_per_head": margin,
-        "margin_tag": "F_prelim at 4 weeks minus ASSUMPTION variable cost. Opportunity cost is not in the runway.",
+        "margin_tag": (
+            "Primary figure is F_prelim revenue at 4 weeks. "
+            "Contribution subtracts the ASSUMPTION variable cost when one exists. "
+            "Opportunity cost is not in the runway."
+        ),
         "weekly_heads": weekly_heads,
         "reasons": reasons,
         "herd_end": cursor.get("n_now"),
@@ -715,16 +1096,21 @@ def accept_order(
     cascade_state: dict | None,
     policy: dict | None = None,
 ) -> AcceptDecision:
-    """Accept only when integrity, growth, cascade, runway, and ROI all hold.
+    """Accept only when integrity, feed edges, the revenue floor, and ROI all hold.
+
+    The primary income test is average monthly revenue over ``H`` months against
+    ``R_min`` (default $3,000). Contribution is a secondary ASSUMPTION check.
+    ``g`` is applied as an extra whole-herd cap only when the policy sets it.
+    Otherwise the implied rule is: do not shrink the breed floor or the feed buffer.
 
     Fail closed. ``book`` may be None (no open reservations). ``cascade_state``
     maps species name to herd state. The order species has to be in that map.
     """
     notes = [
         STAGE_GATE,
-        DEFAULT_M_MIN_TAG,
-        "Coupled cascade feed is used only when research/cascade_growth.model.firm_take imports. "
-        "Otherwise each species is checked on its own floor.",
+        DEFAULT_R_MIN_TAG,
+        ASSUMPTION_FEED_TAG,
+        "Spend order stays worms first (biology/CASCADE.md). The feed graph in this module is cyclic and is not permission to buy the later stages.",
     ]
     rules = _policy(policy)
     if rules["notes"]:
@@ -771,52 +1157,82 @@ def accept_order(
     }
 
     if state is not None and not reasons:
-        verdict = _removal_verdict(species, state, heads + reserved)
+        pending = {species: heads + reserved}
+        feed = cascade_feed_plan(cascade_state, rules, pending)
+        residuals["implied_g"] = feed.get("by_species")
+        residuals["feed_edges"] = feed.get("edges")
+        if not feed.get("edges_clear"):
+            reasons.extend(feed.get("reasons") or ["a cascade feed edge does not clear"])
+        feed_heads = float((feed.get("by_species") or {}).get(species, {}).get("feed_heads") or 0.0)
+        guarded = dict(state)
+        guarded["feed_reserve_heads"] = max(float(state.get("feed_reserve_heads") or 0.0), feed_heads)
+        verdict = _removal_verdict(species, guarded, heads + reserved)
         if not verdict["ok"]:
             reasons.extend(verdict["reasons"] or ["sale would breach the breed floor"])
         growth = sellable_for_growth(
             species,
-            state,
+            guarded,
             rules["g"],
             horizon,
-            schedule,
+            schedule if rules["g_explicit"] else None,
         )
         caps = growth.get("caps") or {}
         caps["allowed_now"] = growth.get("allowed")
         caps["allowed_by_t"] = growth.get("allowed_by_t")
+        caps["g_explicit"] = rules["g_explicit"]
+        caps["g_implied_per_week"] = (feed.get("by_species") or {}).get(species, {}).get("g_implied_per_week")
         residuals["growth"] = {
             "feasible": growth.get("feasible"),
             "residual": growth.get("residual"),
             "reasons": growth.get("reasons"),
+            "applied": rules["g_explicit"],
         }
-        if not growth.get("feasible"):
+        if rules["g_explicit"] and not growth.get("feasible"):
             detail = "; ".join(growth.get("reasons") or []) or "post-sale herd misses the growth path"
             reasons.append(f"growth gate: {detail}")
+        # The long-lead firm cap belongs to the growth helper. It applies
+        # only when the operator set g. Otherwise the hard stop is the
+        # breed floor, the feed buffer, and firm surplus at delivery week.
+        if rules["g_explicit"]:
+            firm_cap = float(caps.get("firm_or_ne") or 0.0)
+            if heads + reserved > firm_cap + 1e-4:
+                reasons.append(
+                    "order exceeds firm surplus above the Ne floor and the feed buffer"
+                )
+        delivery_lead = week if week is not None else 0
         casc_reasons, casc_notes, casc_mode = _cascade_gate(
-            cascade_state, species, heads + reserved, rules["t_weeks"]
+            cascade_state, species, heads + reserved, delivery_lead
         )
         notes.extend(casc_notes)
         residuals["cascade_mode"] = casc_mode
         reasons.extend(casc_reasons)
         runway = firm_monthly_contribution(
             species,
-            state,
+            guarded,
             rules["g"],
             rules["H_months"],
             order,
         )
         residuals["runway"] = {
-            "min_monthly": runway.get("min_monthly"),
-            "mean_monthly": runway.get("mean_monthly"),
+            "target_kind": "revenue",
+            "min_monthly_revenue": runway.get("min_monthly_revenue"),
+            "mean_monthly_revenue": runway.get("mean_monthly_revenue"),
+            "min_monthly_contribution": runway.get("min_monthly_contribution"),
+            "contribution_ok": runway.get("contribution_ok"),
             "margin_per_head": runway.get("margin_per_head"),
+            "revenue_per_head": runway.get("revenue_per_head"),
             "reasons": runway.get("reasons"),
         }
         if not runway.get("ok"):
-            reasons.append("income runway: " + "; ".join(runway.get("reasons") or ["unreadable"]))
-        elif float(runway["min_monthly"]) + 1e-6 < float(rules["M_min"]):
+            reasons.append("revenue floor: " + "; ".join(runway.get("reasons") or ["unreadable"]))
+        elif float(runway.get("min_monthly_revenue") or 0.0) + 1e-6 < float(rules["R_min"]):
             reasons.append(
-                f"income runway: ${runway['min_monthly']:.0f}/mo after this book "
-                f"is under M_min ${float(rules['M_min']):.0f}/mo"
+                f"revenue floor: ${runway['min_monthly_revenue']:.0f}/mo after this book "
+                f"is under R_min ${float(rules['R_min']):.0f}/mo"
+            )
+        elif runway.get("min_monthly_contribution") is not None and not runway.get("contribution_ok"):
+            reasons.append(
+                "ASSUMPTION contribution check: variable cost leaves monthly contribution below 0"
             )
     elif state is not None:
         # Still report caps when an earlier input failed, if the herd loads.
@@ -857,26 +1273,44 @@ def accept_order(
 
 
 def capacity_plan(
-    g: float,
-    M_min: float,
-    horizon_weeks: int,
+    R_min: float = DEFAULT_R_MIN,
+    H_months: int = DEFAULT_H_MONTHS,
     species: str = "quail",
     state: dict | None = None,
+    cascade_state: dict | None = None,
+    *,
+    horizon_weeks: int | None = None,
+    g: float | None = None,
 ) -> dict:
-    """Birds to hold today, and the weekly sell schedule, that can pay ``M_min``.
+    """Birds to hold today so average monthly revenue can clear ``R_min``.
 
-    The schedule sells only the weekly surplus that keeps growth at ``g``.
-    It does not buy stock. Stage 1 worms remain the only spend.
+    ``R_min`` is revenue, not contribution. ``g`` is optional. When it is
+    omitted the schedule sells only the surplus that keeps the herd from
+    shrinking (implied g = 0 on the retained stock). Pass ``g`` only to
+    demand a faster whole-herd path. This does not buy stock.
     """
     key = str(species).strip().lower()
-    rate = _growth_rate(g)
-    weeks = _whole_weeks(horizon_weeks)
-    target = _optional_float(M_min)
+    g_explicit = g is not None
+    rate = 0.0 if g is None else _growth_rate(g)
+    months = _whole_weeks(H_months)
+    weeks = _whole_weeks(horizon_weeks) if horizon_weeks is not None else (
+        None if months is None else int(round(months * 52.0 / 12.0))
+    )
+    target = _optional_float(R_min)
     base = {
         "species": key,
-        "g_per_week": rate,
+        "target_kind": "revenue",
+        "R_min": target,
+        "R_min_tag": DEFAULT_R_MIN_TAG,
         "M_min": target,
-        "M_min_tag": DEFAULT_M_MIN_TAG,
+        "H_months": months,
+        "g_per_week": rate,
+        "g_explicit": g_explicit,
+        "g_source": (
+            "operator g, an extra whole-herd cap"
+            if g_explicit
+            else "implied: maintain the herd (g = 0). Not an operator growth target."
+        ),
         "horizon_weeks": weeks,
         "feasible": False,
         "hold_heads": None,
@@ -885,12 +1319,23 @@ def capacity_plan(
         "schedule": [],
         "state": None,
         "min_monthly": 0.0,
+        "min_monthly_revenue": 0.0,
         "reasons": [],
         "stage_gate": STAGE_GATE,
         "stage": SPECIES_META.get(key, {}).get("stage"),
     }
-    if key not in SPECIES_META or rate is None or weeks is None or weeks < 1 or weeks > 520 or target is None or target < 0:
-        base["reasons"] = ["capacity_plan needs a known species, g >= 0, M_min >= 0, and 1..520 weeks"]
+    if (
+        key not in SPECIES_META
+        or rate is None
+        or months is None
+        or months < 1
+        or weeks is None
+        or weeks < 1
+        or weeks > 520
+        or target is None
+        or target < 0
+    ):
+        base["reasons"] = ["capacity_plan needs a known species, R_min >= 0, H_months >= 1, and at most 520 weeks"]
         return base
     if _rho(key, state or {}) is None and key not in engine.SPECIES:
         base["reasons"] = ["doubling time missing; fail closed"]
@@ -899,9 +1344,15 @@ def capacity_plan(
     if anchor is None:
         base["reasons"] = ["breed-floor anchor n0 is missing; fail closed"]
         return base
+    revenue_per = _revenue_per_head(key)
     margin = _margin_per_head(key)
-    if margin is None or margin <= 0:
-        base["reasons"] = ["no positive contribution per head; cannot size a flock"]
+    if revenue_per is None or revenue_per <= 0:
+        base["reasons"] = ["no positive prepaid revenue per head; cannot size a flock"]
+        return base
+    if margin is not None and margin < 0:
+        base["reasons"] = ["ASSUMPTION contribution check: variable cost exceeds revenue per head"]
+        base["revenue_per_head"] = revenue_per
+        base["margin_per_head"] = margin
         return base
     if target <= _HEAD_TOL:
         hold = _state_for_hold(key, anchor, anchor, state)
@@ -912,8 +1363,10 @@ def capacity_plan(
             "weekly_sell_heads": 0.0,
             "state": hold,
             "min_monthly": 0.0,
+            "min_monthly_revenue": 0.0,
+            "revenue_per_head": revenue_per,
             "margin_per_head": margin,
-            "note": "M_min is 0, so the hold is the breed floor and the sell schedule is empty.",
+            "note": "R_min is 0, so the hold is the breed floor and the sell schedule is empty.",
         })
         return base
 
@@ -927,14 +1380,14 @@ def capacity_plan(
     step = 4.0 if key == "quail" else 1.0
     lo = anchor
     probe = trial(lo)
-    if probe.get("ok") and probe["min_monthly"] + 1e-6 >= target:
+    if probe.get("ok") and probe.get("contribution_ok", True) and probe["min_monthly_revenue"] + 1e-6 >= target:
         chosen = probe
     else:
         hi = max(lo * 2, lo + step)
         found = False
         for _ in range(24):
             probe = trial(hi)
-            if probe.get("ok") and probe["min_monthly"] + 1e-6 >= target:
+            if probe.get("ok") and probe.get("contribution_ok", True) and probe["min_monthly_revenue"] + 1e-6 >= target:
                 found = True
                 break
             lo = hi
@@ -943,8 +1396,9 @@ def capacity_plan(
                 break
         if not found:
             base["reasons"] = [
-                "no herd under 2,000,000 heads throws off M_min at this growth rate"
+                "no herd under 2,000,000 heads throws off R_min in prepaid revenue"
             ]
+            base["revenue_per_head"] = revenue_per
             base["margin_per_head"] = margin
             return base
         for _ in range(28):
@@ -952,7 +1406,7 @@ def capacity_plan(
             if key == "quail":
                 mid = math.ceil(mid / step) * step
             probe = trial(mid)
-            if probe.get("ok") and probe["min_monthly"] + 1e-6 >= target:
+            if probe.get("ok") and probe.get("contribution_ok", True) and probe["min_monthly_revenue"] + 1e-6 >= target:
                 hi = mid
             else:
                 lo = mid
@@ -965,23 +1419,39 @@ def capacity_plan(
         for index, heads in enumerate(chosen.get("weekly_heads") or [])
     ]
     check = sellable_for_growth(key, herd, rate, weeks, schedule, delivery_cap=False)
-    feasible = bool(chosen.get("ok")) and bool(check.get("feasible")) and chosen["min_monthly"] + 1e-6 >= target
+    feasible = (
+        bool(chosen.get("ok"))
+        and bool(chosen.get("contribution_ok", True))
+        and bool(check.get("feasible"))
+        and chosen["min_monthly_revenue"] + 1e-6 >= target
+    )
     reasons = []
     if not feasible:
         reasons.extend(chosen.get("reasons") or [])
         reasons.extend(check.get("reasons") or [])
         if not reasons:
-            reasons.append("sized herd did not keep both the income target and the growth path")
+            reasons.append("sized herd did not keep both the revenue floor and the retained stock")
     backsolve = None
     try:
-        backsolve = margin_backsolve(target, margin, "head")
+        backsolve = margin_backsolve(target, revenue_per, "head")
     except ValueError:
         backsolve = None
+    feed = None
+    if cascade_state is not None:
+        feed = cascade_feed_plan({**cascade_state, key: herd}, {"feed_rates": None})
+        if not feed.get("edges_clear"):
+            feasible = False
+            reasons.extend(feed.get("reasons") or ["feed edges do not clear at this hold"])
     return {
         "species": key,
-        "g_per_week": rate,
+        "target_kind": "revenue",
+        "R_min": target,
+        "R_min_tag": DEFAULT_R_MIN_TAG,
         "M_min": target,
-        "M_min_tag": DEFAULT_M_MIN_TAG,
+        "H_months": months,
+        "g_per_week": rate,
+        "g_explicit": g_explicit,
+        "g_source": base["g_source"],
         "horizon_weeks": weeks,
         "feasible": feasible,
         "hold_heads": herd["n_now"],
@@ -990,16 +1460,22 @@ def capacity_plan(
         "hold_lb": _heads_to_lb(key, herd["n_now"]),
         "weekly_sell_heads": (chosen.get("weekly_heads") or [None])[0],
         "schedule": schedule,
-        "min_monthly": chosen.get("min_monthly"),
-        "mean_monthly": chosen.get("mean_monthly"),
+        "min_monthly": chosen.get("min_monthly_revenue"),
+        "mean_monthly": chosen.get("mean_monthly_revenue"),
+        "min_monthly_revenue": chosen.get("min_monthly_revenue"),
+        "mean_monthly_revenue": chosen.get("mean_monthly_revenue"),
+        "min_monthly_contribution": chosen.get("min_monthly_contribution"),
+        "contribution_ok": chosen.get("contribution_ok"),
+        "revenue_per_head": revenue_per,
         "margin_per_head": margin,
-        "margin_backsolve_heads_per_month": None if backsolve is None else backsolve["units"],
+        "revenue_backsolve_heads_per_month": None if backsolve is None else backsolve["units"],
         "schedule_feasible": check.get("feasible"),
+        "feed": None if feed is None else {"edges_clear": feed.get("edges_clear"), "reasons": feed.get("reasons")},
         "state": herd,
         "reasons": reasons,
         "note": (
             "Hold is the flock on hand today. The schedule is the weekly firm "
-            "surplus that still compounds at g. It is not a purchase list. "
+            "surplus whose prepaid revenue clears R_min. It is not a purchase list. "
             f"{meta['stage']}"
         ),
         "stage_gate": STAGE_GATE,
@@ -1027,14 +1503,18 @@ def _policy(policy: dict | None) -> dict:
     source = policy or {}
     notes: list[str] = []
     error = None
-    if "g" in source and source["g"] is not None:
+    g_explicit = "g" in source and source.get("g") is not None
+    if g_explicit:
         g = _growth_rate(source["g"])
         if g is None:
-            error = "policy g must be >= 0"
+            error = "policy g must be >= 0 and < 1"
             g = None
     else:
         g = 0.0
-        notes.append("g defaulted to 0 per week: the herd must not be smaller at the horizon than it is today.")
+        notes.append(
+            "g was not set. Implied rule: do not shrink the breed floor or the feed buffer. "
+            "g_s is reported after the sale. It is not the knob."
+        )
     if "t_weeks" in source and source["t_weeks"] is not None:
         t_weeks = _whole_weeks(source["t_weeks"])
         if t_weeks is None:
@@ -1049,29 +1529,43 @@ def _policy(policy: dict | None) -> dict:
             months = None
     else:
         months = 3
-    if "M_min" in source:
-        if source["M_min"] is None:
-            error = error or "M_min is missing; fail closed"
-            m_min = None
+    if "R_min" in source:
+        if source["R_min"] is None:
+            error = error or "R_min is missing; fail closed"
+            r_min = None
         else:
-            m_min = _optional_float(source["M_min"])
-            if m_min is None or m_min < 0:
-                error = error or "M_min must be >= 0"
-                m_min = None
+            r_min = _optional_float(source["R_min"])
+            if r_min is None or r_min < 0:
+                error = error or "R_min must be >= 0"
+                r_min = None
+    elif "M_min" in source:
+        if source["M_min"] is None:
+            error = error or "R_min is missing; fail closed"
+            r_min = None
+        else:
+            r_min = _optional_float(source["M_min"])
+            if r_min is None or r_min < 0:
+                error = error or "R_min must be >= 0"
+                r_min = None
+            else:
+                notes.append("M_min is read as R_min. The dollar test is monthly revenue, not contribution.")
     else:
-        m_min = DEFAULT_M_MIN
-        notes.append(DEFAULT_M_MIN_TAG)
+        r_min = DEFAULT_R_MIN
+        notes.append(DEFAULT_R_MIN_TAG)
     hurdle = _optional_float(source.get("hurdle", 0.0))
     if hurdle is None:
         error = error or "hurdle must be a number"
         hurdle = 0.0
     return {
         "g": g,
+        "g_explicit": g_explicit,
         "t_weeks": t_weeks,
-        "H_months": months if months is not None else 3,
-        "M_min": 0.0 if m_min is None else m_min,
+        "H_months": months if months is not None else DEFAULT_H_MONTHS,
+        "R_min": 0.0 if r_min is None else r_min,
+        "M_min": 0.0 if r_min is None else r_min,
         "hurdle": hurdle,
         "price_fn": source.get("price_fn"),
+        "feed_rates": source.get("feed_rates") or {},
         "commit": bool(source.get("commit", False)),
         "notes": notes,
         "error": error,
@@ -1677,13 +2171,19 @@ def _variable_cost(species: str, heads: float, revenue: float | None) -> dict | 
     return None
 
 
-def _margin_per_head(species: str) -> float | None:
-    """Fair contribution per head at a 4-week tenor. None if price or cost is missing."""
+def _revenue_per_head(species: str) -> float | None:
+    """Fair prepaid revenue per head at a 4-week tenor. None if this species has no spot."""
     quote = default_price_fn({"species": species, "qty": 1, "unit": "head", "week": 4}, None)
     if quote is None:
         return None
-    # Rebuild revenue for one head. default_price_fn's usd_per_unit is per head here.
-    revenue = float(quote["usd_per_unit"])
+    return float(quote["usd_per_unit"])
+
+
+def _margin_per_head(species: str) -> float | None:
+    """Fair contribution per head at a 4-week tenor. None if price or cost is missing."""
+    revenue = _revenue_per_head(species)
+    if revenue is None:
+        return None
     pack = _variable_cost(species, 1.0, revenue)
     if pack is None:
         return None

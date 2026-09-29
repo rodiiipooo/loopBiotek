@@ -2,25 +2,68 @@
 
 Stage 4 planning. This does not sell anything and it does not authorize a purchase. **Stage 1 worms remain the only spend** until vermiculture revenue is at least $2k/mo, or a firm prepaid runway covers Stage-1 costs, and Rod clears that gate. See `biology/CASCADE.md`.
 
-The question this answers: how many birds (or pounds) can go out the door this week, or by a later week, without eating the breeding nucleus or giving up a growth rate you named.
+The knob is **R_min**: average monthly **revenue** over a rolling window of **H** months. Default **R_min is $3,000/month** and default **H is 3**. The $3,000 figure is the planning target in `economics/MARGIN_3K_BACKSOLVE.md`. It is an **ASSUMPTION** planning floor, not a measured bill, and not permission to buy stock.
 
-## Weekly growth
+The dollar test on an order is prepaid **revenue** (`F_prelim`). Contribution margin is a second check. It runs when this module has a variable-cost **ASSUMPTION** for that species. If that cost is missing, the revenue floor still applies and the contribution check stays quiet. If the cost is present and contribution per head is below zero, the order is refused.
 
-`g` is a fraction **per week**, same clock as `M_WEEKLY` (1% mortality per week in the synergy helper).
+## What the operator does not set first
 
-| `g` | Meaning |
+A weekly growth rate `g` is not the policy. After a sale, every cascade feed edge still has to clear and every Ne floor still has to hold. From that retained stock the module reports an implied `g_s`:
+
+- `g_s = 0` when the herd left on hand is still at least the breed floor plus the feed buffer. Do not shrink that stock.
+- `g_s` is missing when the sale would cut the floor or the buffer. The order is refused.
+
+Biological doubling sits beside that number. It is the ops-dashboard stand-in (`rho = 2 ** (1 / doubling_weeks)`), not a target. Quail 26 weeks and worms 13 weeks are **ASSUMPTION** doubling times.
+
+Pass `g` in the policy only when you want an extra whole-herd path on top of the revenue floor. `sellable_for_growth` is that helper. `g` there is a fraction **per week**, same clock as `M_WEEKLY` (1% mortality per week in the synergy helper). `t` is a whole number of weeks.
+
+| `g` | Meaning, only when you pass it |
 |----:|---------|
 | 0 | The herd at week `t` is at least as large as it is today |
 | 0.01 | About 1% more birds each week |
 | 0.02 | About 2% more birds each week |
 
-Quail in the ops-dashboard stub double in 26 weeks. That is an **ASSUMPTION**. The weekly multiplier is `rho = 2 ** (1/26)`, about 1.027, so about 2.7% per week. A target faster than that cannot be met by selling anything. The allowed sale goes to 0.
+A target faster than `rho - 1` cannot be met by selling anything. The allowed sale goes to 0.
 
-`t` is a whole number of weeks.
+## Cascade feed
 
-## What you can sell
+Species feed each other. This graph is the order-control check. It does not change the spend order in `biology/CASCADE.md`. Stage 1 worms remain the only spend.
 
-Heads you can take **today** and still be on the growth path at week `t`:
+```
+algae (enriched nutrient water) → aquaponic vegetables / fruits / plants
+plant product and waste         → worms, crickets, and quail (edible plants)
+worms                           → fish and quail
+crickets                        → fish and quail
+```
+
+`greens`, `vegetables`, and `fruit` in a herd book are the plant node.
+
+An edge is checked only when both ends are in the herd book. The stock that must stay on the upstream side is:
+
+```
+rate per week × downstream breed floor × BUFFER_WEEKS
+```
+
+`BUFFER_WEEKS` is 2, from `research/synergy/circular_buffers.py`.
+
+Default rates are **ASSUMPTION** placeholders, upstream units per downstream head per week. They are not a measured diet. Override them with `policy["feed_rates"]` using a `("worms", "quail")` key or a `"worms->quail"` string.
+
+| Edge | ASSUMPTION units / head / week |
+|------|-------------------------------:|
+| worms → quail | 20 |
+| worms → fish | 20 |
+| crickets → quail | 10 |
+| crickets → fish | 10 |
+| algae → plants | no default |
+| plants → worms, crickets, or quail | no default |
+
+An edge with both ends in the book and no rate fails closed, unless the upstream herd already carries `feed_reserve_heads`. That explicit buffer covers the unrated edges out of that species.
+
+## What you can sell (`sellable_for_growth`)
+
+This helper answers a growth question. Capacity and order acceptance do not require it.
+
+Heads you can take **today** and still be on a named growth path at week `t`:
 
 ```
 S <= N * (1 - (1+g)^t / rho^t)
@@ -39,15 +82,17 @@ Missing counts, a missing doubling time, or a helper that cannot answer: **allow
 
 `n0` is the breed-floor anchor (founders and the safety stock), not today's headcount. If you set `n0` equal to `n_now`, surplus is zero.
 
-## Five gates on one order
+## Gates on one order
 
-`accept_order` says yes only when all five hold.
+`accept_order` says yes only when all of these hold. Fail closed.
 
 1. **Population.** After this order and every open reservation, males stay at or above 17 and females at or above 51 (or the species' own `keep_floor`). The sale comes out of surplus. It does not take a breeder.
-2. **Growth.** The schedule, including this order, still leaves `N * (1+g)^t` at the horizon.
-3. **Cascade.** Coupled feed math is used when `research/cascade_growth` is on the branch (`firm_take`). It is not on this branch. **STUB:** each species is checked on its own floor. Set `feed_reserve_heads` if some of the surplus has to stay as feed for the next species. This sale does not lower another species' floor. Do not raid breeders to fill a neighbor's ration.
-4. **Income.** For the next `H` months (default 3), the thinnest week's firm surplus, scaled by 52/12, is still at least `M_min`. Default `M_min` is **$3,000/mo**. **ASSUMPTION**, optional target, from `economics/MARGIN_3K_BACKSOLVE.md`. It is not a measured bill. A flock that cannot throw that off refuses every order. `capacity_plan` sizes the hold that can.
-5. **ROI.** Revenue is `F_prelim` from `fair_prepaid` (inflation 2.7%, 3-month bill 4.01%, fairness 0.9, spot from the ops-dashboard engine), unless you pass a `price_fn`. Variable cost for quail is **$1.85/bird**. **ASSUMPTION** (`$3.169/lb × ~0.585 lb` on the margin page; the source file is not in this checkout). Worm opex is **17.8% of prepaid revenue**. **ASSUMPTION** (path C margin ratio 0.822). Other species have no cost here, so their ROI fails closed.
+2. **Cascade feed.** Every live feed edge still clears. Implied `g_s` is 0 on the retained stock. A missing ration on a live edge refuses the order.
+3. **Revenue.** For the next `H` months (default 3), the thinnest week's firm surplus, priced at fair prepaid and scaled by 52/12, is still at least `R_min`. A flock that cannot throw that revenue off refuses the order. `capacity_plan` sizes the hold that can. An older `M_min` key is read as the same revenue dollars.
+4. **Contribution (secondary).** When a variable-cost **ASSUMPTION** exists, monthly contribution on that same harvest has to stay at or above zero. Quail cost is **$1.85/bird** (`$3.169/lb × ~0.585 lb` on the margin page; the source file is not in this checkout). Worm opex is **17.8% of prepaid revenue** (path C margin ratio 0.822). Other species have no cost here, so this check does not invent one.
+5. **ROI.** Revenue on the quote is `F_prelim` from `fair_prepaid` (inflation 2.7%, 3-month bill 4.01%, fairness 0.9, spot from the ops-dashboard engine), unless you pass a `price_fn`.
+
+If the policy sets `g`, a sixth check runs: the sales schedule, including this order, still leaves `N * (1+g)^t` at the horizon, and the order stays inside that helper's long-lead firm cap.
 
 Opportunity cost is only the growth you give up, not the heads this order already pays for:
 
@@ -58,9 +103,21 @@ contribution = revenue - var_cost - opp_cost
 ROI = contribution / capital_tied
 ```
 
-Capital tied defaults to variable cost. The hurdle defaults to 0. The order passes the ROI gate when ROI is at least the hurdle, or contribution is at least 0. Unknown price or unknown cost fails closed.
+When `g` was not set, opportunity uses `g = 0`, so the growth increment is zero. Capital tied defaults to variable cost. The hurdle defaults to 0. The order passes the ROI gate when ROI is at least the hurdle, or contribution is at least 0. Unknown price or unknown cost fails closed.
 
-The runway prices capacity at fair prepaid. It does not charge opportunity cost a second time. A low quote fails the ROI gate even when the flock's capacity still clears `M_min`.
+The runway prices capacity at fair prepaid. It does not charge opportunity cost a second time. A low quote fails the ROI gate even when the flock's prepaid revenue still clears `R_min`.
+
+Firm surplus at the **delivery week** (the 0.9 stand-in for P10) still has to cover the order. The 26-week mortality proxy is reserved for `sellable_for_growth` and for the extra cap that runs when `g` is set.
+
+## Which product to sell
+
+`rank_skus` scores each species that has a prepaid price:
+
+```
+score = revenue per head / units of the binding bottleneck per head
+```
+
+The binding bottleneck is the inbound feed edge with the fewest weeks of upstream firm surplus. A species with no upstream in the book is scored on its own head (denominator 1). A live inbound edge with no ration leaves that species unranked. The winner is the highest finite score: the most revenue toward `R_min` per unit of the tightest upstream surplus.
 
 ## Reservations
 
@@ -76,6 +133,8 @@ From `research/ops-dashboard`:
 import order_control as oc
 
 state = oc.quail_planning_state(1000, 3000)  # males, females; floor defaults to 17/51
+
+# Optional. g is per week. Capacity and accept_order do not need it.
 print(oc.sellable_for_growth("quail", state, g=0.01, t=26)["allowed"])
 
 order = {"species": "quail", "qty": 20, "unit": "lb", "week": 8}
@@ -86,17 +145,26 @@ decision = oc.accept_order(
     order,
     book,
     {"quail": state},
-    {"g": 0.01, "t_weeks": 26, "H_months": 3, "M_min": 0},
+    {"R_min": 3000, "H_months": 3, "hurdle": 0.0},
 )
 print(decision.accept, decision.reasons)
+print(decision.residuals["runway"]["min_monthly_revenue"])
 
-plan = oc.capacity_plan(0.0, 3000, 26, species="quail")
-print(plan["hold_heads"], plan["min_monthly"], plan["feasible"])
+plan = oc.capacity_plan(3000, H_months=3, species="quail")
+print(plan["hold_heads"], plan["min_monthly_revenue"], plan["feasible"])
+
+book_state = {
+    "worms": {"n_now": 50000, "n0": 16500},
+    "quail": state,
+}
+print(oc.rank_skus(book_state)["winner"])
 ```
 
 `sellable_for_growth` returns heads in `allowed` (sell now, over the horizon) and `allowed_by_t` (deliver at week `t` if you sell nothing before that). Quail pounds are `allowed_lb`. A schedule in the fifth argument returns `feasible` and `residual`.
 
-`M_min=0` in the snippet turns the income target off so a 4,000-bird example can be read on its own. The default target is $3,000/mo. Use `capacity_plan` before you treat that default as something this flock can promise.
+`capacity_plan(R_min, H_months=3, species="quail")` sizes the hold whose prepaid revenue clears `R_min` while the herd is maintained (`g` omitted, implied 0 on retained stock). Pass `g=` only to demand a faster path. `R_min=0` keeps the breed floor and an empty sell schedule.
+
+`R_min=0` on `accept_order` turns the revenue floor off so a small example can be read on its own. The default floor is $3,000/month revenue. Use `capacity_plan` before you treat that default as something this flock can promise.
 
 ## Smoke
 
@@ -104,11 +172,11 @@ print(plan["hold_heads"], plan["min_monthly"], plan["feasible"])
 python3 research/ops-dashboard/test_order_control.py
 ```
 
-That checks: sellable heads fall as `g` rises; an order bigger than surplus is refused; a sale that would cut the 17/51 nucleus is refused; a reservation lowers `available_firm`; a 20¢/lb stub fails ROI. It prints the week-26 quail table and one accept / one reject.
+That checks: sellable heads fall as `g` rises; an order bigger than surplus is refused; a sale that would cut the 17/51 nucleus is refused; a reservation lowers `available_firm`; a 20¢/lb stub fails ROI; a small flock misses the revenue floor; a worm sale that cuts the quail feed buffer is refused; quail ranks above worms on revenue per binding upstream unit. It prints the week-26 quail table, one accept, one reject, and the rank winner.
 
 ## What this will not do
 
 - Open Stage 2–5 spend, buy kits, or name a vendor to pay.
 - Sell the median herd. Firm room stays the 0.9 surplus stand-in for P10.
-- Treat worms, crickets, greens, or fish margins as locked. Only quail and worms have a cost tag here, and both tags are assumptions.
-- Replace `research/synergy/circular_buffers.py` or `research/ops-dashboard/delivery.py`. This module calls them.
+- Treat worms, crickets, greens, algae, or fish margins as locked. Only quail and worms have a cost tag here, and both tags are assumptions. Algae and plant rations have no default.
+- Replace `research/synergy/circular_buffers.py`, `research/ops-dashboard/delivery.py`, or the spend order in `biology/CASCADE.md`. This module calls the first two and leaves the third alone.

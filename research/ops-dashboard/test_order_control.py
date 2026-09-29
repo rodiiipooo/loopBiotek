@@ -18,7 +18,9 @@ def _herd(males: float, females: float, n0: float = 68.0) -> dict:
 
 
 def _policy(**overrides) -> dict:
-    base = {"g": 0.0, "t_weeks": 26, "H_months": 3, "M_min": 0.0, "hurdle": 0.0}
+    # g is explicit here so the older integrity tests still apply the growth helper.
+    # The operator default, used by check_revenue_floor, does not set g.
+    base = {"g": 0.0, "t_weeks": 26, "H_months": 3, "R_min": 0.0, "hurdle": 0.0}
     base.update(overrides)
     return base
 
@@ -106,25 +108,58 @@ def check_roi_reject() -> oc.AcceptDecision:
 
 
 def check_sample() -> tuple[oc.AcceptDecision, oc.AcceptDecision, dict]:
-    plan = oc.capacity_plan(0.0, 3000.0, 26, species="quail")
+    plan = oc.capacity_plan(3000, species="quail")
     assert plan["feasible"] is True, plan["reasons"]
-    assert plan["min_monthly"] + 1e-6 >= 3000.0
+    assert plan["target_kind"] == "revenue"
+    assert plan["min_monthly_revenue"] + 1e-6 >= 3000.0
+    assert plan["g_explicit"] is False
     state = plan["state"]
     accept = oc.accept_order(
         {"id": "sample-yes", "species": "quail", "qty": 10, "unit": "head", "week": 4, "buyer": "planning sample"},
         oc.OrderBook(),
         {"quail": state},
-        {"g": 0.0, "t_weeks": 26, "H_months": 3, "M_min": 3000.0, "hurdle": 0.0},
+        {"t_weeks": 26, "H_months": 3, "R_min": 3000.0, "hurdle": 0.0},
     )
     assert accept.accept is True, accept.reasons
+    assert accept.residuals["runway"]["target_kind"] == "revenue"
     reject = oc.accept_order(
         {"id": "sample-no", "species": "quail", "qty": 100000, "unit": "head", "week": 4},
         oc.OrderBook(),
         {"quail": state},
-        {"g": 0.0, "t_weeks": 26, "H_months": 3, "M_min": 3000.0, "hurdle": 0.0},
+        {"t_weeks": 26, "H_months": 3, "R_min": 3000.0, "hurdle": 0.0},
     )
     assert reject.accept is False
     return accept, reject, plan
+
+
+def check_revenue_floor_and_rank() -> dict:
+    small = oc.accept_order(
+        {"species": "quail", "qty": 1, "unit": "head", "week": 4},
+        oc.OrderBook(),
+        {"quail": _herd(40, 120)},
+        {},
+    )
+    assert small.accept is False
+    assert any("revenue floor" in reason for reason in small.reasons), small.reasons
+
+    runway = oc.firm_monthly_contribution("quail", _herd(1000, 3000), 0.0, 3)
+    assert runway["min_monthly_revenue"] > runway["min_monthly_contribution"] > 0
+
+    worms = {"n_now": 20000, "n0": 16500}
+    quail = _herd(17, 51)
+    starved = oc.accept_order(
+        {"species": "worms", "qty": 2000, "unit": "head", "week": 1},
+        oc.OrderBook(),
+        {"worms": worms, "quail": quail},
+        {"R_min": 0},
+    )
+    assert starved.accept is False
+    assert any("feed buffer" in reason or "retained" in reason for reason in starved.reasons), starved.reasons
+
+    ranking = oc.rank_skus({"worms": {"n_now": 50000, "n0": 16500}, "quail": _herd(100, 300)})
+    assert ranking["winner"] == "quail", ranking
+    assert ranking["ranked"][0]["score"] > ranking["ranked"][1]["score"]
+    return ranking
 
 
 def _public_row(row: dict) -> dict:
@@ -144,9 +179,11 @@ def main() -> None:
     check_reservations()
     cheap = check_roi_reject()
     accept, reject, plan = check_sample()
+    ranking = check_revenue_floor_and_rank()
 
     print("Quail sellable heads. Horizon 26 weeks. Herd 1000 males + 3000 females. Floor 68.")
-    print("g is net growth per week. Sell-now is the lump that still leaves N*(1+g)^t.")
+    print("g is an optional weekly helper. The operator knob is R_min, monthly revenue.")
+    print("Sell-now is the lump that still leaves N*(1+g)^t when g is passed to sellable_for_growth.")
     print("Deliver-at-week-26 also stops at the pipeline and flock_today caps, so it can sit flat until growth binds.")
     print(f"{'g/week':>8} {'sell now':>12} {'deliver at week 26':>20} {'binding':>12}")
     for row in rows:
@@ -156,14 +193,22 @@ def main() -> None:
     print(
         f"Sample accept: {accept.accept}  "
         f"10 heads in week 4 on a {plan['hold_heads']:.0f}-bird hold "
-        f"(runway ${plan['min_monthly']:.0f}/mo, M_min $3000)."
+        f"(revenue ${plan['min_monthly_revenue']:.0f}/mo, R_min $3000)."
     )
     print(f"Sample reject: {reject.accept}  100000 heads. {reject.reasons[0]}")
+    print(
+        f"Rank winner: {ranking['winner']}  "
+        f"score {ranking['ranked'][0]['score']:.4f} vs {ranking['ranked'][1]['species']} "
+        f"{ranking['ranked'][1]['score']:.4f}"
+    )
     print("Stage 4 planning only. Stage 1 worms remain the only spend.")
 
     payload = {
         "ok": True,
         "stage_gate": oc.STAGE_GATE,
+        "objective": "monthly revenue R_min",
+        "R_min": oc.DEFAULT_R_MIN,
+        "H_months": oc.DEFAULT_H_MONTHS,
         "quail_week_26": [_public_row(row) for row in rows],
         "surplus_reject": surplus.reasons,
         "ne_reject": nucleus.reasons,
@@ -171,8 +216,12 @@ def main() -> None:
         "sample_accept": accept.to_dict(),
         "sample_reject_reason": reject.reasons,
         "capacity_hold_heads": plan["hold_heads"],
-        "capacity_min_monthly": plan["min_monthly"],
-        "g_unit": "fraction per week",
+        "capacity_min_monthly_revenue": plan["min_monthly_revenue"],
+        "capacity_min_monthly_contribution": plan["min_monthly_contribution"],
+        "capacity_g_explicit": plan["g_explicit"],
+        "rank_winner": ranking["winner"],
+        "rank_rows": ranking["ranked"],
+        "g_unit": "fraction per week, optional helper",
     }
     # Drop the nested herd state from the accept residuals if any non-JSON sneaks in.
     out = Path(__file__).resolve().parent / "results" / "order_control_smoke.json"
