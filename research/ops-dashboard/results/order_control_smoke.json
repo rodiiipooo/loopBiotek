@@ -1,0 +1,113 @@
+{
+  "ok": true,
+  "stage_gate": "Stage 4 planning only. Stage 1 worms remain the only spend. No live trading and no CapEx purchase.",
+  "quail_week_26": [
+    {
+      "g_per_week": 0.0,
+      "allowed_heads_now": 2000.0000000000032,
+      "allowed_lb_now": 1170.0000000000018,
+      "allowed_heads_at_t": 2180.765625,
+      "binding": "growth",
+      "fail_closed": false
+    },
+    {
+      "g_per_week": 0.01,
+      "allowed_heads_now": 1409.4873700651913,
+      "allowed_lb_now": 824.5501114881368,
+      "allowed_heads_at_t": 2180.765625,
+      "binding": "growth",
+      "fail_closed": false
+    },
+    {
+      "g_per_week": 0.02,
+      "allowed_heads_now": 653.163771291955,
+      "allowed_lb_now": 382.1008062057936,
+      "allowed_heads_at_t": 1306.327542583912,
+      "binding": "growth",
+      "fail_closed": false
+    }
+  ],
+  "surplus_reject": [
+    "sale would drop males or females under the Ne floor (17 males / 51 females)",
+    "order exceeds surplus above the breed floor",
+    "growth gate: week 4: 5000.00 heads exceeds firm surplus or the Ne floor (124.96)",
+    "quail: order plus reservations exceed that species' own firm surplus",
+    "income runway: week 4: selling 5000.00 heads breaks the breed floor"
+  ],
+  "ne_reject": [
+    "sale would drop males or females under the Ne floor (17 males / 51 females)",
+    "order exceeds surplus above the breed floor",
+    "growth gate: week 4: 1.00 heads exceeds firm surplus or the Ne floor (0.00)",
+    "quail: order plus reservations exceed that species' own firm surplus"
+  ],
+  "roi_reject": [
+    "ROI gate: contribution below the hurdle"
+  ],
+  "sample_accept": {
+    "accept": true,
+    "reasons": [],
+    "caps": {
+      "growth_now": 2798.0000000000045,
+      "firm_or_ne": 4975.2,
+      "safe_sell_allowed_firm": 4975.2,
+      "sex_surplus": 5528.0,
+      "peak_meat": null,
+      "growth_at_t": 5596.000000000018,
+      "pipeline": 3318.149395411188,
+      "flock_today": 3050.890625,
+      "firm_at_t": 10011.600000000017,
+      "allowed_now": 2798.0000000000045,
+      "allowed_by_t": 3050.890625
+    },
+    "residuals": {
+      "growth": {
+        "feasible": true,
+        "residual": 5578.022980536109,
+        "reasons": []
+      },
+      "cascade_mode": "per_species_stub",
+      "runway": {
+        "min_monthly": 3001.8304260665986,
+        "mean_monthly": 3001.830426066599,
+        "margin_per_head": 4.705550256163802,
+        "reasons": []
+      },
+      "roi": {
+        "revenue": 65.55550256163801,
+        "var_cost": 18.5,
+        "opp_cost": 0.0,
+        "contribution": 47.05550256163801,
+        "roi": 2.5435406790074597,
+        "accept_hurdle_met": true,
+        "reasons": []
+      }
+    },
+    "reservations": {
+      "id": "sample-yes",
+      "species": "quail",
+      "heads": 10.0,
+      "qty": 10,
+      "unit": "head",
+      "week": 4,
+      "buyer": "planning sample",
+      "status": "proposed"
+    },
+    "notes": [
+      "Stage 4 planning only. Stage 1 worms remain the only spend. No live trading and no CapEx purchase.",
+      "ASSUMPTION $3,000/mo optional target from economics/MARGIN_3K_BACKSOLVE.md. A flock that cannot throw this off refuses orders. Pass M_min to change it.",
+      "Coupled cascade feed is used only when research/cascade_growth.model.firm_take imports. Otherwise each species is checked on its own floor.",
+      "STUB: research/cascade_growth is not on this branch. Each species is checked on its own floor via safe_sell_limit / keep_floor. Set feed_reserve_heads on a species to hold biomass back for whoever eats it. This sale does not lower another species' floor."
+    ],
+    "stage_gate": "Stage 4 planning only. Stage 1 worms remain the only spend. No live trading and no CapEx purchase."
+  },
+  "sample_reject_reason": [
+    "sale would drop males or females under the Ne floor (17 males / 51 females)",
+    "order exceeds surplus above the breed floor",
+    "growth gate: week 4: 100000.00 heads exceeds firm surplus or the Ne floor (5541.95)",
+    "quail: order plus reservations exceed that species' own firm surplus",
+    "income runway: week 4: selling 100000.00 heads breaks the breed floor"
+  ],
+  "capacity_hold_heads": 5596.0,
+  "capacity_min_monthly": 3001.830426066598,
+  "g_unit": "fraction per week"
+}
