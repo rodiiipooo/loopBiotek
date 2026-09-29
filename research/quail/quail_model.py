@@ -39,7 +39,20 @@ DRESS_YIELD = 0.72  # ASSUMPTION mid of 70–75% dressed yield cites
 DRESS_WEIGHT_LBS = (LIVE_WEIGHT_OZ / 16.0) * DRESS_YIELD  # ~0.585 lb ≈ 9.4 oz
 WEEKLY_MORTALITY = 0.01  # ASSUMPTION ~1%/week; replace with farm data
 BREEDER_MALES_PER_FEMALE = 1.0 / 3.0  # ASSUMPTION common ~1♂:3♀
-MAX_BREEDER_AGE_DAYS = 365.0  # ASSUMPTION rotate ~1 year
+MAX_BREEDER_AGE_DAYS = 365.0  # ASSUMPTION rotate ~1 year (useful life, not the peak-lay gate)
+# Ne floor at 1♂:3♀ and Ne >= 50. Same counts as research/genetics keep_floor.
+# 4*17*51/(17+51) = 51. Do not sell these birds.
+NE_MALES_MIN = 17
+NE_FEMALES_MIN = 51
+# Layer curve anchors. The shape between them is an ASSUMPTION. See layer_life_cycle().
+ONSET_WEEK_LO = 6.0  # SOURCED 6–8 wk onset band, early edge
+ONSET_WEEK_HI = 8.0  # SOURCED 6–8 wk onset band, late edge
+PEAK_RATE_WEEK = 15.0  # SOURCED Narinc et al. 2013: 94% hen-day at 15 wk of age
+DECLINE_START_WEEK = 26.0  # SOURCED Woodard & Abplanalp 1971, via the UC Davis manual: sharp drop after 26 wk of age
+YEAR_WEEK = 52.0  # lines up with the 365-day rotation
+YEAR_END_FRACTION = 0.50  # ASSUMPTION pin at week 52. Second-year lay was 48.3% of first-year total, not this weekly point.
+PEAK_SLOT_MIN = 0.85  # ASSUMPTION. A hen occupies a peak slot while productive fraction stays at or above this.
+PEAK_HEN_DAY = 0.90  # ASSUMPTION midpoint of the 88–98% peak band Narinc cites (measured peak in that paper was 94%)
 # Fraction of chicks promoted into breeding slots at maturity (rest stay meat lane)
 FRAC_FEMALE_TO_BREEDERS = 0.12  # ASSUMPTION
 FRAC_MALE_TO_BREEDERS = 0.04  # ASSUMPTION
@@ -125,6 +138,9 @@ class BiologyParams:
     weekly_mortality: float = WEEKLY_MORTALITY
     breeder_males_per_female: float = BREEDER_MALES_PER_FEMALE
     max_breeder_age_days: float = MAX_BREEDER_AGE_DAYS
+    use_peak_lay: bool = False  # True: eggs only from in-peak hens, then cull those hens to meat
+    peak_hen_day: float = PEAK_HEN_DAY
+    peak_slot_min: float = PEAK_SLOT_MIN
     frac_female_to_breeders: float = FRAC_FEMALE_TO_BREEDERS
     frac_male_to_breeders: float = FRAC_MALE_TO_BREEDERS
     brood_days: float = BROOD_DAYS
@@ -161,6 +177,8 @@ class PopulationState:
     meat_lbs_this_week: float
     meat_lbs_cumulative: float
     capacity_bind: str  # which constraint throttled this week, if any
+    hens_in_peak: float = 0.0
+    peak_culls_this_week: float = 0.0
 
 
 @dataclass
@@ -326,7 +344,339 @@ def kit_caps(U: float, kit: Optional[KitParams] = None) -> dict:
 
 
 def _eggs_per_hen_per_week(p: BiologyParams) -> float:
+    """Blended annual rate. This is the immortal-hen egg rate, not the peak rate."""
     return p.eggs_per_hen_per_year / (DAYS_PER_YEAR / DAYS_PER_WEEK)
+
+
+def productive_hen_fraction(age_weeks: float) -> float:
+    """Share of peak hen-day a hen still gives at this age. 1.0 is the peak plateau.
+
+    Anchors are sourced. The straight lines between them are an ASSUMPTION.
+    See ``layer_life_cycle`` for the tags.
+    """
+    a = float(age_weeks)
+    if a < 0.0:
+        raise ValueError("age_weeks must be >= 0")
+    if a < ONSET_WEEK_LO:
+        return 0.0
+    if a < PEAK_RATE_WEEK:
+        return (a - ONSET_WEEK_LO) / (PEAK_RATE_WEEK - ONSET_WEEK_LO)
+    if a <= DECLINE_START_WEEK:
+        return 1.0
+    if a <= YEAR_WEEK:
+        span = YEAR_WEEK - DECLINE_START_WEEK
+        return 1.0 - (1.0 - YEAR_END_FRACTION) * (a - DECLINE_START_WEEK) / span
+    if a < 2.0 * YEAR_WEEK:
+        return YEAR_END_FRACTION * (1.0 - (a - YEAR_WEEK) / YEAR_WEEK)
+    return 0.0
+
+
+def hen_in_peak(age_weeks: float, slot_min: float = PEAK_SLOT_MIN) -> bool:
+    """True when this age still holds a peak layer slot."""
+    if slot_min <= 0.0 or slot_min > 1.0:
+        raise ValueError("slot_min must be in (0, 1]")
+    return productive_hen_fraction(age_weeks) + 1e-12 >= float(slot_min)
+
+
+def peak_age_weeks(slot_min: float = PEAK_SLOT_MIN) -> list[int]:
+    """Integer weeks of age that still count as peak slots."""
+    return [a for a in range(0, int(2 * YEAR_WEEK) + 1) if hen_in_peak(a, slot_min)]
+
+
+def layer_life_cycle() -> dict:
+    """Documented layer window. Planning only. Does not open quail spend."""
+    ages = peak_age_weeks()
+    return {
+        "onset_weeks": {
+            "lo": ONSET_WEEK_LO,
+            "hi": ONSET_WEEK_HI,
+            "tag": "SOURCED",
+            "note": "6–8 wk to lay. Incubator Warehouse guide, already the quail SPEC onset.",
+        },
+        "peak_rate_week": {
+            "week": PEAK_RATE_WEEK,
+            "hen_day": 0.94,
+            "tag": "SOURCED",
+            "note": "Narinc et al. 2013, Poultry Science 92:1676. 94% hen-day at 15 wk of age (wk 9 of lay).",
+        },
+        "decline_start_week": {
+            "week": DECLINE_START_WEEK,
+            "tag": "SOURCED",
+            "note": (
+                "Woodard and Abplanalp 1971, as summarized in the UC Davis manual: "
+                "rate of lay decreases sharply after 26 weeks of age. "
+                "Second-year eggs were 48.3% of the first-year total."
+            ),
+        },
+        "useful_life_days": {
+            "days": MAX_BREEDER_AGE_DAYS,
+            "tag": "ASSUMPTION",
+            "note": "Existing 1-year rotation. Useful life, not the peak slot.",
+        },
+        "decline_after_months_of_lay": {
+            "lo_months": 6,
+            "hi_months": 12,
+            "tag": "ASSUMPTION",
+            "note": (
+                "The 6-month edge is where the planning fraction falls through the slot gate "
+                "(about week 34 of age, 26 weeks after the week-8 end of onset). "
+                "The 12-month edge is the 365-day rotation, not a peak claim."
+            ),
+        },
+        "peak_hen_day": {
+            "value": PEAK_HEN_DAY,
+            "tag": "ASSUMPTION",
+            "note": "Midpoint of the 88–98% band Narinc cites. Their own flock peaked at 94%.",
+        },
+        "peak_slot_min": {"value": PEAK_SLOT_MIN, "tag": "ASSUMPTION"},
+        "year_end_fraction": {"value": YEAR_END_FRACTION, "tag": "ASSUMPTION"},
+        "fraction_shape": "ASSUMPTION straight lines between the sourced anchors",
+        "in_peak_weeks": [ages[0], ages[-1]],
+        "sex_ratio": "1 male : 3 females",
+        "ne_floor": {"males": NE_MALES_MIN, "females": NE_FEMALES_MIN, "tag": "DERIVED Ne>=50 at 1:3"},
+        "stage_gate": "Stage 4 planning. Stage 1 worms remain the only spend.",
+    }
+
+
+def productive_fraction_table(last_week: int = 60) -> list[dict]:
+    """One row per week of age, for the plot and the smoke JSON."""
+    if last_week < 0:
+        raise ValueError("last_week must be >= 0")
+    rows = []
+    for week in range(int(last_week) + 1):
+        fraction = productive_hen_fraction(week)
+        rows.append({
+            "age_weeks": week,
+            "productive_fraction": fraction,
+            "in_peak": hen_in_peak(week),
+        })
+    return rows
+
+
+def peak_slot_targets(
+    target_hen_slots: float,
+    males_min: int = NE_MALES_MIN,
+    females_min: int = NE_FEMALES_MIN,
+) -> dict:
+    """Smallest 1:3 flock that covers the hen slots and both Ne floors."""
+    if float(target_hen_slots) <= 0.0:
+        raise ValueError("target_hen_slots must be > 0")
+    if int(males_min) < 1 or int(females_min) < 1:
+        raise ValueError("Ne floors must be >= 1")
+    males = max(int(males_min), math.ceil(float(target_hen_slots) / 3.0 - 1e-12))
+    females = 3 * males
+    if females < int(females_min):
+        males = max(males, math.ceil(int(females_min) / 3.0 - 1e-12))
+        females = 3 * males
+    return {"males": int(males), "females": int(females)}
+
+
+def peak_eggs_per_hen_week(params: Optional[BiologyParams] = None) -> float:
+    """Eggs per in-peak hen per week. Peak hen-day times 7. Not the blended 280/year rate."""
+    p = params or BiologyParams()
+    if p.peak_hen_day <= 0.0 or p.peak_hen_day > 1.0:
+        raise ValueError("peak_hen_day must be in (0, 1]")
+    return float(p.peak_hen_day) * DAYS_PER_WEEK
+
+
+def steady_peak_flock(
+    target_hen_slots: float,
+    m_weekly: float = WEEKLY_MORTALITY,
+    males_min: int = NE_MALES_MIN,
+    females_min: int = NE_FEMALES_MIN,
+    slot_min: float = PEAK_SLOT_MIN,
+) -> dict:
+    """Birds on the replacement path that keep `target_hen_slots` hens inside peak.
+
+    Day-old female placements per week:
+
+        r = F / sum_{a in peak} (1 - m)^a
+
+    Hens entering the layer cage per week are the survivors of that placement
+    at the first in-peak week. Pipeline females are the younger ages. Pipeline
+    males are the 1:1 brothers held until the meat slaughter week. The adult
+    breeders are F hens and F/3 males. They are not part of the pipeline add,
+    because the standing 1:3 flock already counts them.
+
+    F is snapped up so the breeders are exactly 1 male : 3 females and at least
+    the Ne floor. Spent hens are not subtracted from a meat order here.
+    """
+    if not 0.0 <= float(m_weekly) < 1.0:
+        raise ValueError("m_weekly must be in [0, 1)")
+    targets = peak_slot_targets(target_hen_slots, males_min, females_min)
+    ages = peak_age_weeks(slot_min)
+    if not ages:
+        raise ValueError("peak window is empty")
+    m = float(m_weekly)
+    denom = sum((1.0 - m) ** a for a in ages)
+    if denom <= 0.0:
+        raise ValueError("peak survival sum must be > 0")
+    females = float(targets["females"])
+    males = float(targets["males"])
+    r = females / denom
+    a_min = ages[0]
+    slaughter_w = int(round(SLAUGHTER_DAYS / DAYS_PER_WEEK))
+    male_last = min(slaughter_w, a_min - 1)
+    pipeline_females = sum(r * ((1.0 - m) ** a) for a in range(0, a_min))
+    pipeline_males = sum(r * ((1.0 - m) ** a) for a in range(0, male_last + 1))
+    into_cage = r * ((1.0 - m) ** a_min)
+    return {
+        "target_hen_slots": females,
+        "breeder_males": int(targets["males"]),
+        "breeder_females": int(targets["females"]),
+        "ratio_females_per_male": 3.0,
+        "day_old_females_per_week": r,
+        "day_old_males_per_week": r,
+        "hens_into_cage_per_week": into_cage,
+        "pipeline_females": pipeline_females,
+        "pipeline_males": pipeline_males,
+        "pipeline_birds": pipeline_females + pipeline_males,
+        "pipeline_females_ceil": int(math.ceil(pipeline_females - 1e-12)),
+        "pipeline_males_ceil": int(math.ceil(pipeline_males - 1e-12)),
+        "first_peak_week": a_min,
+        "last_peak_week": ages[-1],
+        "m_weekly": m,
+        "peak_eggs_per_hen_week": peak_eggs_per_hen_week(),
+        "blended_eggs_per_hen_week": _eggs_per_hen_per_week(BiologyParams()),
+        "formula": (
+            "r = F / sum_{a in peak} (1-m)^a; "
+            "hens_into_cage_per_week = r * (1-m)^{a_min}; "
+            "pipeline females are ages 0 .. a_min-1; "
+            "pipeline males are the 1:1 brothers through the slaughter week; "
+            "adult breeders stay 1 male : 3 females and at least 17/51"
+        ),
+        "stage_gate": "Stage 4 planning. Stage 1 worms remain the only spend.",
+    }
+
+
+def _bird_groups(birds: Optional[Sequence] = None, age_bins: Optional[Sequence] = None) -> list[dict]:
+    if (birds is None) == (age_bins is None):
+        raise ValueError("pass birds or age_bins, not both")
+    groups = []
+    for row in list(birds or age_bins or []):
+        sex = str(row["sex"]).upper()
+        if sex not in ("M", "F"):
+            raise ValueError("sex must be M or F")
+        age = float(row["age_weeks"])
+        if age < 0.0:
+            raise ValueError("age_weeks must be >= 0")
+        count = float(row.get("count", 1.0))
+        if count < 0.0:
+            raise ValueError("count must be >= 0")
+        groups.append({
+            "id": row.get("id"),
+            "sex": sex,
+            "age_weeks": age,
+            "count": count,
+            "in_peak": bool(sex == "F" and hen_in_peak(age)),
+        })
+    return groups
+
+
+def peak_cull_policy(
+    birds: Optional[Sequence] = None,
+    age_bins: Optional[Sequence] = None,
+    target_hen_slots: float = float(NE_FEMALES_MIN),
+    males_min: int = NE_MALES_MIN,
+    females_min: int = NE_FEMALES_MIN,
+    m_weekly: float = WEEKLY_MORTALITY,
+) -> dict:
+    """Mark out-of-peak hens for meat, and count the in-peak hens still needed.
+
+    Oldest out-of-peak hens go first. The cull stops while the remaining
+    females would fall under ``females_min`` or the remaining males under
+    ``males_min``. Those floors are the Ne nucleus at 1 male : 3 females
+    (17 and 51). In-peak hens are not culled to shrink the flock. Males above
+    1:3 of the hens that remain, and above the male floor, are surplus meat.
+
+    ``replacements_hens`` is the stock gap: in-peak hens short of the 1:3
+    target. ``hens_into_cage_per_week`` is the steady flow that holds that
+    target after the gap is filled. Stage 4 planning.
+    """
+    groups = _bird_groups(birds, age_bins)
+    targets = peak_slot_targets(target_hen_slots, males_min, females_min)
+    females_target = float(targets["females"])
+    males_target = float(targets["males"])
+    females = [g for g in groups if g["sex"] == "F"]
+    males = [g for g in groups if g["sex"] == "M"]
+    in_peak = sum(g["count"] for g in females if g["in_peak"])
+    out_groups = [dict(g) for g in females if not g["in_peak"]]
+    out_total = sum(g["count"] for g in out_groups)
+    total_f = in_peak + out_total
+    total_m = sum(g["count"] for g in males)
+    already_under = total_f + 1e-9 < float(females_min) or total_m + 1e-9 < float(males_min)
+
+    cull_rows: list[dict] = []
+    culled_f = 0.0
+    culled_m = 0.0
+    if not already_under:
+        must_keep = max(0.0, float(females_min) - in_peak)
+        cull_budget = max(0.0, out_total - must_keep)
+        for group in sorted(out_groups, key=lambda g: (-g["age_weeks"], str(g["id"]))):
+            if cull_budget <= 1e-12:
+                break
+            take = min(group["count"], cull_budget)
+            if take <= 0.0:
+                continue
+            culled_f += take
+            cull_budget -= take
+            cull_rows.append({
+                "id": group["id"],
+                "sex": "F",
+                "age_weeks": group["age_weeks"],
+                "count": take,
+                "reason": "out_of_peak",
+            })
+        females_remaining = total_f - culled_f
+        males_keep = max(float(males_min), females_remaining / 3.0)
+        if males_keep > total_m:
+            males_keep = total_m
+        male_budget = max(0.0, total_m - males_keep)
+        for group in sorted(males, key=lambda g: (-g["age_weeks"], str(g["id"]))):
+            if male_budget <= 1e-12:
+                break
+            take = min(group["count"], male_budget)
+            if take <= 0.0:
+                continue
+            culled_m += take
+            male_budget -= take
+            cull_rows.append({
+                "id": group["id"],
+                "sex": "M",
+                "age_weeks": group["age_weeks"],
+                "count": take,
+                "reason": "above_1_to_3",
+            })
+    females_remaining = total_f - culled_f
+    males_remaining = total_m - culled_m
+    floor_held = (
+        females_remaining + 1e-9 >= float(females_min)
+        and males_remaining + 1e-9 >= float(males_min)
+    )
+    flow = steady_peak_flock(females_target, m_weekly, males_min, females_min)
+    return {
+        "target_hen_slots": females_target,
+        "target_males": males_target,
+        "ratio_females_per_male": 3.0,
+        "in_peak_hens": in_peak,
+        "out_of_peak_hens": out_total,
+        "cull_to_meat_hens": culled_f,
+        "cull_to_meat_males": culled_m,
+        "kept_out_of_peak_hens": out_total - culled_f,
+        "replacements_hens": max(0.0, females_target - in_peak),
+        "replacements_males": max(0.0, males_target - males_remaining),
+        "hens_into_cage_per_week": flow["hens_into_cage_per_week"],
+        "females_remaining": females_remaining,
+        "males_remaining": males_remaining,
+        "males_min": int(males_min),
+        "females_min": int(females_min),
+        "floor_held": floor_held,
+        "already_under_floor": already_under,
+        "raided_floor": False,
+        "fail_closed": True,
+        "culls": cull_rows,
+        "stage_gate": "Stage 4 planning. Not a purchase. Stage 1 worms remain the only spend.",
+    }
 
 
 def simulate_population(
@@ -373,13 +723,21 @@ def simulate_population(
     eggs_pipeline: list[float] = []
     # grower cohorts by age in weeks: [males, females]
     grow_cohorts: list[list[float]] = []
-    breed_cohorts: list[list[float]] = [[float(y), float(z)]]
+    # Breeder cohorts are [males, females, age_weeks]. Starters are already in peak
+    # when use_peak_lay is on, so week 0 still has eggs. Otherwise age is unused.
+    starter_age = float(min(peak_age_weeks(p.peak_slot_min))) if p.use_peak_lay else 0.0
+    breed_cohorts: list[list[float]] = [[float(y), float(z), starter_age]]
+    peak_last = float(max(peak_age_weeks(p.peak_slot_min))) if p.use_peak_lay else None
 
     states: list[PopulationState] = []
     meat_cum = 0.0
 
     for w in range(weeks + 1):
         bind = start_note if w == 0 and start_note else ""
+
+        if p.use_peak_lay and w > 0:
+            for c in breed_cohorts:
+                c[2] += 1.0
 
         for c in breed_cohorts:
             c[0] *= surv
@@ -388,13 +746,23 @@ def simulate_population(
             c[0] *= surv
             c[1] *= surv
 
-        # Cull aged breeders → meat
+        # Cull aged breeders → meat. The list-length rule is the old 1-year rotation.
         culled = 0.0
+        peak_culled = 0.0
         if len(breed_cohorts) > max_breed_w:
             old = breed_cohorts[:-max_breed_w]
             breed_cohorts = breed_cohorts[-max_breed_w:]
             for c in old:
                 culled += c[0] + c[1]
+        # Peak policy: hens past the slot go to meat. Males stay for the 1:3 pen.
+        # This does not apply the Ne floor. A 5/15 starter sim is below 17/51.
+        # flock_today and peak_cull_policy are what refuse to raid that floor.
+        if p.use_peak_lay and peak_last is not None:
+            for c in breed_cohorts:
+                if c[2] > peak_last and c[1] > 0.0:
+                    peak_culled += c[1]
+                    c[1] = 0.0
+            culled += peak_culled
 
         males_b = sum(c[0] for c in breed_cohorts)
         females_b = sum(c[1] for c in breed_cohorts)
@@ -418,8 +786,19 @@ def simulate_population(
             females_b = sum(c[1] for c in breed_cohorts)
             bind = bind or "breeder_cap"
 
-        # Desired eggs from hens
-        eggs_desired = females_b * _eggs_per_hen_per_week(p)
+        # Desired eggs. Peak mode counts only hens still inside the slot, at peak hen-day.
+        # The blended 280/year rate is the immortal-hen path (use_peak_lay False).
+        hens_peak = 0.0
+        if p.use_peak_lay:
+            rate = peak_eggs_per_hen_week(p)
+            eggs_desired = 0.0
+            for c in breed_cohorts:
+                if hen_in_peak(c[2], p.peak_slot_min):
+                    eggs_desired += c[1] * rate
+                    hens_peak += c[1]
+        else:
+            eggs_desired = females_b * _eggs_per_hen_per_week(p)
+            hens_peak = females_b
 
         # Incubator weekly set capacity
         eggs_cap_incub = caps["incub_eggs_per_week"]
@@ -483,7 +862,8 @@ def simulate_population(
                 cohort[0] -= take_m
                 cohort[1] -= take_f
                 if take_m + take_f > 0:
-                    breed_cohorts.append([take_m, take_f])
+                    promo_age = float(maturity_w) if p.use_peak_lay else 0.0
+                    breed_cohorts.append([take_m, take_f, promo_age])
                 if promoted_bind:
                     bind = bind or "breeder_cap_promotion"
 
@@ -530,6 +910,8 @@ def simulate_population(
                 meat_lbs_this_week=meat_lbs,
                 meat_lbs_cumulative=meat_cum,
                 capacity_bind=bind,
+                hens_in_peak=hens_peak,
+                peak_culls_this_week=peak_culled,
             )
         )
 
@@ -985,6 +1367,12 @@ def defaults_table() -> list:
         {"name": "r_tbill", "value": TBILL_RATE, "unit": "/yr", "tag": f"SOURCED FRED DTB3 3-month {TBILL_RATE_AS_OF}"},
         {"name": "inflation_rate_cpi_food", "value": INFLATION_RATE, "unit": "/yr", "tag": f"SOURCED BLS CPI-U Food {INFLATION_RATE_AS_OF}"},
         {"name": "E_P_comp_default", "value": round(expected_comp_price(), 4), "unit": "USD/lb", "tag": "DERIVED foodservice mean"},
+        {"name": "peak_rate_week", "value": PEAK_RATE_WEEK, "unit": "wk of age", "tag": "SOURCED Narinc 2013 94% hen-day"},
+        {"name": "decline_start_week", "value": DECLINE_START_WEEK, "unit": "wk of age", "tag": "SOURCED Woodard & Abplanalp 1971 sharp drop"},
+        {"name": "peak_slot_min", "value": PEAK_SLOT_MIN, "unit": "fraction of peak", "tag": "ASSUMPTION"},
+        {"name": "peak_hen_day", "value": PEAK_HEN_DAY, "unit": "eggs/hen/day", "tag": "ASSUMPTION midpoint of 88–98%"},
+        {"name": "ne_floor_males", "value": NE_MALES_MIN, "unit": "males", "tag": "DERIVED Ne>=50 at 1:3"},
+        {"name": "ne_floor_females", "value": NE_FEMALES_MIN, "unit": "females", "tag": "DERIVED Ne>=50 at 1:3"},
     ]
 
 

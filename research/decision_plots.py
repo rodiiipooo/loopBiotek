@@ -18,13 +18,15 @@ ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "plots"
 OPS = ROOT / "ops-dashboard"
 GENETICS = ROOT / "genetics"
-for folder in (OPS, GENETICS):
+QUAIL = ROOT / "quail"
+for folder in (OPS, GENETICS, QUAIL):
     if str(folder) not in sys.path:
         sys.path.insert(0, str(folder))
 
 import delivery  # noqa: E402
 import engine  # noqa: E402
 import quail_income  # noqa: E402
+import quail_model  # noqa: E402
 import reproduction as genetics  # noqa: E402
 
 try:
@@ -63,7 +65,9 @@ def birds_vs_month(order_lb: float = 40.0) -> dict:
     """
     months = [1, 2, 3, 4, 6, 8, 10, 12, 15, 18]
     weeks = [engine.weeks_for_month(month) for month in months]
-    rows = [delivery.flock_today(week, order_lb) for week in weeks]
+    # This panel is the meat order without the layer-replacement pipeline.
+    # peak_cull_layers.png is the with-versus-without comparison.
+    rows = [delivery.flock_today(week, order_lb, sustain_peak=False) for week in weeks]
     if not all(row["fail_closed"] for row in rows):
         raise RuntimeError("flock_today would raid the breed floor")
     totals = [row["n_today"] for row in rows]
@@ -121,7 +125,8 @@ def birds_vs_month(order_lb: float = 40.0) -> dict:
         "P10 herd for x * 1.15 / 0.9, or the Ne nucleus plus the mortality pipeline, whichever is larger.\n"
         "F_prelim = 0.9 * E[P0] * ((1+0.027)/(1+0.0401))^(week/52). FRED DTB3 4.01% (2026-09-22).\n"
         "Week 26 (~6 mo) is the knee: a short lead needs a much larger flock; a long lead\n"
-        "adds mortality to the pipeline and discounts the prepaid. Stage 4 planning. Not a purchase.",
+        "adds mortality to the pipeline and discounts the prepaid. This panel leaves hens\n"
+        "in peak forever. The replacement pipeline is on peak_cull_layers.png. Stage 4 planning.",
     )
     return {
         "order_lb": order_lb,
@@ -256,6 +261,76 @@ def worm_sell_room() -> dict:
     return {"n0": herds, "lb_at_month_12": by_herd, "months": months, "lb_at_16500": by_month}
 
 
+def peak_cull_chart() -> dict:
+    """Productive fraction by age, and the $10k / 1-year flock with and without replacement."""
+    table = quail_model.productive_fraction_table(60)
+    weeks = [row["age_weeks"] for row in table]
+    fraction = [row["productive_fraction"] for row in table]
+    comp = delivery.cascade_growth_today()
+    if not comp["fail_closed"]:
+        raise RuntimeError("peak-cull flock would raid the breed floor")
+    fig, (ax, axb) = plt.subplots(1, 2, figsize=(10.4, 4.9))
+    ax.plot(weeks, fraction, color="#1d4e89", lw=2.2, label="Productive fraction")
+    ax.axhline(quail_model.PEAK_SLOT_MIN, color="#9a3412", ls="--", lw=1.1, label="Slot gate 0.85")
+    peak_weeks = [week for week, row in zip(weeks, table) if row["in_peak"]]
+    if peak_weeks:
+        ax.axvspan(min(peak_weeks), max(peak_weeks), color="#e7f0e4", zorder=0, label="In peak")
+    ax.axvline(26, color="#8a5a12", ls=":", lw=1.1)
+    ax.set_xlim(0, 60)
+    ax.set_ylim(-0.02, 1.08)
+    ax.set_xlabel("Age (weeks)")
+    ax.set_ylabel("Fraction of peak hen-day")
+    ax.set_title("When a hen is still in peak lay")
+    ax.legend(frameon=False, loc="upper right", fontsize=8)
+
+    labels = ["Without\npeak cull", "With peak-cull\nreplacement"]
+    values = [comp["n_today_immortal"], comp["n_today"]]
+    bars = axb.bar(labels, values, color=["#c4a484", "#1d4e89"], width=0.62)
+    for bar, value in zip(bars, values):
+        axb.text(
+            bar.get_x() + bar.get_width() / 2,
+            value + max(values) * 0.015,
+            f"{value:,.0f}",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
+    added = comp["n_today"] - comp["n_today_immortal"]
+    axb.annotate(
+        f"+{added:,.0f} birds in the pullet pipeline\n"
+        f"{comp['hens_into_cage_per_week']:.2f} hens/week into the cage",
+        xy=(1, comp["n_today"]),
+        xytext=(0.15, comp["n_today"] - max(values) * 0.22),
+        fontsize=8,
+        color="#1c1915",
+        arrowprops={"arrowstyle": "->", "color": "#1d4e89", "lw": 0.8},
+    )
+    axb.set_ylabel("Birds on hand today")
+    axb.set_title(f"${comp['dollars'] / 1000:.0f}k prepaid at week {comp['week']}")
+    axb.set_ylim(0, max(values) * 1.18)
+    _finish(
+        fig,
+        OUT / "peak_cull_layers.png",
+        "Left: straight lines between sourced anchors (onset week 6, peak rate week 15, sharp drop after week 26).\n"
+        "The slot gate 0.85 is an assumption. It keeps weeks 14–33, about 6 months of lay after week 8.\n"
+        f"Right: ${comp['dollars']:,.0f} of surplus meat at week {comp['week']} is {comp['order_lb']:.0f} lb "
+        f"at F_prelim ${comp['f_prelim']:.2f}/lb.\n"
+        "The added birds are the pullet pipeline for 51 peak hen slots at 1 male : 3 females. Spent hens are not the order.\n"
+        "Breeders are not sold. Stage 4 planning. Not a purchase.",
+    )
+    return {
+        "n_today": comp["n_today"],
+        "n_today_immortal": comp["n_today_immortal"],
+        "order_lb": comp["order_lb"],
+        "f_prelim": comp["f_prelim"],
+        "pipeline_birds": comp["pipeline_birds"],
+        "hens_into_cage_per_week": comp["hens_into_cage_per_week"],
+        "fraction_at_15": fraction[15],
+        "fraction_at_34": fraction[34],
+        "fail_closed": comp["fail_closed"],
+    }
+
+
 def copy_income_plots() -> dict:
     result = quail_income.smoke()
     src = OPS / "results"
@@ -276,7 +351,7 @@ def main() -> dict:
     knee_i = birds["months"].index(6)
     assert birds["weeks"][knee_i] == 26
     assert min(birds["n_today"]) == min(birds["n_today"][2:6])
-    bigger = delivery.flock_today(26, 80.0)
+    bigger = delivery.flock_today(26, 80.0, sustain_peak=False)
     assert bigger["n_today"] > birds["knee"]["n_today"]
     assert bigger["fail_closed"] and bigger["females"] == 3 * bigger["males"]
     assert abs(birds["r_tbill"] - 0.0401) < 1e-12
@@ -301,6 +376,11 @@ def main() -> dict:
     # 40% full-sib offspring -> F_bar = 0.10, hatch 0.6902
     mid = leak["hatch"][8]
     assert abs(mid - 0.6902) < 1e-3
+    peak = peak_cull_chart()
+    assert peak["fail_closed"]
+    assert peak["n_today"] > peak["n_today_immortal"]
+    assert abs(peak["fraction_at_15"] - 1.0) < 1e-12
+    assert peak["fraction_at_34"] < 0.85
     income = copy_income_plots()
     assert income["n0"] >= 68
     worms = worm_sell_room()
@@ -314,6 +394,10 @@ def main() -> dict:
         "quail_n0_for_2000.png": f"About {income['n0']:,.0f} starters hold $2,000 a month from month 2 on the P10 tail.",
         "quail_feed_vs_herd.png": "Worm and plant feed rise with the heavy herd; a short ration fails closed.",
         "worm_p10_sell_room.png": "Worm P10 room grows with the starting herd and with a later month.",
+        "peak_cull_layers.png": (
+            f"$10k at week 52 needs {peak['n_today']:,.0f} birds with the peak-cull pipeline "
+            f"and {peak['n_today_immortal']:,.0f} without it. Hens leave the peak slot after week 33."
+        ),
     }
     for name in teachings:
         file = OUT / name
@@ -324,6 +408,12 @@ def main() -> dict:
         "birds": birds,
         "split": {"all_soon_n0": split["all_soon_n0"], "split_n0": split["split_n0"]},
         "income_n0": income["n0"],
+        "peak_cull": {
+            "n_today": peak["n_today"],
+            "n_today_immortal": peak["n_today_immortal"],
+            "order_lb": peak["order_lb"],
+            "pipeline_birds": peak["pipeline_birds"],
+        },
         "worm_lb_at_16500_month_12": worms["lb_at_month_12"][worms["n0"].index(16500)],
     }
     (OUT / "decision_plots_smoke.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

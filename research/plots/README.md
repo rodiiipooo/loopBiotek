@@ -19,6 +19,7 @@ python3 decision_plots.py
 | `quail_n0_for_2000.png` | About 2,813 starters hold $2,000 a month of P10 meat from month 2 through month 24. |
 | `quail_feed_vs_herd.png` | Worm and plant feed follow the heavy herd. A short ration fails closed. |
 | `worm_p10_sell_room.png` | Worm P10 room grows with the starting herd and with a later month. |
+| `peak_cull_layers.png` | Productive-hen fraction by week of age (in peak weeks 14–33). A $10,000 prepaid order at week 52 is about 903 lb at $11.08/lb. That needs 3,518 birds with the peak-cull pipeline and 3,444 without it. The extra 74 birds hold 51 hen slots (about 2.80 hens/week into the cage). |
 
 The ops screen shows this gallery under **Decision charts**.
 
@@ -43,4 +44,4 @@ E[P(T)] = E[P_0]\,(1 + r_{\mathrm{inf}})^{T},\quad F_{\mathrm{prelim}} = 0.9 \cd
 
 Defaults are \(r_{\mathrm{inf}} = 0.027\), \(r_{\mathrm{tbill}} = 0.0401\) (FRED DTB3, 3-month secondary-market bill, 2026-09-22), fairness \(0.9\). The H.15 3-month constant maturity of 4.24% (2026-09-25) is a different quote and is not this rate. \(E[P_0]\) is the quail foodservice mean already in the model (about $12.46/lb).
 
-For \(x = 40\) lb, week 4 needs 1,184 birds (P10 binds). Week 26, about six months, is the knee: **204 birds, 51 males and 153 females**, and \(F_{\mathrm{prelim}}\) is still about $11.15/lb, close to 0.9 times spot. A shorter lead needs a much larger flock. A longer lead raises today's pipeline because of mortality and discounts the prepaid further. Stage 4 planning only. Stage 1 worms remain the only spend.
+For \(x = 40\) lb, week 4 needs 1,184 birds (P10 binds). Week 26, about six months, is the knee: **204 birds, 51 males and 153 females**, and \(F_{\mathrm{prelim}}\) is still about $11.15/lb, close to 0.9 times spot. A shorter lead needs a much larger flock. A longer lead raises today's pipeline because of mortality and discounts the prepaid further. This chart leaves the hens in peak forever. `peak_cull_layers.png` is the same style of question for a $10,000 prepaid order at week 52, with the pullet pipeline that keeps 51 hen slots inside weeks 14–33 of age, and without it. Adult breeders stay 1 male : 3 females. The 17/51 floor is not sold. Stage 4 planning only. Stage 1 worms remain the only spend.

@@ -20,6 +20,12 @@ if str(_GENETICS) not in sys.path:
     sys.path.insert(0, str(_GENETICS))
 
 import reproduction as genetics  # noqa: E402
+
+_QUAIL = Path(__file__).resolve().parents[1] / "quail"
+if str(_QUAIL) not in sys.path:
+    sys.path.insert(0, str(_QUAIL))
+
+import quail_model  # noqa: E402
 from circular_buffers import (  # noqa: E402
     ALPHA,
     FAIRNESS,
@@ -162,6 +168,7 @@ def flock_today(
     reliability: float = engine.DEFAULT_QUANTILE,
     n_paths: int = engine.DEFAULT_PATHS,
     seed: int = engine.DEFAULT_SEED,
+    sustain_peak: bool = True,
 ) -> dict:
     """Flock on hand today for a surplus-only dressed-quail delivery at week `week`.
 
@@ -174,6 +181,13 @@ def flock_today(
       (harsh tail, firm fraction, cull-governor gross-up), and
     - the Ne nucleus grossed up for weekly mortality over the lead, plus
       birds_now_for_demand for the slaughtered headcount.
+
+    With ``sustain_peak`` (the default), that count also adds the pullet
+    pipeline that keeps the Ne hen slots inside the peak-lay window. The
+    adult breeders stay 1 male : 3 females. The pipeline is not part of that
+    ratio: it is younger birds, females through the week before peak and
+    their brothers through slaughter. Spent-hen meat is not booked against
+    the order. Pass ``sustain_peak=False`` for the immortal-hen count.
 
     Breeders are not the product. safe_sell_limit must still allow the sale
     above the genetics floor. min_breeders_for_demand is not used: that kit
@@ -244,6 +258,29 @@ def flock_today(
 
     spot = float(engine.SPECIES["quail"].spot_usd_per_unit)
     price = fair_prepaid(spot, week / 52.0, r_inf=R_INF, r_tbill=R_TBILL, fairness=FAIRNESS)
+    n_today_immortal = n_today
+    breeder_males = males
+    breeder_females = females
+    pipeline_males = 0
+    pipeline_females = 0
+    hens_into_cage = 0.0
+    peak_hen_slots = int(females_floor)
+    if sustain_peak:
+        # The hens that are never sold are the Ne floor. The meat herd above
+        # that floor is the surplus path, not a second layer flock.
+        peak = quail_model.steady_peak_flock(
+            females_floor,
+            m_weekly=M_WEEKLY,
+            males_min=males_floor,
+            females_min=females_floor,
+        )
+        pipeline_males = int(peak["pipeline_males_ceil"])
+        pipeline_females = int(peak["pipeline_females_ceil"])
+        hens_into_cage = float(peak["hens_into_cage_per_week"])
+        peak_hen_slots = int(peak["breeder_females"])
+        males = breeder_males + pipeline_males
+        females = breeder_females + pipeline_females
+        n_today = males + females
     return {
         "week": week,
         "month": month,
@@ -251,9 +288,18 @@ def flock_today(
         "heads": heads,
         "dress_lb": dress,
         "n_today": n_today,
+        "n_today_immortal": n_today_immortal,
         "males": males,
         "females": females,
-        "ratio_females_per_male": females / males,
+        "breeder_males": breeder_males,
+        "breeder_females": breeder_females,
+        "pipeline_males": pipeline_males,
+        "pipeline_females": pipeline_females,
+        "pipeline_birds": pipeline_males + pipeline_females,
+        "hens_into_cage_per_week": hens_into_cage,
+        "peak_hen_slots": peak_hen_slots,
+        "sustain_peak": bool(sustain_peak),
+        "ratio_females_per_male": breeder_females / breeder_males,
         "ratio_label": "1:3",
         "n_pipe": n_pipe,
         "n_breed_today": n_breed_today,
@@ -273,11 +319,74 @@ def flock_today(
         "stage": profile["stage"],
         "growth_tag": "ASSUMPTION",
         "note": (
-            "Surplus only. The standing flock is 1 male : 3 females, the jumbo "
-            "Coturnix ratio in the quail SPEC. N_today is the larger of the P10 "
-            "herd for the safety-grossed firm order and the mortality pipeline "
-            "plus the Ne nucleus. Breeders are not sold. Stage 4 planning."
+            "Surplus only. Adult breeders stay 1 male : 3 females. "
+            "N_today is the larger of the P10 herd for the safety-grossed firm "
+            "order and the mortality pipeline plus the Ne nucleus. "
+            "With sustain_peak, the pullet pipeline that holds the 17/51 hen "
+            "slots inside peak lay is added on top. Spent hens are not booked "
+            "as the delivery. Breeders are not sold. Stage 4 planning."
         ),
+    }
+
+
+def cascade_growth_today(
+    dollars: float = 10_000.0,
+    week: int = 52,
+    species: str = "quail",
+    reliability: float = engine.DEFAULT_QUANTILE,
+    n_paths: int = engine.DEFAULT_PATHS,
+    seed: int = engine.DEFAULT_SEED,
+) -> dict:
+    """Flock today for a prepaid surplus meat order worth ``dollars`` at ``week``.
+
+    The default is the $10,000 / 1-year question: week 52, priced at F_prelim.
+    ``n_today`` includes the peak-cull replacement pipeline. ``n_today_immortal``
+    is the same order with hens that never leave peak. Both stay surplus-only
+    and fail closed. The Ne floor is not sold. Stage 4 cascade planning, not spend.
+    """
+    if float(dollars) <= 0.0:
+        raise ValueError("dollars must be > 0")
+    week = int(week)
+    if species != "quail":
+        raise ValueError("cascade_growth_today is quail planning")
+    spot = float(engine.SPECIES["quail"].spot_usd_per_unit)
+    price = fair_prepaid(spot, week / 52.0, r_inf=R_INF, r_tbill=R_TBILL, fairness=FAIRNESS)
+    f_prelim = float(price["F_prelim"])
+    if f_prelim <= 0.0:
+        raise RuntimeError("prepaid price must be positive")
+    order_lb = float(dollars) / f_prelim
+    without = flock_today(week, order_lb, species, reliability, n_paths, seed, sustain_peak=False)
+    with_peak = flock_today(week, order_lb, species, reliability, n_paths, seed, sustain_peak=True)
+    return {
+        "dollars": float(dollars),
+        "week": week,
+        "order_lb": order_lb,
+        "f_prelim": f_prelim,
+        "p0": float(price["E_P0"]),
+        "n_today": with_peak["n_today"],
+        "n_today_immortal": without["n_today"],
+        "pipeline_birds": with_peak["pipeline_birds"],
+        "pipeline_males": with_peak["pipeline_males"],
+        "pipeline_females": with_peak["pipeline_females"],
+        "hens_into_cage_per_week": with_peak["hens_into_cage_per_week"],
+        "peak_hen_slots": with_peak["peak_hen_slots"],
+        "males": with_peak["males"],
+        "females": with_peak["females"],
+        "breeder_males": with_peak["breeder_males"],
+        "breeder_females": with_peak["breeder_females"],
+        "ratio_label": "1:3",
+        "males_floor": with_peak["males_floor"],
+        "females_floor": with_peak["females_floor"],
+        "fail_closed": bool(with_peak["fail_closed"] and without["fail_closed"]),
+        "with_peak": with_peak,
+        "without_peak": without,
+        "formula": (
+            "order_lb = dollars / F_prelim(week/52); "
+            "N_today = N_immortal + ceil(pipeline females) + ceil(pipeline males); "
+            "pipeline holds 51 peak hen slots at 1 male : 3 females; "
+            "spent-hen meat is not credited against the order"
+        ),
+        "stage": "Stage 4 quail planning. Not a purchase. Stage 1 worms remain the only spend.",
     }
 
 
@@ -551,21 +660,49 @@ def smoke(path: Path | None = None) -> dict:
     today = flock_today(26, 40.0)
     soon = flock_today(4, 40.0)
     heavier = flock_today(26, 80.0)
+    immortal = flock_today(26, 40.0, sustain_peak=False)
     assert today["fail_closed"] and soon["fail_closed"] and heavier["fail_closed"]
-    assert today["females"] == 3 * today["males"]
+    assert today["sustain_peak"] is True
+    assert today["breeder_females"] == 3 * today["breeder_males"]
+    assert today["n_today"] == today["males"] + today["females"]
+    assert today["n_today"] > today["n_today_immortal"]
+    assert today["pipeline_birds"] > 0
+    assert today["peak_hen_slots"] == 51
+    assert immortal["females"] == 3 * immortal["males"]
+    assert immortal["n_today"] == immortal["n_today_immortal"]
     assert soon["n_today"] > today["n_today"]
     assert heavier["n_today"] > today["n_today"]
     assert today["week"] == 26 and abs(today["f_prelim"] - soon["p0"] * 0.9) < 0.4
+    year = cascade_growth_today()
+    assert year["week"] == 52 and abs(year["dollars"] - 10000.0) < 1e-9
+    assert year["fail_closed"] is True
+    assert year["n_today"] > year["n_today_immortal"]
+    assert year["breeder_females"] == 3 * year["breeder_males"]
+    assert year["females_floor"] == 51 and year["males_floor"] == 17
+    assert year["pipeline_birds"] == today["pipeline_birds"]
 
     payload = {
         "ok": True,
         "flock_today_40lb_week_26": {
             "n_today": today["n_today"],
+            "n_today_immortal": today["n_today_immortal"],
             "males": today["males"],
             "females": today["females"],
+            "breeder_males": today["breeder_males"],
+            "breeder_females": today["breeder_females"],
+            "pipeline_birds": today["pipeline_birds"],
             "binding": today["binding"],
             "f_prelim": today["f_prelim"],
             "fail_closed": today["fail_closed"],
+        },
+        "ten_k_one_year": {
+            "order_lb": year["order_lb"],
+            "f_prelim": year["f_prelim"],
+            "n_today": year["n_today"],
+            "n_today_immortal": year["n_today_immortal"],
+            "pipeline_birds": year["pipeline_birds"],
+            "hens_into_cage_per_week": year["hens_into_cage_per_week"],
+            "fail_closed": year["fail_closed"],
         },
         "sample_10lb": table,
         "birds_per_lb": per_lb,
@@ -599,6 +736,13 @@ if __name__ == "__main__":
     print("split", round(result["split_n0"], 1), "vs all soon", round(result["all_soon_split_case_n0"], 1))
     knee = result["flock_today_40lb_week_26"]
     print(
-        f"flock today week 26: N={knee['n_today']} {knee['males']}M/{knee['females']}F "
+        f"flock today week 26: N={knee['n_today']} (immortal {knee['n_today_immortal']}) "
+        f"{knee['males']}M/{knee['females']}F pipeline={knee['pipeline_birds']} "
         f"bind={knee['binding']} F_prelim={knee['f_prelim']:.4f}"
+    )
+    tenk = result["ten_k_one_year"]
+    print(
+        f"$10k at week 52: {tenk['order_lb']:.1f} lb  "
+        f"N={tenk['n_today']} with peak cull, {tenk['n_today_immortal']} without  "
+        f"pipeline={tenk['pipeline_birds']}"
     )

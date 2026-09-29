@@ -14,6 +14,10 @@ Fetched / searched **2026-09-26** (America/Chicago). Every number tagged.
 | Eggs/hen/year | 200–300 (default 280) | SOURCED range | Agroproductividad review (Fagundes et al. cited 280–300); Incubator Warehouse guide 200–300 |
 | Incubation | 17–18 d | SOURCED | Same guides; standard Coturnix |
 | Lay onset | 6–8 wk | SOURCED | Incubator Warehouse; hobby guides |
+| Peak hen-day timing | 94% at 15 wk of age (week 9 of lay); first egg mean 38.9 d in that unimproved flock | SOURCED | Narinc, Karaman, Aksoy, Firat. 2013. Poultry Science 92:1676–1682. https://doi.org/10.3382/ps.2012-02511 |
+| Peak hen-day band | about 88–98%; one cited flock about 90% | SOURCED as cited by Narinc | Narinc et al. 2013, citing Minvielle et al. 2000 and Nestor and Bacon 1982. The planning peak rate 0.90 is an ASSUMPTION midpoint. Narinc's own peak was 94%. |
+| Sharp drop in lay | after 26 wk of age; second-year eggs 48.3% of the first-year total | SOURCED | Woodard and Abplanalp 1971, summarized in the UC Davis manual *Japanese Quail Husbandry in the Laboratory* (senescence section). https://yumpu.com/en/document/view/19003227/japanese-quail-husbandry-in-the-laboratory-department-of-animal-/14 |
+| Planning slot | fraction ≥ 0.85, which is weeks 14–33 of age | ASSUMPTION gate on the curve above | About 6 months of lay after the week-8 end of onset. The 365-day rotation stays the useful-life assumption, not this gate. |
 | Jumbo live weight | 12–14 oz (default 13) | ASSUMPTION mid | Homesteading Place; Thank Chickens / JMF jumbo notes; Pips Farm “jumbo” ≥12 oz |
 | Jumbo harvest window | 8–10 wk (default 63 d) | ASSUMPTION mid | Incubator Warehouse jumbo section; homestead harvest 8–10 wk |
 | Dress yield | 70–75% (default 72%) | ASSUMPTION mid | Incubator Warehouse; Agroproductividad carcass 65–75% |
@@ -75,7 +79,13 @@ The standing flock is **1 male : 3 females**, the jumbo Coturnix breeder ratio i
 
 \(N_{\mathrm{today}}\) is the larger of two fail-closed counts. One is the P10 herd that can finish \(x \times 1.15 / 0.9\) pounds, so the harsh tail still covers the order after the firm fraction and the cull-governor gross-up. The other is the Ne nucleus, grossed up for 1% weekly mortality over the lead, plus `birds_now_for_demand` for the dressed headcount. `safe_sell_limit` has to clear the sale with the floor still in place.
 
-For 40 lb, week 4 needs 1,184 birds. Week 26 (about 6 months) needs 204 birds, 51 males and 153 females, and \(F_{\mathrm{prelim}}\) is about $11.15/lb, still near 0.9 times the $12.46 spot. A shorter lead burns starters on the P10 tail. A longer lead raises today’s pipeline because more weeks of mortality sit in front of the same order, and the prepaid is discounted further. This is Stage 4 planning. It does not open quail spend. Stage 1 worms remain the source of record.
+For 40 lb, week 4 needs 1,184 birds. Week 26 (about 6 months) needs 204 birds, 51 males and 153 females, and \(F_{\mathrm{prelim}}\) is about $11.15/lb, still near 0.9 times the $12.46 spot. A shorter lead burns starters on the P10 tail. A longer lead raises today’s pipeline because more weeks of mortality sit in front of the same order, and the prepaid is discounted further. Those 204 and 1,184 counts leave the hens in peak forever. `flock_today(..., sustain_peak=True)` adds the pullet pipeline that keeps the 17 male / 51 female nucleus inside the peak slot. The picture is [`../plots/peak_cull_layers.png`](../plots/peak_cull_layers.png). This is Stage 4 planning. It does not open quail spend. Stage 1 worms remain the source of record.
+
+## Peak lay and the cull
+
+The kit simulator's 280 eggs/hen/year is a blended annual rate. It is not the peak. Narinc et al. 2013 measured 94% hen-day at 15 weeks of age. Woodard and Abplanalp 1971, via the UC Davis husbandry manual, put a sharp drop after 26 weeks of age, and second-year lay at 48.3% of the first year. The planning curve draws straight lines between those anchors (ASSUMPTION) and keeps a hen in a peak slot while she is still at 85% of peak or better (ASSUMPTION). That gate is weeks 14–33 of age, about six months after the late edge of the 6–8 week onset. The old 365-day rotation is the far edge of a 6–12 month lay, not the peak.
+
+Out-of-peak hens go to meat. The cull does not take the flock under 17 males and 51 females. Replacements are in-peak hens, and the standing breeders stay 1 male : 3 females. For a $10,000 prepaid meat order at one year (week 52), `cascade_growth_today()` prints \(N_{\mathrm{today}}\) with that pipeline and without it. Spent-hen meat is not credited against the order. Regenerate with `python3 research/quail/test_peak_cull.py` and `python3 research/decision_plots.py`.
 
 ## Model limitations (honest)
 

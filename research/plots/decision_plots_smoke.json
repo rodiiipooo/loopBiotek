@@ -7,7 +7,8 @@
     "quail_inbreeding_leakage.png": "More full-sib offspring lowers hatch and viability on the Sato slopes.",
     "quail_n0_for_2000.png": "About 2,813 starters hold $2,000 a month from month 2 on the P10 tail.",
     "quail_feed_vs_herd.png": "Worm and plant feed rise with the heavy herd; a short ration fails closed.",
-    "worm_p10_sell_room.png": "Worm P10 room grows with the starting herd and with a later month."
+    "worm_p10_sell_room.png": "Worm P10 room grows with the starting herd and with a later month.",
+    "peak_cull_layers.png": "$10k at week 52 needs 3,518 birds with the peak-cull pipeline and 3,444 without it. Hens leave the peak slot after week 33."
   },
   "birds": {
     "order_lb": 40.0,
@@ -119,8 +120,17 @@
       "heads": 68.37606837606837,
       "dress_lb": 0.585,
       "n_today": 204,
+      "n_today_immortal": 204,
       "males": 51,
       "females": 153,
+      "breeder_males": 51,
+      "breeder_females": 153,
+      "pipeline_males": 0,
+      "pipeline_females": 0,
+      "pipeline_birds": 0,
+      "hens_into_cage_per_week": 0.0,
+      "peak_hen_slots": 51,
+      "sustain_peak": false,
       "ratio_females_per_male": 3.0,
       "ratio_label": "1:3",
       "n_pipe": 113.46042254736362,
@@ -140,7 +150,7 @@
       "fail_closed": true,
       "stage": "Stage 4 quail planning. Not a purchase.",
       "growth_tag": "ASSUMPTION",
-      "note": "Surplus only. The standing flock is 1 male : 3 females, the jumbo Coturnix ratio in the quail SPEC. N_today is the larger of the P10 herd for the safety-grossed firm order and the mortality pipeline plus the Ne nucleus. Breeders are not sold. Stage 4 planning."
+      "note": "Surplus only. Adult breeders stay 1 male : 3 females. N_today is the larger of the P10 herd for the safety-grossed firm order and the mortality pipeline plus the Ne nucleus. With sustain_peak, the pullet pipeline that holds the 17/51 hen slots inside peak lay is added on top. Spent hens are not booked as the delivery. Breeders are not sold. Stage 4 planning."
     }
   },
   "split": {
@@ -148,5 +158,11 @@
     "split_n0": 86.71928310394287
   },
   "income_n0": 2813.0,
+  "peak_cull": {
+    "n_today": 3518,
+    "n_today_immortal": 3444,
+    "order_lb": 902.8756341548973,
+    "pipeline_birds": 74
+  },
   "worm_lb_at_16500_month_12": 112.9759
 }

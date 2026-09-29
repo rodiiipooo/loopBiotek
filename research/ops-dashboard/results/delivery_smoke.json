@@ -1,11 +1,24 @@
 {
   "ok": true,
   "flock_today_40lb_week_26": {
-    "n_today": 204,
-    "males": 51,
-    "females": 153,
+    "n_today": 278,
+    "n_today_immortal": 204,
+    "males": 82,
+    "females": 196,
+    "breeder_males": 51,
+    "breeder_females": 153,
+    "pipeline_birds": 74,
     "binding": "pipeline",
     "f_prelim": 11.146137428803351,
+    "fail_closed": true
+  },
+  "ten_k_one_year": {
+    "order_lb": 902.8756341548973,
+    "f_prelim": 11.075722526680126,
+    "n_today": 3518,
+    "n_today_immortal": 3444,
+    "pipeline_birds": 74,
+    "hens_into_cage_per_week": 2.800765681407115,
     "fail_closed": true
   },
   "sample_10lb": [
