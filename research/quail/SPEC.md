@@ -52,6 +52,55 @@ See `RESEARCH.md` for citations. Tags: **SOURCED** vs **ASSUMPTION**.
 | Dress weight | ~0.585 lb | DERIVED |
 | Weekly mortality | 0.01 | ASSUMPTION |
 | Breeder ratio | 1♂:3♀ | ASSUMPTION |
+| Ne floor at 1:3 | 17♂ / 51♀ | DERIVED (Ne ≥ 50) |
+
+### Egg-layer peak window
+
+Hens are not kept at the blended 280 eggs/year rate forever. That 280 is a year-long average. Peak lay is a shorter slot. A hen occupies a peak slot while her productive fraction stays at or above **0.85** (ASSUMPTION). On the planning curve that is **weeks 14 through 33 of age**.
+
+| Anchor | Value | Tag |
+|--------|-------|-----|
+| Onset | 6–8 wk (planning midpoint 49 d, already above) | SOURCED |
+| Full peak hen-day | week 15 of age, 94% in Narinc et al. 2013 | SOURCED |
+| Sharp drop | after 26 wk of age (Woodard & Abplanalp 1971) | SOURCED |
+| Slot gate | fraction ≥ 0.85 | ASSUMPTION |
+| In-peak ages | weeks 14–33 | DERIVED from the gate |
+| Peak hen-day used for eggs | 0.90 | ASSUMPTION midpoint of the 88–98% band |
+| Fraction shape | straight lines between the anchors | ASSUMPTION |
+| Week-52 fraction | 0.50 | ASSUMPTION. Second-year lay was 48.3% of the first-year total, which is not this weekly point |
+| Useful-life rotation | 365 d | ASSUMPTION already in the kit sim. Not the peak gate |
+| Decline band named in planning | after ~6–12 months of lay | The 6-month edge is the slot gate (~26 wk of lay after week 8). The 12-month edge is the 365 d rotation |
+
+Productive fraction \(f(a)\) at age \(a\) weeks, 1.0 on the plateau:
+
+\[
+f(a)=\begin{cases}
+0 & a<6\\
+(a-6)/9 & 6\le a<15\\
+1 & 15\le a\le 26\\
+1-0.5\,(a-26)/26 & 26<a\le 52\\
+0.5\,(1-(a-52)/52) & 52<a<104\\
+0 & a\ge 104
+\end{cases}
+\]
+
+In peak when \(f(a)\ge 0.85\).
+
+**Cull.** Out-of-peak hens are marked for meat, oldest first. The cull stops if the birds left would fall under 17 males or 51 females. In-peak hens are not culled to make the flock smaller. Males above 1:3 of the hens that remain, and above 17, are surplus meat. Replacements are the in-peak hens still short of the target. The target snaps up to an exact 1:3 flock that also covers 17/51.
+
+**Steady replacement** for \(F\) peak hen slots ( \(F\) already snapped to 1:3 ):
+
+\[
+r=\frac{F}{\sum_{a\in\mathrm{peak}}(1-m)^{a}}
+\]
+
+\[
+\text{hens into the cage per week}=r\,(1-m)^{a_{\min}}
+\]
+
+Pipeline females are ages \(0\) through \(a_{\min}-1\). Pipeline males are the 1:1 brothers through the meat slaughter week (63 d). Adult breeders stay \(F\) hens and \(F/3\) males. They are already in the standing flock, so `flock_today` adds only the pipeline.
+
+`simulate_population(..., params=BiologyParams(use_peak_lay=True))` lays at \(0.90\times 7\) eggs/week from in-peak hens only, and culls hens past the slot to meat. The default kit ramp still uses the blended 280/year rate so the published meat ramp does not move. The Ne floor is enforced in `peak_cull_policy` and `flock_today`, not in a 5-male starter sim.
 
 ---
 

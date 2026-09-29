@@ -1,0 +1,381 @@
+{
+  "ok": true,
+  "stage_gate": "Stage 4 quail planning. Stage 1 worms remain the only spend.",
+  "peak_weeks": [
+    14,
+    33
+  ],
+  "peak_hen_day": 0.9,
+  "peak_slot_min": 0.85,
+  "steady_51": {
+    "day_old_females_per_week": 3.223918481379674,
+    "hens_into_cage_per_week": 2.800765681407115,
+    "pipeline_birds": 73.14171955028495,
+    "pipeline_males": 30.82643955302906,
+    "pipeline_females": 42.315279997255885,
+    "breeder_males": 17,
+    "breeder_females": 51
+  },
+  "fraction_by_week": [
+    {
+      "age_weeks": 0,
+      "productive_fraction": 0.0,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 1,
+      "productive_fraction": 0.0,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 2,
+      "productive_fraction": 0.0,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 3,
+      "productive_fraction": 0.0,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 4,
+      "productive_fraction": 0.0,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 5,
+      "productive_fraction": 0.0,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 6,
+      "productive_fraction": 0.0,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 7,
+      "productive_fraction": 0.1111111111111111,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 8,
+      "productive_fraction": 0.2222222222222222,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 9,
+      "productive_fraction": 0.3333333333333333,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 10,
+      "productive_fraction": 0.4444444444444444,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 11,
+      "productive_fraction": 0.5555555555555556,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 12,
+      "productive_fraction": 0.6666666666666666,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 13,
+      "productive_fraction": 0.7777777777777778,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 14,
+      "productive_fraction": 0.8888888888888888,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 15,
+      "productive_fraction": 1.0,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 16,
+      "productive_fraction": 1.0,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 17,
+      "productive_fraction": 1.0,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 18,
+      "productive_fraction": 1.0,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 19,
+      "productive_fraction": 1.0,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 20,
+      "productive_fraction": 1.0,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 21,
+      "productive_fraction": 1.0,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 22,
+      "productive_fraction": 1.0,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 23,
+      "productive_fraction": 1.0,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 24,
+      "productive_fraction": 1.0,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 25,
+      "productive_fraction": 1.0,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 26,
+      "productive_fraction": 1.0,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 27,
+      "productive_fraction": 0.9807692307692307,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 28,
+      "productive_fraction": 0.9615384615384616,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 29,
+      "productive_fraction": 0.9423076923076923,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 30,
+      "productive_fraction": 0.9230769230769231,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 31,
+      "productive_fraction": 0.9038461538461539,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 32,
+      "productive_fraction": 0.8846153846153846,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 33,
+      "productive_fraction": 0.8653846153846154,
+      "in_peak": true
+    },
+    {
+      "age_weeks": 34,
+      "productive_fraction": 0.8461538461538461,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 35,
+      "productive_fraction": 0.8269230769230769,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 36,
+      "productive_fraction": 0.8076923076923077,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 37,
+      "productive_fraction": 0.7884615384615384,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 38,
+      "productive_fraction": 0.7692307692307692,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 39,
+      "productive_fraction": 0.75,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 40,
+      "productive_fraction": 0.7307692307692308,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 41,
+      "productive_fraction": 0.7115384615384616,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 42,
+      "productive_fraction": 0.6923076923076923,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 43,
+      "productive_fraction": 0.6730769230769231,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 44,
+      "productive_fraction": 0.6538461538461539,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 45,
+      "productive_fraction": 0.6346153846153846,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 46,
+      "productive_fraction": 0.6153846153846154,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 47,
+      "productive_fraction": 0.5961538461538461,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 48,
+      "productive_fraction": 0.5769230769230769,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 49,
+      "productive_fraction": 0.5576923076923077,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 50,
+      "productive_fraction": 0.5384615384615384,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 51,
+      "productive_fraction": 0.5192307692307692,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 52,
+      "productive_fraction": 0.5,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 53,
+      "productive_fraction": 0.49038461538461536,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 54,
+      "productive_fraction": 0.4807692307692308,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 55,
+      "productive_fraction": 0.47115384615384615,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 56,
+      "productive_fraction": 0.46153846153846156,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 57,
+      "productive_fraction": 0.4519230769230769,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 58,
+      "productive_fraction": 0.4423076923076923,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 59,
+      "productive_fraction": 0.4326923076923077,
+      "in_peak": false
+    },
+    {
+      "age_weeks": 60,
+      "productive_fraction": 0.4230769230769231,
+      "in_peak": false
+    }
+  ],
+  "tags": {
+    "onset_weeks": {
+      "lo": 6.0,
+      "hi": 8.0,
+      "tag": "SOURCED",
+      "note": "6\u20138 wk to lay. Incubator Warehouse guide, already the quail SPEC onset."
+    },
+    "peak_rate_week": {
+      "week": 15.0,
+      "hen_day": 0.94,
+      "tag": "SOURCED",
+      "note": "Narinc et al. 2013, Poultry Science 92:1676. 94% hen-day at 15 wk of age (wk 9 of lay)."
+    },
+    "decline_start_week": {
+      "week": 26.0,
+      "tag": "SOURCED",
+      "note": "Woodard and Abplanalp 1971, as summarized in the UC Davis manual: rate of lay decreases sharply after 26 weeks of age. Second-year eggs were 48.3% of the first-year total."
+    },
+    "useful_life_days": {
+      "days": 365.0,
+      "tag": "ASSUMPTION",
+      "note": "Existing 1-year rotation. Useful life, not the peak slot."
+    },
+    "decline_after_months_of_lay": {
+      "lo_months": 6,
+      "hi_months": 12,
+      "tag": "ASSUMPTION",
+      "note": "The 6-month edge is where the planning fraction falls through the slot gate (about week 34 of age, 26 weeks after the week-8 end of onset). The 12-month edge is the 365-day rotation, not a peak claim."
+    },
+    "peak_hen_day": {
+      "value": 0.9,
+      "tag": "ASSUMPTION",
+      "note": "Midpoint of the 88\u201398% band Narinc cites. Their own flock peaked at 94%."
+    },
+    "peak_slot_min": {
+      "value": 0.85,
+      "tag": "ASSUMPTION"
+    },
+    "year_end_fraction": {
+      "value": 0.5,
+      "tag": "ASSUMPTION"
+    },
+    "fraction_shape": "ASSUMPTION straight lines between the sourced anchors",
+    "in_peak_weeks": [
+      14,
+      33
+    ],
+    "sex_ratio": "1 male : 3 females",
+    "ne_floor": {
+      "males": 17,
+      "females": 51,
+      "tag": "DERIVED Ne>=50 at 1:3"
+    },
+    "stage_gate": "Stage 4 planning. Stage 1 worms remain the only spend."
+  }
+}

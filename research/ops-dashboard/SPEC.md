@@ -121,7 +121,8 @@ Smoke (`python3 quail_income.py`, 2,000 paths, seed `20260926`): **N0 = 2,813**.
 
 | Chart | Decision |
 |-------|----------|
-| `birds_per_lb_vs_month.png` | Flock on hand today for a 40 lb surplus-only delivery. Week 4 needs 1,184 birds. Week 26 needs 204 (51 males and 153 females at 1:3). Later weeks need more because of pipeline mortality. The lower panel is \(F_{\mathrm{prelim}}\) at the 4.01% 3-month bill. |
+| `birds_per_lb_vs_month.png` | Flock on hand today for a 40 lb surplus-only delivery. Week 4 needs 1,184 birds. Week 26 needs 204 (51 males and 153 females at 1:3). Later weeks need more because of pipeline mortality. The lower panel is \(F_{\mathrm{prelim}}\) at the 4.01% 3-month bill. This panel leaves hens in peak forever. |
+| `peak_cull_layers.png` | Productive fraction versus week of age. A $10,000 prepaid order at week 52 is about 903 lb at \(F_{\mathrm{prelim}}\) about $11.08/lb. \(N_{\mathrm{today}}\) is 3,518 with the peak-cull pipeline and 3,444 without it. The extra 74 birds hold 51 hen slots. Breeders stay 1:3. The floor is not sold. |
 | `delivery_split_vs_soon.png` | 15 lb locked in month 3 plus 15 lb that can wait needs about 87 starters. All 30 lb in month 3 needs about 173. |
 | `quail_n0_for_2000.png` and `quail_feed_vs_herd.png` | The $2,000 case above, and the feed that heavy herd eats. |
 | `worm_p10_sell_room.png` | At 16,500 worms, P10 room is about 13 lb in month 3 and about 113 lb in month 12. |
