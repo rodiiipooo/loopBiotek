@@ -1,0 +1,234 @@
+{
+  "ok": true,
+  "stage_gate": "Stage 1 worms only. This growth graph is Stage 4 planning research. It does not open Stage 2\u20135 spend.",
+  "seed": 20260928,
+  "paths": 40,
+  "weeks": 52,
+  "p10_note": "P10 is the 10th percentile across seeded paths at that week. It is a harsh trajectory. Firm offtake inside each path is still alpha times surplus, not this percentile and not the median.",
+  "worm_doubling_week_ample_feed": 13,
+  "practice_founders": {
+    "males": 4.0,
+    "females": 12.0
+  },
+  "male_heavy_founders": {
+    "males": 12.0,
+    "females": 4.0
+  },
+  "week_26_median": {
+    "practice_hens": 13.381333333333334,
+    "male_heavy_hens": 5.0986666666666665,
+    "practice_greens_kg": 6.0,
+    "male_heavy_greens_kg": 48.22830631824887,
+    "practice_crickets": 1478.7281927203198,
+    "male_heavy_crickets": 1758.6932772455812,
+    "practice_protein_to_fish_kg": 0.024368638854376817,
+    "male_heavy_protein_to_fish_kg": 0.03898853511455745,
+    "practice_manure_kg": 0.5895931458276786,
+    "male_heavy_manure_kg": 0.49369098356882457,
+    "practice_worm_kg": 8.770497431768895,
+    "male_heavy_worm_kg": 8.757228214450347
+  },
+  "plots": [
+    "research/plots/cascade_dependency_graph.png",
+    "research/plots/cascade_trajectories.png",
+    "research/plots/cascade_sex_ratio_sensitivity.png"
+  ],
+  "parameters": [
+    {
+      "name": "quail_eggs_per_hen_per_year",
+      "value": 280.0,
+      "unit": "eggs/hen/yr",
+      "tag": "SOURCED",
+      "note": "research/quail range 200\u2013300; weekly rate is derived"
+    },
+    {
+      "name": "quail_eggs_per_hen_week",
+      "value": 5.3662,
+      "unit": "eggs/hen/wk",
+      "tag": "DERIVED",
+      "note": "EGGS_PER_HEN_PER_YEAR / (365.25/7)"
+    },
+    {
+      "name": "quail_hatch_rate",
+      "value": 0.75,
+      "unit": "fraction",
+      "tag": "ASSUMPTION",
+      "note": "research/quail midpoint of a literature band"
+    },
+    {
+      "name": "quail_sex_ratio_female",
+      "value": 0.5,
+      "unit": "fraction of chicks",
+      "tag": "ASSUMPTION",
+      "note": "hatch sex, not the breeder stocking ratio"
+    },
+    {
+      "name": "quail_breeder_males_per_female",
+      "value": 0.3333333333333333,
+      "unit": "males/female",
+      "tag": "ASSUMPTION",
+      "note": "1\u2642:3\u2640 jumbo Coturnix practice in research/quail"
+    },
+    {
+      "name": "quail_weekly_mortality",
+      "value": 0.01,
+      "unit": "/week",
+      "tag": "ASSUMPTION",
+      "note": "research/quail default"
+    },
+    {
+      "name": "quail_frac_female_to_breeders",
+      "value": 0.12,
+      "unit": "fraction",
+      "tag": "ASSUMPTION",
+      "note": "research/quail"
+    },
+    {
+      "name": "quail_frac_male_to_breeders",
+      "value": 0.04,
+      "unit": "fraction",
+      "tag": "ASSUMPTION",
+      "note": "research/quail; extra males are not recruited to match surplus males"
+    },
+    {
+      "name": "quail_incub_weeks",
+      "value": 2,
+      "unit": "weeks",
+      "tag": "DERIVED",
+      "note": "round(17.5/7) with the quail_model half-week rule"
+    },
+    {
+      "name": "quail_maturity_weeks",
+      "value": 7,
+      "unit": "weeks",
+      "tag": "DERIVED",
+      "note": "from maturity_days 49, ASSUMPTION in research/quail"
+    },
+    {
+      "name": "quail_slaughter_weeks",
+      "value": 9,
+      "unit": "weeks",
+      "tag": "DERIVED",
+      "note": "from slaughter_days 63, ASSUMPTION in research/quail"
+    },
+    {
+      "name": "quail_intake_g_per_day",
+      "value": 22.0,
+      "unit": "g/bird/day",
+      "tag": "ASSUMPTION",
+      "note": "same figure as quail_income.INTAKE_G_PER_BIRD_DAY"
+    },
+    {
+      "name": "quail_protein_share",
+      "value": 0.3,
+      "unit": "fraction of ration",
+      "tag": "ASSUMPTION",
+      "note": "quail_income worm share; this graph fills it with insects then worms"
+    },
+    {
+      "name": "quail_plant_share",
+      "value": 0.7,
+      "unit": "fraction of ration",
+      "tag": "ASSUMPTION",
+      "note": "the rest of that ration, taken from greens"
+    },
+    {
+      "name": "worm_floor_headcount",
+      "value": 16500.0,
+      "unit": "breeders",
+      "tag": "ASSUMPTION",
+      "note": "16,500 planning starters already used on the ops screen"
+    },
+    {
+      "name": "worm_doubling_target_weeks",
+      "value": 13.0,
+      "unit": "weeks",
+      "tag": "ASSUMPTION",
+      "note": "ops-dashboard worm stand-in; fecundity is calibrated toward it"
+    },
+    {
+      "name": "worm_weekly_sigma",
+      "value": 0.015,
+      "unit": "log sd",
+      "tag": "ASSUMPTION",
+      "note": "ops-dashboard worm stand-in"
+    },
+    {
+      "name": "worm_carrying_multiple",
+      "value": 16.0,
+      "unit": "x floor",
+      "tag": "ASSUMPTION",
+      "note": "ops-dashboard worm stand-in"
+    },
+    {
+      "name": "worm_per_lb",
+      "value": 1000.0,
+      "unit": "adults/lb",
+      "tag": "ASSUMPTION",
+      "note": "ops-dashboard planning count"
+    },
+    {
+      "name": "worm_cocoons_per_breeder_week",
+      "value": 0.22,
+      "unit": "cocoons/breeder/wk",
+      "tag": "ASSUMPTION",
+      "note": "planning rate; clutch size is folded in; calibrated not measured"
+    },
+    {
+      "name": "worm_weekly_mortality",
+      "value": 0.005,
+      "unit": "/week",
+      "tag": "ASSUMPTION",
+      "note": "slower than the quail planning mortality"
+    },
+    {
+      "name": "external_feedstock_kg",
+      "value": 2.2,
+      "unit": "kg/week",
+      "tag": "ASSUMPTION",
+      "note": "stage-1 bin feedstock so worms are not fed only by later species"
+    },
+    {
+      "name": "cricket_weekly_survival",
+      "value": 0.95,
+      "unit": "/week",
+      "tag": "ASSUMPTION",
+      "note": "README Module 3 demo, not a new measurement"
+    },
+    {
+      "name": "cricket_harvest_cap_frac",
+      "value": 0.6,
+      "unit": "fraction of adults",
+      "tag": "ASSUMPTION",
+      "note": "README Module 3 demo"
+    },
+    {
+      "name": "frass_per_kg_feed",
+      "value": 0.4,
+      "unit": "kg/kg",
+      "tag": "ASSUMPTION",
+      "note": "README Module 3 demo"
+    },
+    {
+      "name": "fish_harvest_frac",
+      "value": 0.25,
+      "unit": "fraction of growout",
+      "tag": "ASSUMPTION",
+      "note": "README Module 4 demo weekly cap"
+    },
+    {
+      "name": "alpha_firm",
+      "value": 0.9,
+      "unit": "fraction of surplus",
+      "tag": "ASSUMPTION",
+      "note": "synergy firm-book stand-in, not a P50 sale"
+    },
+    {
+      "name": "seed",
+      "value": 20260928,
+      "unit": "",
+      "tag": "SCOPE",
+      "note": "default ensemble seed"
+    }
+  ]
+}

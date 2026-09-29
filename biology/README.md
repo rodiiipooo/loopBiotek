@@ -21,3 +21,5 @@ Source of record for the **staged live-biology capital cascade** that funds Loop
 ## Quail (Stage 4 — planning only)
 
 See [`../research/quail/`](../research/quail/) — jumbo Coturnix production-rate model, Grit kit capacity, fair prepaid forward. **Not active spend.**
+
+Coupled stochastic growth across the cascade (worms through fish), including that 1♂:3♀ stocking, is planning research in [`../research/cascade_growth/`](../research/cascade_growth/). It does not open Stage 2–5 spend.
