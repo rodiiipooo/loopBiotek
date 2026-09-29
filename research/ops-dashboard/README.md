@@ -124,3 +124,11 @@ py -3 smoke.py
 ```
 
 That writes `results/reverse_smoke.json` for 16,500 worms, $2,000 by month 12, P10, and checks that a saved promise changes the remaining room and that an oversized promise is blocked. It uses a temporary database, not `data/forwards.sqlite`.
+
+Which orders to accept so a rolling monthly revenue floor still holds, without cutting breeders or cascade feed, is `order_control.py`. The operator knob is `R_min` (default $3,000/month revenue). The operator note is [`ORDER_CONTROL.md`](ORDER_CONTROL.md).
+
+```bash
+python3 test_order_control.py
+```
+
+Planning only. It does not sell birds and it does not open Stage 2–5 spend.

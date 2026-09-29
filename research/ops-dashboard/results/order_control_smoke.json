@@ -1,0 +1,187 @@
+{
+  "ok": true,
+  "stage_gate": "Stage 4 planning only. Stage 1 worms remain the only spend. No live trading and no CapEx purchase.",
+  "objective": "monthly revenue R_min",
+  "R_min": 3000.0,
+  "H_months": 3,
+  "quail_week_26": [
+    {
+      "g_per_week": 0.0,
+      "allowed_heads_now": 2000.0000000000032,
+      "allowed_lb_now": 1170.0000000000018,
+      "allowed_heads_at_t": 2180.765625,
+      "binding": "growth",
+      "fail_closed": false
+    },
+    {
+      "g_per_week": 0.01,
+      "allowed_heads_now": 1409.4873700651913,
+      "allowed_lb_now": 824.5501114881368,
+      "allowed_heads_at_t": 2180.765625,
+      "binding": "growth",
+      "fail_closed": false
+    },
+    {
+      "g_per_week": 0.02,
+      "allowed_heads_now": 653.163771291955,
+      "allowed_lb_now": 382.1008062057936,
+      "allowed_heads_at_t": 1306.327542583912,
+      "binding": "growth",
+      "fail_closed": false
+    }
+  ],
+  "surplus_reject": [
+    "quail: after the sale -4800.0 heads remain, under the retained 68.0 (breed floor 68.0 + feed buffer 0.0)",
+    "sale would drop males or females under the Ne floor (17 males / 51 females)",
+    "order exceeds surplus above the breed floor",
+    "growth gate: week 4: 5000.00 heads exceeds firm surplus or the Ne floor (124.96)",
+    "order exceeds firm surplus above the Ne floor and the feed buffer",
+    "quail: order plus reservations exceed that species' own firm surplus",
+    "revenue floor: week 4: selling 5000.00 heads breaks the breed floor"
+  ],
+  "ne_reject": [
+    "quail: after the sale 67.0 heads remain, under the retained 68.0 (breed floor 68.0 + feed buffer 0.0)",
+    "sale would drop males or females under the Ne floor (17 males / 51 females)",
+    "order exceeds surplus above the breed floor",
+    "growth gate: week 4: 1.00 heads exceeds firm surplus or the Ne floor (0.00)",
+    "order exceeds firm surplus above the Ne floor and the feed buffer",
+    "quail: order plus reservations exceed that species' own firm surplus"
+  ],
+  "roi_reject": [
+    "ROI gate: contribution below the hurdle"
+  ],
+  "sample_accept": {
+    "accept": true,
+    "reasons": [],
+    "caps": {
+      "growth_now": 2008.0000000000032,
+      "firm_or_ne": 3553.2000000000003,
+      "safe_sell_allowed_firm": 3553.2000000000003,
+      "sex_surplus": 3948.0,
+      "peak_meat": null,
+      "growth_at_t": 4016.0000000000127,
+      "pipeline": 2365.9743055547265,
+      "flock_today": 2189.484375,
+      "firm_at_t": 7167.600000000011,
+      "allowed_now": 2008.0000000000032,
+      "allowed_by_t": 2189.484375,
+      "g_explicit": false,
+      "g_implied_per_week": 0.0
+    },
+    "residuals": {
+      "implied_g": {
+        "quail": {
+          "retained_heads": 68.0,
+          "breed_floor": 68.0,
+          "feed_heads": 0.0,
+          "n_now": 4016.0,
+          "n_after": 4006.0,
+          "headroom_heads": 3938.0,
+          "g_implied_per_week": 0.0,
+          "g_biological_per_week": 0.0270180507087725,
+          "g_note": "Implied g is 0 on the retained stock: do not shrink the breed floor or the feed buffer. g_biological_per_week is the doubling stand-in, not a target.",
+          "edges_clear": true
+        }
+      },
+      "feed_edges": [],
+      "scale": {
+        "ok": true,
+        "lambda": 1.0,
+        "by_species": {
+          "quail": {
+            "lambda": 1.0,
+            "role": "target",
+            "demand_per_week": null,
+            "ok": null
+          }
+        },
+        "reasons": [],
+        "tag": "ASSUMPTION scale law. lambda_j = (lambda_i * (1+g_i) * c_{i\u2190j} * N_i) / max(eps, (g_j - loss_j) * N_j). c is upstream units per downstream head per week. g_i defaults to 0. loss_j defaults to M_WEEKLY. g_j defaults to the doubling stand-in. Not a measured diet. lambda_j > 1 means the upstream stock on hand cannot feed that scale. This does not authorize a purchase."
+      },
+      "growth": {
+        "feasible": true,
+        "residual": 2008.0000000000032,
+        "reasons": [],
+        "applied": false
+      },
+      "cascade_mode": "per_species_stub",
+      "runway": {
+        "target_kind": "revenue",
+        "min_monthly_revenue": 3001.241123178002,
+        "mean_monthly_revenue": 3001.241123178002,
+        "min_monthly_contribution": 2154.280019850512,
+        "contribution_ok": true,
+        "margin_per_head": 4.705550256163802,
+        "revenue_per_head": 6.5555502561638015,
+        "reasons": []
+      },
+      "roi": {
+        "revenue": 65.55550256163801,
+        "var_cost": 18.5,
+        "opp_cost": 0.0,
+        "contribution": 47.05550256163801,
+        "roi": 2.5435406790074597,
+        "accept_hurdle_met": true,
+        "reasons": []
+      }
+    },
+    "reservations": {
+      "id": "sample-yes",
+      "species": "quail",
+      "heads": 10.0,
+      "qty": 10,
+      "unit": "head",
+      "week": 4,
+      "buyer": "planning sample",
+      "status": "proposed"
+    },
+    "notes": [
+      "Stage 4 planning only. Stage 1 worms remain the only spend. No live trading and no CapEx purchase.",
+      "Primary gate is average monthly REVENUE, default $3,000 over 3 months, from economics/MARGIN_3K_BACKSOLVE.md. Contribution is a secondary ASSUMPTION check when a variable cost exists.",
+      "ASSUMPTION ration, upstream units per downstream head per week. Not a measured diet. Override with policy['feed_rates']. Buffer on hand is that rate times the downstream breed floor times 2 weeks.",
+      "ASSUMPTION scale law. lambda_j = (lambda_i * (1+g_i) * c_{i\u2190j} * N_i) / max(eps, (g_j - loss_j) * N_j). c is upstream units per downstream head per week. g_i defaults to 0. loss_j defaults to M_WEEKLY. g_j defaults to the doubling stand-in. Not a measured diet. lambda_j > 1 means the upstream stock on hand cannot feed that scale. This does not authorize a purchase.",
+      "Spend order stays worms first (biology/CASCADE.md). The feed graph in this module is cyclic and is not permission to buy the later stages.",
+      "g was not set. Implied rule: do not shrink the breed floor or the feed buffer. g_s is reported after the sale. It is not the knob.",
+      "no upstream stock in the book; scale walk is empty",
+      "STUB: research/cascade_growth is not on this branch. Each species is checked on its own floor via safe_sell_limit / keep_floor. Set feed_reserve_heads on a species to hold biomass back for whoever eats it. This sale does not lower another species' floor."
+    ],
+    "stage_gate": "Stage 4 planning only. Stage 1 worms remain the only spend. No live trading and no CapEx purchase."
+  },
+  "sample_reject_reason": [
+    "quail: after the sale -95984.0 heads remain, under the retained 68.0 (breed floor 68.0 + feed buffer 0.0)",
+    "sale would drop males or females under the Ne floor (17 males / 51 females)",
+    "order exceeds surplus above the breed floor",
+    "quail: order plus reservations exceed that species' own firm surplus",
+    "revenue floor: week 4: selling 100000.00 heads breaks the breed floor"
+  ],
+  "capacity_hold_heads": 4016.0,
+  "capacity_min_monthly_revenue": 3001.241123178002,
+  "capacity_min_monthly_contribution": 2154.280019850512,
+  "capacity_g_explicit": false,
+  "rank_winner": "quail",
+  "rank_rows": [
+    {
+      "species": "quail",
+      "revenue_per_head": 6.5555502561638015,
+      "bottleneck": "worms",
+      "bottleneck_units_per_head": 20.0,
+      "weeks_of_cover": 1507.5,
+      "score": 0.32777751280819006,
+      "rate_tag": "ASSUMPTION",
+      "score_formula": "revenue_per_head / bottleneck_units_per_head"
+    },
+    {
+      "species": "worms",
+      "revenue_per_head": 0.03776316316015934,
+      "bottleneck": "worms",
+      "bottleneck_units_per_head": 1.0,
+      "weeks_of_cover": null,
+      "score": 0.03776316316015934,
+      "rate_tag": "own surplus",
+      "score_formula": "revenue_per_head / bottleneck_units_per_head"
+    }
+  ],
+  "scale_ok": true,
+  "scale_worms_lambda": 1.0,
+  "g_unit": "fraction per week, optional helper"
+}
