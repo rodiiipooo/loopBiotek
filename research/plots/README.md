@@ -10,6 +10,21 @@ cd research
 python3 decision_plots.py
 ```
 
+The coupled species graph is a separate command. It writes three more pictures into this folder:
+
+```bash
+cd research/cascade_growth
+python3 smoke.py
+```
+
+| Plot | What it teaches |
+|------|-----------------|
+| `cascade_dependency_graph.png` | Life-cycle stages and the feed, manure, and nutrient arrows between them. |
+| `cascade_trajectories.png` | Median and P10 for a 1♂:3♀ quail start. Seed 20260928, 40 paths. |
+| `cascade_sex_ratio_sensitivity.png` | The same 16 founders as 1♂:3♀ or 3♂:1♀. More hens draw greens down and leave fewer crickets and fish. |
+
+Those three are Stage 4 planning. The how-to is [`../cascade_growth/README.md`](../cascade_growth/README.md). Stage 1 worms remain the only spend.
+
 | Plot | What it teaches |
 |------|-----------------|
 | `birds_per_lb_vs_month.png` | Flock on hand today for a 40 lb surplus-only delivery. Week 4 needs 1,184 birds. Week 26 needs 204 (51 males and 153 females at 1:3). Later weeks need more because of pipeline mortality. Lower panel: \(F_{\mathrm{prelim}}\) at the 4.01% 3-month bill. |
@@ -19,6 +34,9 @@ python3 decision_plots.py
 | `quail_n0_for_2000.png` | About 2,813 starters hold $2,000 a month of P10 meat from month 2 through month 24. |
 | `quail_feed_vs_herd.png` | Worm and plant feed follow the heavy herd. A short ration fails closed. |
 | `worm_p10_sell_room.png` | Worm P10 room grows with the starting herd and with a later month. |
+| `cascade_dependency_graph.png` | Stages and nutrient links across the cascade. |
+| `cascade_trajectories.png` | Median and P10 coupled stocks for a 1♂:3♀ quail start. |
+| `cascade_sex_ratio_sensitivity.png` | 1♂:3♀ against 3♂:1♀, same 16 founders, and the hen–greens phase. |
 
 The ops screen shows this gallery under **Decision charts**.
 
