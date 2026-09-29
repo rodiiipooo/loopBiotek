@@ -59,6 +59,33 @@ Default rates are **ASSUMPTION** placeholders, upstream units per downstream hea
 
 An edge with both ends in the book and no rate fails closed, unless the upstream herd already carries `feed_reserve_heads`. That explicit buffer covers the unrated edges out of that species.
 
+## Cascade scale law
+
+To scale production of species `i` by a factor `lambda_i`, every upstream species `j` has to cover the extra ration from the stock it already has. **ASSUMPTION**:
+
+```
+lambda_j = (lambda_i * (1 + g_i) * c_{i←j} * N_i) / max(eps, (g_j - loss_j) * N_j)
+```
+
+`c_{i←j}` is the same weekly ration as the feed table (upstream units per head of `i`). `N_i` and `N_j` are the headcounts in the book. `g_i` defaults to 0, which holds the downstream herd, and then `(1 + g_i)` is 1. Set `g` on that herd, or pass an explicit policy `g`, to raise the draw. `g_j` defaults to the doubling stand-in `rho_j - 1`. `loss_j` defaults to `M_WEEKLY` (1% per week). Override either on the upstream herd with `g`, `loss_per_week`, or `m_weekly`.
+
+The walk follows the feed graph backward: algae, then plants, then worms and crickets, then the fish or quail being scaled. An upstream eaten by two descendants gets the sum of those draws, then one lambda.
+
+The scale is refused when any of these is true:
+
+- The upstream net surplus rate `(g_j - loss_j)` is <= 0. The formula does not divide by that rate.
+- The herd is already under its Ne / breed floor, or the scaled draw over `BUFFER_WEEKS` is larger than firm surplus (`safe_sell_limit`, and `cascade_growth.model.firm_take` when that module is on the tree).
+- `lambda_j > 1`. Today's upstream stock cannot feed the larger sale.
+
+A missing ration fails closed the same way. `lambda_j > 1` is a headroom miss. It is not a shopping list. Stage 1 worms remain the only spend.
+
+`accept_order` sets `lambda_i` to `(one week of firm offtake + this order) / that offtake` when the book has an upstream of the species being sold. No upstream in the book leaves the walk empty. `capacity_plan` sets `lambda_i` to the sized herd divided by the herd already in `cascade_state` (or 1 when the sized herd is the one placed in the book).
+
+```python
+factor = oc.upstream_scale_factor("quail", "worms", 1.0, book)
+plan = oc.scale_cascade("quail", 1.0, book)
+```
+
 ## What you can sell (`sellable_for_growth`)
 
 This helper answers a growth question. Capacity and order acceptance do not require it.
@@ -87,7 +114,7 @@ Missing counts, a missing doubling time, or a helper that cannot answer: **allow
 `accept_order` says yes only when all of these hold. Fail closed.
 
 1. **Population.** After this order and every open reservation, males stay at or above 17 and females at or above 51 (or the species' own `keep_floor`). The sale comes out of surplus. It does not take a breeder.
-2. **Cascade feed.** Every live feed edge still clears. Implied `g_s` is 0 on the retained stock. A missing ration on a live edge refuses the order.
+2. **Cascade feed.** Every live feed edge still clears. Implied `g_s` is 0 on the retained stock. A missing ration on a live edge refuses the order. The scale law also has to clear: upstream net surplus rate above 0, Ne floors intact, and `lambda_j` at or below 1 for the sales scale this order implies.
 3. **Revenue.** For the next `H` months (default 3), the thinnest week's firm surplus, priced at fair prepaid and scaled by 52/12, is still at least `R_min`. A flock that cannot throw that revenue off refuses the order. `capacity_plan` sizes the hold that can. An older `M_min` key is read as the same revenue dollars.
 4. **Contribution (secondary).** When a variable-cost **ASSUMPTION** exists, monthly contribution on that same harvest has to stay at or above zero. Quail cost is **$1.85/bird** (`$3.169/lb × ~0.585 lb` on the margin page; the source file is not in this checkout). Worm opex is **17.8% of prepaid revenue** (path C margin ratio 0.822). Other species have no cost here, so this check does not invent one.
 5. **ROI.** Revenue on the quote is `F_prelim` from `fair_prepaid` (inflation 2.7%, 3-month bill 4.01%, fairness 0.9, spot from the ops-dashboard engine), unless you pass a `price_fn`.

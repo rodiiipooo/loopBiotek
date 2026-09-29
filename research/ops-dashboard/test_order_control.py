@@ -162,6 +162,97 @@ def check_revenue_floor_and_rank() -> dict:
     return ranking
 
 
+def check_scale_law() -> dict:
+    quail = {"n_now": 40.0, "n_males": 10.0, "n_females": 30.0, "n0": 20.0, "n_start": 20.0, "n_safety": 20.0}
+    worms = {"n_now": 1000.0, "n0": 100.0, "g": 0.05, "loss_per_week": 0.01}
+    book = {"quail": quail, "worms": worms}
+    rates = {"feed_rates": {("worms", "quail"): 2.0}}
+    factor = oc.upstream_scale_factor("quail", "worms", 2.0, book, rates)
+    # (2 * (1+0) * 2 * 40) / ((0.05 - 0.01) * 1000) = 160 / 40 = 4
+    assert abs(factor["lambda_j"] - 4.0) < 1e-9, factor
+    assert factor["ok"] is False
+    assert any("scale" in reason for reason in factor["reasons"]), factor["reasons"]
+
+    stalled = dict(worms)
+    stalled["g"] = 0.0
+    stalled_book = {"quail": quail, "worms": stalled}
+    stalled_factor = oc.upstream_scale_factor("quail", "worms", 1.0, stalled_book, rates)
+    assert stalled_factor["lambda_j"] is None
+    assert stalled_factor["ok"] is False
+    assert any("net surplus" in reason for reason in stalled_factor["reasons"]), stalled_factor["reasons"]
+
+    nucleus = dict(worms)
+    nucleus["n_now"] = 50.0
+    nucleus["n0"] = 100.0
+    nucleus_book = {"quail": quail, "worms": nucleus}
+    under = oc.upstream_scale_factor("quail", "worms", 1.0, nucleus_book, rates)
+    assert under["ok"] is False
+    assert any("Ne" in reason or "breed floor" in reason for reason in under["reasons"]), under["reasons"]
+
+    covered = {
+        "quail": quail,
+        "worms": {"n_now": 20000.0, "n0": 100.0, "g": 0.05, "loss_per_week": 0.01},
+    }
+    walk = oc.scale_cascade("quail", 1.0, covered, {"feed_rates": {("worms", "quail"): 20.0}})
+    assert walk["ok"] is True, walk["reasons"]
+    assert abs(walk["by_species"]["worms"]["lambda"] - 1.0) < 1e-6
+
+    short = oc.scale_cascade("quail", 1.0, book, {"feed_rates": {("worms", "quail"): 20.0}})
+    assert short["ok"] is False
+    assert any("scale" in reason for reason in short["reasons"]), short["reasons"]
+
+    chain = {
+        "algae": {"n_now": 1.0e9, "n0": 10.0, "g": 0.2, "loss_per_week": 0.01},
+        "plants": {"n_now": 1.0e9, "n0": 10.0, "g": 0.2, "loss_per_week": 0.01},
+        "worms": {"n_now": 300000.0, "n0": 16500.0, "g": 0.05, "loss_per_week": 0.01},
+        "quail": oc.quail_planning_state(100, 300),
+    }
+    chain_rates = {
+        "feed_rates": {
+            ("algae", "plants"): 0.001,
+            ("plants", "worms"): 0.001,
+            ("plants", "quail"): 0.001,
+            ("worms", "quail"): 20.0,
+        }
+    }
+    chained = oc.scale_cascade("quail", 1.0, chain, chain_rates)
+    assert chained["ok"] is True, chained["reasons"]
+    assert "algae" in chained["by_species"] and "plants" in chained["by_species"]
+
+    thin_sale = oc.accept_order(
+        {"species": "quail", "qty": 1, "unit": "head", "week": 1},
+        oc.OrderBook(),
+        {
+            "quail": oc.quail_planning_state(100, 300),
+            "worms": {"n_now": 20000.0, "n0": 16500.0, "g": 0.05, "loss_per_week": 0.01},
+        },
+        {"R_min": 0},
+    )
+    assert thin_sale.accept is False
+    assert any("scale" in reason for reason in thin_sale.reasons), thin_sale.reasons
+
+    fat_sale = oc.accept_order(
+        {"species": "quail", "qty": 1, "unit": "head", "week": 1},
+        oc.OrderBook(),
+        {
+            "quail": oc.quail_planning_state(100, 300),
+            "worms": {"n_now": 400000.0, "n0": 16500.0, "g": 0.05, "loss_per_week": 0.01},
+        },
+        {"R_min": 0},
+    )
+    assert fat_sale.accept is True, fat_sale.reasons
+
+    original = oc._load_firm_take
+    oc._load_firm_take = lambda: (lambda *args, **kwargs: 0.0)
+    try:
+        blocked = oc.upstream_scale_factor("quail", "worms", 1.0, covered, {"feed_rates": {("worms", "quail"): 20.0}})
+    finally:
+        oc._load_firm_take = original
+    assert blocked["ok"] is False
+    assert any("Ne floor" in reason for reason in blocked["reasons"]), blocked["reasons"]
+    return walk
+
+
 def _public_row(row: dict) -> dict:
     return {
         "g_per_week": row["g_per_week"],
@@ -180,6 +271,7 @@ def main() -> None:
     cheap = check_roi_reject()
     accept, reject, plan = check_sample()
     ranking = check_revenue_floor_and_rank()
+    scaled = check_scale_law()
 
     print("Quail sellable heads. Horizon 26 weeks. Herd 1000 males + 3000 females. Floor 68.")
     print("g is an optional weekly helper. The operator knob is R_min, monthly revenue.")
@@ -201,6 +293,10 @@ def main() -> None:
         f"score {ranking['ranked'][0]['score']:.4f} vs {ranking['ranked'][1]['species']} "
         f"{ranking['ranked'][1]['score']:.4f}"
     )
+    print(
+        f"Scale walk: ok={scaled['ok']}  "
+        f"worms lambda {scaled['by_species']['worms']['lambda']:.3f} at quail lambda 1"
+    )
     print("Stage 4 planning only. Stage 1 worms remain the only spend.")
 
     payload = {
@@ -221,6 +317,8 @@ def main() -> None:
         "capacity_g_explicit": plan["g_explicit"],
         "rank_winner": ranking["winner"],
         "rank_rows": ranking["ranked"],
+        "scale_ok": scaled["ok"],
+        "scale_worms_lambda": scaled["by_species"]["worms"]["lambda"],
         "g_unit": "fraction per week, optional helper",
     }
     # Drop the nested herd state from the accept residuals if any non-JSON sneaks in.

@@ -14,6 +14,11 @@ exists. That cost is an ASSUMPTION.
 still has to clear. The implied ``g_s`` is 0 on that retained stock: do not
 shrink it. Biological doubling is reported beside it. It is not the target.
 
+Scaling sales of species ``i`` by ``lambda_i`` asks every upstream ``j`` for
+``upstream_scale_factor``. A non-positive upstream net surplus rate, or a
+draw that would cut an Ne floor, fails closed. ``lambda_j > 1`` means the
+stock on hand cannot feed that larger sale. Nothing here buys the shortfall.
+
 ``sellable_for_growth`` is still the weekly growth helper. ``g`` there is a
 fraction per week, the same clock as ``M_WEEKLY``. ``g = 0.01`` means one
 percent per week. ``t`` is a whole number of weeks. ``accept_order`` uses that
@@ -152,6 +157,23 @@ ASSUMPTION_FEED_TAG = (
     "Not a measured diet. Override with policy['feed_rates']. "
     "Buffer on hand is that rate times the downstream breed floor times "
     f"{BUFFER_WEEKS:g} weeks."
+)
+
+# ASSUMPTION scale law (Rod 2026-09-29). To run species i at scale lambda_i,
+# upstream j has to throw off enough net surplus to cover the extra ration.
+# g_i defaults to 0 (hold the downstream herd). At that default the (1+g_i)
+# term is 1 and the fraction matches the sketch. loss_j defaults to M_WEEKLY.
+# g_j defaults to the doubling stand-in rho_j - 1. eps only guards a tiny
+# positive surplus. A non-positive net rate fails closed and does not divide.
+SCALE_EPS = 1e-9
+SCALE_LAW_TAG = (
+    "ASSUMPTION scale law. "
+    "lambda_j = (lambda_i * (1+g_i) * c_{i←j} * N_i) / max(eps, (g_j - loss_j) * N_j). "
+    "c is upstream units per downstream head per week. "
+    "g_i defaults to 0. loss_j defaults to M_WEEKLY. "
+    "g_j defaults to the doubling stand-in. Not a measured diet. "
+    "lambda_j > 1 means the upstream stock on hand cannot feed that scale. "
+    "This does not authorize a purchase."
 )
 
 # Species this gate knows how to sex. Doubling times for worms and quail come
@@ -837,6 +859,461 @@ def cascade_feed_plan(
     }
 
 
+def upstream_scale_factor(
+    i: str,
+    j: str,
+    lambda_i: float,
+    state: dict | None,
+    policy: dict | None = None,
+) -> dict:
+    """How much upstream ``j`` must scale so species ``i`` can run at ``lambda_i``.
+
+    ``i`` eats ``j``. ``c_{i←j}`` is upstream units per downstream head per week.
+
+        lambda_j = (lambda_i * (1 + g_i) * c * N_i) / max(eps, (g_j - loss_j) * N_j)
+
+    ``g_i`` defaults to 0, so the numerator matches the Rod sketch unless a
+    growth rate is set on the downstream herd or as an explicit policy ``g``.
+    ``(g_j - loss_j) <= 0`` fails closed. So does a missing ration, a missing
+    herd, or a draw that would cut ``j`` under its Ne / breed floor.
+    ``lambda_j > 1`` means today's ``N_j`` cannot feed that scale.
+    """
+    blank = {
+        "ok": False,
+        "i": _node_name(i) if i else "",
+        "j": _node_name(j) if j else "",
+        "i_key": None,
+        "j_key": None,
+        "lambda_i": None,
+        "lambda_j": None,
+        "demand_per_week": None,
+        "net_surplus_rate": None,
+        "surplus_production_per_week": None,
+        "g_i": None,
+        "g_j": None,
+        "loss_j": None,
+        "c": None,
+        "N_i": None,
+        "N_j": None,
+        "rate_ok": False,
+        "reasons": [],
+        "formula": (
+            "lambda_j = (lambda_i * (1+g_i) * c_{i←j} * N_i) "
+            "/ max(eps, (g_j - loss_j) * N_j)"
+        ),
+        "tag": SCALE_LAW_TAG,
+        "stage_gate": STAGE_GATE,
+    }
+    if not isinstance(state, dict):
+        blank["reasons"] = ["cascade state is missing; scale law fail closed"]
+        return blank
+    lam = _optional_float(lambda_i)
+    if lam is None or lam <= 0:
+        blank["reasons"] = ["lambda_i must be > 0; scale law fail closed"]
+        return blank
+    blank["lambda_i"] = lam
+    i_key = _book_key_for_node(state, _node_name(i)) or (str(i) if str(i) in state else None)
+    j_key = _book_key_for_node(state, _node_name(j)) or (str(j) if str(j) in state else None)
+    blank["i_key"] = i_key
+    blank["j_key"] = j_key
+    if i_key is None or j_key is None:
+        blank["reasons"] = [f"{i} ← {j}: both herds have to be in the book; scale law fail closed"]
+        return blank
+    i_herd = _load_herd(i_key, state.get(i_key) if isinstance(state.get(i_key), dict) else None)
+    j_herd = _load_herd(j_key, state.get(j_key) if isinstance(state.get(j_key), dict) else None)
+    if i_herd is None or j_herd is None:
+        blank["reasons"] = [f"{i_key} ← {j_key}: herd counts missing; scale law fail closed"]
+        return blank
+    rate, rate_tag = _feed_rate(_node_name(j_key), _node_name(i_key), policy)
+    if rate_tag == "bad" or rate is None or rate <= 0:
+        blank["reasons"] = [
+            f"{j_key} → {i_key}: no positive ration c; scale law fail closed. " + ASSUMPTION_FEED_TAG
+        ]
+        return blank
+    g_i, g_i_tag = _scale_g(i_key, i_herd, policy, role="i")
+    g_j, g_j_tag = _scale_g(j_key, j_herd, None, role="j")
+    loss = _scale_loss(j_herd)
+    if g_i is None or g_j is None or loss is None:
+        blank["reasons"] = [
+            f"{j_key} → {i_key}: growth or loss rate missing; scale law fail closed"
+        ]
+        blank["c"] = rate
+        blank["N_i"] = float(i_herd["n_now"])
+        blank["N_j"] = float(j_herd["n_now"])
+        return blank
+    n_i = float(i_herd["n_now"])
+    n_j = float(j_herd["n_now"])
+    demand = lam * (1.0 + g_i) * float(rate) * n_i
+    net_rate = float(g_j) - float(loss)
+    blank.update({
+        "rate_ok": True,
+        "c": float(rate),
+        "c_tag": rate_tag,
+        "g_i": g_i,
+        "g_i_tag": g_i_tag,
+        "g_j": g_j,
+        "g_j_tag": g_j_tag,
+        "loss_j": loss,
+        "N_i": n_i,
+        "N_j": n_j,
+        "demand_per_week": demand,
+        "net_surplus_rate": net_rate,
+    })
+    reasons: list[str] = []
+    floors = _floors(j_key, j_herd)
+    if n_j + _HEAD_TOL < float(floors["keep"]):
+        reasons.append(
+            f"{j_key}: already under the Ne / breed floor ({floors['keep']:.1f}); scale law fail closed"
+        )
+    if net_rate <= 0.0:
+        reasons.append(
+            f"{j_key}: net surplus rate {net_rate:.4f}/week <= 0 "
+            f"(g_j {g_j:.4f} - loss {loss:.4f}); scale law fail closed"
+        )
+        blank["reasons"] = reasons
+        blank["ok"] = False
+        return blank
+    production = net_rate * n_j
+    blank["surplus_production_per_week"] = production
+    lambda_j = demand / max(SCALE_EPS, production)
+    blank["lambda_j"] = lambda_j
+    draw = demand * float(BUFFER_WEEKS)
+    releasable, take_reason = _scale_releasable(j_key, j_herd, draw)
+    blank["buffer_draw_heads"] = draw
+    blank["releasable_heads"] = releasable
+    if take_reason:
+        reasons.append(f"{j_key}: {take_reason}")
+    elif releasable is None or draw > float(releasable) + 1e-6:
+        reasons.append(
+            f"{j_key}: scaled feed draw {draw:.1f} would break the Ne floor "
+            f"(firm surplus {0.0 if releasable is None else releasable:.1f})"
+        )
+    if lambda_j > 1.0 + 1e-6:
+        reasons.append(
+            f"{j_key}: upstream scale {lambda_j:.3f} > 1 to feed {i_key} at lambda {lam:.3f}; "
+            "net surplus on hand cannot cover the larger sale. No purchase is authorized."
+        )
+    blank["reasons"] = reasons
+    blank["ok"] = not reasons
+    return blank
+
+
+def scale_cascade(
+    target_species: str,
+    lam: float,
+    state: dict | None,
+    policy: dict | None = None,
+) -> dict:
+    """Walk upstream of ``target_species`` and scale each feed stock.
+
+    Food flows algae → plants → worms, crickets, and quail, then worms and
+    crickets → fish and quail. This walk follows those edges backward from
+    the species whose sales are being scaled. An upstream eaten by two
+    descendants gets the sum of those draws, then one lambda.
+
+    Fail closed when any upstream net surplus rate is <= 0, when the draw
+    would cut an Ne floor, or when the required scale is above 1 (today's
+    stock cannot feed the larger downstream sale).
+    """
+    target = _node_name(target_species)
+    result = {
+        "ok": False,
+        "target": target,
+        "lambda": None,
+        "by_species": {},
+        "edges": [],
+        "reasons": [],
+        "tag": SCALE_LAW_TAG,
+        "stage_gate": STAGE_GATE,
+    }
+    if not isinstance(state, dict):
+        result["reasons"] = ["cascade state is missing; scale law fail closed"]
+        return result
+    factor = _optional_float(lam)
+    if factor is None or factor <= 0:
+        result["reasons"] = ["lambda must be > 0; scale law fail closed"]
+        return result
+    result["lambda"] = factor
+    target_key = _book_key_for_node(state, target)
+    if target_key is None:
+        result["reasons"] = [f"{target} is not in the herd book; scale law fail closed"]
+        return result
+    if _load_herd(target_key, state.get(target_key) if isinstance(state.get(target_key), dict) else None) is None:
+        result["reasons"] = [f"{target_key}: herd counts missing; scale law fail closed"]
+        return result
+
+    reachable = _scale_reachable(target_key, state)
+    waiting = {key: 0 for key in reachable}
+    upstream_of: dict[str, list[tuple[str, str]]] = {key: [] for key in reachable}
+    for key in reachable:
+        for up_key, what in _upstream_links(key, state):
+            if up_key in reachable and up_key != key:
+                waiting[up_key] += 1
+                upstream_of[key].append((up_key, what))
+
+    demands: dict[str, float] = {key: 0.0 for key in reachable}
+    lambdas: dict[str, float] = {target_key: factor}
+    reasons: list[str] = []
+    edges: list[dict] = []
+    ready = [target_key]
+    seen: set[str] = set()
+    while ready:
+        down_key = ready.pop()
+        if down_key in seen:
+            continue
+        seen.add(down_key)
+        lambda_i = lambdas.get(down_key)
+        if lambda_i is None:
+            reasons.append(f"{down_key}: scale factor missing; fail closed")
+            continue
+        for up_key, what in upstream_of[down_key]:
+            edge = upstream_scale_factor(down_key, up_key, lambda_i, state, policy)
+            edge["what"] = what
+            edges.append(edge)
+            if not edge.get("rate_ok"):
+                reasons.extend(edge.get("reasons") or [f"{up_key} → {down_key}: scale edge fail closed"])
+            else:
+                demands[up_key] = demands.get(up_key, 0.0) + float(edge["demand_per_week"])
+            waiting[up_key] -= 1
+            if waiting[up_key] <= 0 and up_key not in seen and up_key not in ready:
+                combined = _scale_from_demand(up_key, demands[up_key], state)
+                if combined.get("lambda_j") is None:
+                    reasons.extend(combined.get("reasons") or [f"{up_key}: scale law fail closed"])
+                else:
+                    lambdas[up_key] = float(combined["lambda_j"])
+                    if not combined.get("ok"):
+                        reasons.extend(combined.get("reasons") or [])
+                ready.append(up_key)
+
+    by_species = {
+        target_key: {
+            "lambda": factor,
+            "role": "target",
+            "demand_per_week": None,
+        }
+    }
+    for key, demand in demands.items():
+        if key == target_key:
+            continue
+        if key not in lambdas and not any(edge.get("j_key") == key for edge in edges):
+            continue
+        combined = _scale_from_demand(key, demand, state)
+        by_species[key] = {
+            "lambda": combined.get("lambda_j"),
+            "role": "upstream",
+            "demand_per_week": demand,
+            "net_surplus_rate": combined.get("net_surplus_rate"),
+            "surplus_production_per_week": combined.get("surplus_production_per_week"),
+            "N": combined.get("N_j"),
+            "g": combined.get("g_j"),
+            "loss": combined.get("loss_j"),
+            "ok": combined.get("ok"),
+            "reasons": combined.get("reasons"),
+        }
+        if key not in lambdas:
+            reasons.extend(combined.get("reasons") or [])
+    # Edges that never got a combined check (rate failed) still fail the walk.
+    unfinished = [key for key in reachable if key != target_key and key not in by_species]
+    for key in unfinished:
+        reasons.append(f"{key}: upstream scale was not resolved; fail closed")
+    result["by_species"] = by_species
+    result["edges"] = edges
+    result["reasons"] = _unique(reasons)
+    result["ok"] = not result["reasons"] and all(
+        edge.get("ok") for edge in edges
+    )
+    # A target with no upstream in the book is a clean walk.
+    if not edges and not result["reasons"]:
+        result["ok"] = True
+    return result
+
+
+def _scale_reachable(target_key: str, state: dict) -> set[str]:
+    found: set[str] = set()
+    stack = [target_key]
+    while stack:
+        key = stack.pop()
+        if key in found:
+            continue
+        found.add(key)
+        for up_key, _what in _upstream_links(key, state):
+            if up_key not in found:
+                stack.append(up_key)
+    return found
+
+
+def _upstream_links(down_key: str, state: dict) -> list[tuple[str, str]]:
+    down_node = _node_name(down_key)
+    links: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for upstream, downstream, what in CASCADE_EDGES:
+        if _node_name(downstream) != down_node:
+            continue
+        up_key = _book_key_for_node(state, upstream)
+        if up_key is None or up_key in seen or up_key == down_key:
+            continue
+        seen.add(up_key)
+        links.append((up_key, what))
+    return links
+
+
+def _scale_g(species: str, herd: dict, policy: dict | None, role: str) -> tuple[float | None, str]:
+    if herd.get("g") is not None:
+        rate = _growth_rate(herd.get("g"))
+        if rate is None:
+            return None, "bad"
+        return rate, "state g"
+    if role == "i" and policy and policy.get("g_explicit") and policy.get("g") is not None:
+        rate = _growth_rate(policy.get("g"))
+        if rate is None:
+            return None, "bad"
+        return rate, "policy g"
+    if role == "j":
+        rho = _rho(species, herd)
+        if rho is None:
+            return None, "missing doubling time"
+        return rho - 1.0, "ASSUMPTION biological doubling (rho - 1)"
+    return 0.0, "implied 0 (maintain the downstream herd)"
+
+
+def _scale_loss(herd: dict) -> float | None:
+    for key in ("loss_per_week", "m_weekly"):
+        if herd.get(key) is None:
+            continue
+        loss = _optional_float(herd.get(key))
+        if loss is None or loss < 0.0 or loss >= 1.0:
+            return None
+        return loss
+    return float(M_WEEKLY)
+
+
+def _scale_from_demand(species: str, demand_per_week: float, state: dict) -> dict:
+    """One upstream lambda from the summed weekly draw of every descendant."""
+    herd = _load_herd(species, state.get(species) if isinstance(state.get(species), dict) else None)
+    out = {
+        "ok": False,
+        "lambda_j": None,
+        "demand_per_week": demand_per_week,
+        "reasons": [],
+        "net_surplus_rate": None,
+        "surplus_production_per_week": None,
+        "N_j": None,
+        "g_j": None,
+        "loss_j": None,
+    }
+    if herd is None:
+        out["reasons"] = [f"{species}: herd counts missing; scale law fail closed"]
+        return out
+    g_j, _tag = _scale_g(species, herd, None, role="j")
+    loss = _scale_loss(herd)
+    n_j = float(herd["n_now"])
+    out["N_j"] = n_j
+    out["g_j"] = g_j
+    out["loss_j"] = loss
+    reasons: list[str] = []
+    floors = _floors(species, herd)
+    if n_j + _HEAD_TOL < float(floors["keep"]):
+        reasons.append(
+            f"{species}: already under the Ne / breed floor ({floors['keep']:.1f}); scale law fail closed"
+        )
+    if g_j is None or loss is None:
+        reasons.append(f"{species}: growth or loss rate missing; scale law fail closed")
+        out["reasons"] = reasons
+        return out
+    net_rate = float(g_j) - float(loss)
+    out["net_surplus_rate"] = net_rate
+    if net_rate <= 0.0:
+        reasons.append(
+            f"{species}: net surplus rate {net_rate:.4f}/week <= 0 "
+            f"(g_j {g_j:.4f} - loss {loss:.4f}); scale law fail closed"
+        )
+        out["reasons"] = reasons
+        return out
+    production = net_rate * n_j
+    out["surplus_production_per_week"] = production
+    if demand_per_week < 0:
+        reasons.append(f"{species}: negative feed demand; scale law fail closed")
+        out["reasons"] = reasons
+        return out
+    lambda_j = float(demand_per_week) / max(SCALE_EPS, production)
+    out["lambda_j"] = lambda_j
+    draw = float(demand_per_week) * float(BUFFER_WEEKS)
+    releasable, take_reason = _scale_releasable(species, herd, draw)
+    if take_reason:
+        reasons.append(f"{species}: {take_reason}")
+    elif draw > float(releasable or 0.0) + 1e-6:
+        reasons.append(
+            f"{species}: scaled feed draw {draw:.1f} would break the Ne floor "
+            f"(firm surplus {0.0 if releasable is None else releasable:.1f})"
+        )
+    if lambda_j > 1.0 + 1e-6:
+        reasons.append(
+            f"{species}: upstream scale {lambda_j:.3f} > 1; "
+            "net surplus on hand cannot cover the larger downstream sale. No purchase is authorized."
+        )
+    out["reasons"] = reasons
+    out["ok"] = not reasons
+    return out
+
+
+def _scale_releasable(species: str, herd: dict, requested: float) -> tuple[float | None, str | None]:
+    """Firm heads that can leave ``species`` without cutting the breed floor.
+
+    Uses ``safe_sell_limit`` through the sex cap. When ``cascade_growth.model.firm_take``
+    is importable, the releasable count is the smaller of the two.
+    """
+    floors = _floors(species, herd)
+    capped = _firm_sex_cap(species, herd, 0, floors)
+    if capped.get("reason"):
+        return None, capped["reason"]
+    releasable = float(capped["cap"])
+    firm_take = _load_firm_take()
+    if firm_take is None:
+        return releasable, None
+    try:
+        released = float(firm_take(
+            float(herd["n_now"]),
+            float(floors["unsellable"]),
+            float(max(requested, 0.0)),
+            float(M_WEEKLY),
+            lead_weeks=0.0,
+            n_req_forward=float(floors["keep"]),
+        ))
+    except Exception as err:  # noqa: BLE001 — a broken helper must not open the gate
+        return None, f"firm_take failed ({err}); fail closed"
+    if released < 0:
+        return None, "firm_take returned a negative release; fail closed"
+    return min(releasable, released), None
+
+
+def _sale_scale(species: str, state: dict, heads: float, cascade_state: dict) -> tuple[float | None, str]:
+    """lambda for this order: (one week of firm offtake + the sale) / that offtake.
+
+    A species with no upstream in the book keeps lambda 1 and does not need a
+    weekly surplus to pass the scale walk.
+    """
+    if not _upstream_links(species, cascade_state):
+        return 1.0, "no upstream stock in the book; scale walk is empty"
+    weekly = sellable_for_growth(species, state, 0.0, 1, delivery_cap=False)
+    offtake = float(weekly.get("allowed") or 0.0)
+    if offtake <= _HEAD_TOL:
+        return None, (
+            f"{species}: no firm weekly surplus to scale; "
+            "upstream headroom fail closed"
+        )
+    return (offtake + float(heads)) / offtake, (
+        "lambda = (weekly firm offtake + this order) / weekly firm offtake"
+    )
+
+
+def _unique(reasons: list[str]) -> list[str]:
+    seen: list[str] = []
+    for reason in reasons:
+        if reason and reason not in seen:
+            seen.append(reason)
+    return seen
+
+
 def rank_skus(cascade_state: dict | None, policy: dict | None = None) -> dict:
     """Rank sellable species by revenue toward ``R_min`` per unit of the tightest upstream.
 
@@ -1110,6 +1587,7 @@ def accept_order(
         STAGE_GATE,
         DEFAULT_R_MIN_TAG,
         ASSUMPTION_FEED_TAG,
+        SCALE_LAW_TAG,
         "Spend order stays worms first (biology/CASCADE.md). The feed graph in this module is cyclic and is not permission to buy the later stages.",
     ]
     rules = _policy(policy)
@@ -1163,6 +1641,30 @@ def accept_order(
         residuals["feed_edges"] = feed.get("edges")
         if not feed.get("edges_clear"):
             reasons.extend(feed.get("reasons") or ["a cascade feed edge does not clear"])
+        sale_lambda, sale_note = _sale_scale(species, state, heads + reserved, cascade_state)
+        notes.append(sale_note)
+        if sale_lambda is None:
+            reasons.append(sale_note)
+            residuals["scale"] = {"ok": False, "lambda": None, "reasons": [sale_note], "tag": SCALE_LAW_TAG}
+        else:
+            scaled = scale_cascade(species, sale_lambda, cascade_state, rules)
+            residuals["scale"] = {
+                "ok": scaled.get("ok"),
+                "lambda": scaled.get("lambda"),
+                "by_species": {
+                    name: {
+                        "lambda": row.get("lambda"),
+                        "role": row.get("role"),
+                        "demand_per_week": row.get("demand_per_week"),
+                        "ok": row.get("ok"),
+                    }
+                    for name, row in (scaled.get("by_species") or {}).items()
+                },
+                "reasons": scaled.get("reasons"),
+                "tag": SCALE_LAW_TAG,
+            }
+            if not scaled.get("ok"):
+                reasons.extend(scaled.get("reasons") or ["cascade scale law fail closed"])
         feed_heads = float((feed.get("by_species") or {}).get(species, {}).get("feed_heads") or 0.0)
         guarded = dict(state)
         guarded["feed_reserve_heads"] = max(float(state.get("feed_reserve_heads") or 0.0), feed_heads)
@@ -1288,6 +1790,10 @@ def capacity_plan(
     omitted the schedule sells only the surplus that keeps the herd from
     shrinking (implied g = 0 on the retained stock). Pass ``g`` only to
     demand a faster whole-herd path. This does not buy stock.
+
+    When ``cascade_state`` is present, the sized herd is checked with
+    ``scale_cascade``. Upstream stock has to feed that scale already.
+    A shortfall refuses the plan. It is not a purchase list.
     """
     key = str(species).strip().lower()
     g_explicit = g is not None
@@ -1437,11 +1943,35 @@ def capacity_plan(
     except ValueError:
         backsolve = None
     feed = None
+    scale = None
     if cascade_state is not None:
         feed = cascade_feed_plan({**cascade_state, key: herd}, {"feed_rates": None})
         if not feed.get("edges_clear"):
             feasible = False
             reasons.extend(feed.get("reasons") or ["feed edges do not clear at this hold"])
+        scale_book: dict = {}
+        for name, herd_row in cascade_state.items():
+            scale_book[str(name)] = dict(herd_row) if isinstance(herd_row, dict) else herd_row
+        current = scale_book.get(key) if isinstance(scale_book.get(key), dict) else None
+        current_n = None if current is None else _optional_float(current.get("n_now"))
+        if current_n is not None and current_n > 0:
+            scale_lambda = float(herd["n_now"]) / current_n
+        else:
+            placed = dict(herd)
+            scale_book[key] = placed
+            scale_lambda = 1.0
+        if g_explicit and isinstance(scale_book.get(key), dict):
+            scale_book[key] = dict(scale_book[key])
+            scale_book[key]["g"] = rate
+        scale = scale_cascade(
+            key,
+            scale_lambda,
+            scale_book,
+            {"feed_rates": None, "g": rate, "g_explicit": g_explicit},
+        )
+        if not scale.get("ok"):
+            feasible = False
+            reasons.extend(scale.get("reasons") or ["scale law does not clear at this hold"])
     return {
         "species": key,
         "target_kind": "revenue",
@@ -1471,6 +2001,12 @@ def capacity_plan(
         "revenue_backsolve_heads_per_month": None if backsolve is None else backsolve["units"],
         "schedule_feasible": check.get("feasible"),
         "feed": None if feed is None else {"edges_clear": feed.get("edges_clear"), "reasons": feed.get("reasons")},
+        "scale": None if scale is None else {
+            "ok": scale.get("ok"),
+            "lambda": scale.get("lambda"),
+            "by_species": scale.get("by_species"),
+            "reasons": scale.get("reasons"),
+        },
         "state": herd,
         "reasons": reasons,
         "note": (
